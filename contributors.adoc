@@ -1,0 +1,7 @@
+== Contributors
+
+This RISC-V specification has been contributed to directly or indirectly by:
+
+[%hardbreaks]
+* Author1 <optional@email.com>
+* Author2
