@@ -1,8 +1,8 @@
 [[header]]
-:description: RISC-V Example Specification Document (Zexmpl)
+:description: RISC-V IOMMU Specification Document (Ziommu)
 :company: RISC-V.org
-:revdate: 1/2022
-:revnumber: 1.0
+:revdate: 3/2022
+:revnumber: 0.1
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
@@ -36,8 +36,8 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
-= RISC-V Example Specification Document (Zexmpl)
-Author 1; Author 2; RISC-V Task Group
+= RISC-V IOMMU Specification Document (Ziommu)
+IOMMU Task Group
 
 // Preamble
 [WARNING]
@@ -61,7 +61,9 @@ Copyright 2022 by RISC-V International.
 include::contributors.adoc[]
 
 include::intro.adoc[]
-include::chapter2.adoc[]
+include::iommu_data_structures.adoc[]
+include::iommu_in_memory_queues.adoc[]
+include::iommu_registers.adoc[]
 //the index must precede the bibliography
 include::index.adoc[]
 include::bibliography.adoc[]

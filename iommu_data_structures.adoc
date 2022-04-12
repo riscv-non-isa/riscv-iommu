@@ -1,0 +1,559 @@
+== Data Structures
+A data structure called device-context (DC) is used by the IOMMU to associate 
+a device with an address space and to hold other per-device parameters used 
+by IOMMU to perform address translations. A radix-tree data structure called
+device directory table (DDT) traversed using the `device_id` is used to hold
+the DC. 
+
+Two formats of the device-context structure are supported:
+
+* *Base Format* - A 32-byte DC used when MSI address translation using 
+  MSI flat page table and redirection of MSI to memory-resident interrupt files
+  (MRIFs) are not supported. 
+
+* *Extended Format* - In the extended format a 64-byte device context is used
+  and extends the base device context with additional information for 
+  processing MSIs.
+
+DC associates the device, identified by `device_id`,  with an 
+guest-physical-address space by providing a pointer to a G-stage page 
+table and a virtual machine identifier called the guest soft-context ID 
+(`GSCID`). 
+
+To support devices with multiple process contexts, the DC points to a 
+radix-tree data structure called the Process Directory Table (PDT) used to 
+associate a `process_id` with a virtual address space. The PDT is used to hold
+the pointer to a S or VS-stage page table for a `process_id`.
+
+The DDT may be configured to be a 1, 2, or 3 level radix table depending on 
+the maximum width of the `device_id` supported. The partitioning of the 
+`device_id` to obtain the device directory indexes (DDI) to traverse the DDT 
+radix-tree table are as follows:
+
+.Base format `device_id` partitioning
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 7, name: 'DDI[0]'},
+  {bits: 9, name: 'DDI[1]'},
+  {bits: 8, name: 'DDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
+.Extended format `device_id` partitioning
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 6, name: 'DDI[0]'},
+  {bits: 9, name: 'DDI[1]'},
+  {bits: 9, name: 'DDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
+The PDT may be configured to be a 1, 2, or 3 level radix table depending on the
+maximum width of the `process_id` supported.  Each process directory table entry
+is 16-byte wide and provides the pointer to a S or VS-stage page table, the 
+address translation scheme and an identifier for the process address space
+called the Process soft-context ID (`PSCID`). 
+The partitioning of the `process_id` to obtain the process directory indices 
+(PDI) to traverse the PDT radix-tree table are as follows:
+
+.`process_id` partitioning for PDT radix-tree traversal
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 8, name: 'PDI[0]'},
+  {bits: 9, name: 'PDI[1]'},
+  {bits: 3, name: 'PDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
+[NOTE]
+====
+All RISC-V IOMMU implementations are required to support DDT and PDT located 
+in main memory. Supporting data structures in I/O memory is not required.
+====
+
+=== Device-Directory-Table (DDT)
+DDT is upto 3-level radix tree indexed using the device directory index (DDI) 
+bits of the `device_id`. 
+
+The following diagrams illustrate the DDT radix-tree. The root device-directory
+page number is located using a memory-mapped control register called the 
+device-directory-table pointer (`ddtp`). Each non-leaf (NL) entry provides the 
+PPN of the next level device-directory-table page. The leaf device directory
+table entry holds the device-context (`DC`).
+
+.Three, two and single-level device directory
+["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+....
+  +-------+-------+-------+      +-------+-------+   +-------+
+  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |   |DDI[0] |
+  +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
+     |       |       |             |       |           |
+     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
+     |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
+     |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
+     |  |  | |  |  | +->|DC|       |  |  | +->|DC|     |   |  |
+     |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
+     |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
+     |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
+     +->+--+    |  | |  |  |          +--+ |  |  |     +-->|DC|
+        |NL+-+  |  | |  |  |          |  | |  |  |         +--+
+        +--+ |  |  | |  |  |          |  | |  |  |         |  |
+        |  | |  |  | |  |  |          |  | |  |  |         |  |
+ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+ ddtp--->+--+
+....
+
+==== Non-leaf DDT entry
+
+A valid (`V=1`) non-leaf DDT entry provides PPN of the next level DDT page.
+
+.Non-leaf device-directory-table entry
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1,  name: 'V',        attr: '1'},
+  {bits: 11, name: 'reserved', attr: '11'},
+  {bits: 44, name: 'PPN',      attr: '44'},
+  {bits: 8,  name: 'reserved', attr: '8'},
+], config:{lanes: 2, hspace:1024, fontsize: 16}}
+....
+
+==== Leaf DDT entry
+The leaf DDT page is indexed by `DDI[0]` and holds the device-context (DC).
+
+In base-format the `DC` is 32-bytes.
+
+.Base-format device-context
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'Translation Control (tc)'},
+  {bits: 64,  name: 'IO Hyp. guest addr. translation and prot. (iohgatp)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+], config:{lanes: 4, hspace: 1024, fontsize: 16}}
+....
+
+In extended-format the `DC` is 64-bytes.
+
+.Extended-format device-context
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'Translation Control (tc)'},
+  {bits: 64,  name: 'IO Hyp. guest addr. translation and prot. (iohgatp)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'MSI-page-table pointer (msiptp)'},
+  {bits: 64,  name: 'MSI-address-mask (msi_addr_mask)'},
+  {bits: 64,  name: 'MSI-address-pattern (msi_addr_pattern)'},
+  {bits: 64,  name: 'reserved'},
+], config:{lanes: 8, hspace: 1024, fontsize: 16}}
+....
+
+==== Device-context fields
+===== Translation control (`tc`)
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1,  name: 'V'},
+  {bits: 1,  name: 'EN_ATS'},
+  {bits: 1,  name: 'EN_PRI'},
+  {bits: 1,  name: 'T2GPA'},
+  {bits: 1,  name: 'DTF'},
+  {bits: 1,  name: 'PDTV'},
+  {bits: 26, name: 'reserved'},
+  {bits: 32, name: 'for custom use'},
+], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
+....
+
+`DC` is valid if the `V` bit is 1; If it is 0, all other bits in `DC` are 
+don't-care and may be freely used by software.
+
+If IOMMU supports PCIe ATS specification (see `capabilities` register), `EN_ATS` 
+bit is used to enable ATS transaction processing. If `EN_ATS` is set to 1, 
+IOMMU supports the following inbound transactions; otherwise they are treated 
+as unsupported transactions.
+
+* TRANSLATION_REQUEST
+* INVALIDATION_COMPLETION
+* PAGE_REQUEST
+
+If `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA the 
+translation of an IOVA in a TRANSLATION_REQUEST from the device. When `T2GPA` is
+1, the IOVA in translated memory accesses is a GPA and translated through the 
+G-stage page table to a PA. This control enables a hypervisor to contain 
+DMA from a device directly controlled by the guest OS, even with ATS capability
+enabled, to the VMs memory. 
+
+[NOTE]
+====
+When `T2GPA` is enabled, the addresses provided to the device in response to a 
+TRANSLATION_REQUEST are not directly routable by the I/O fabric (e.g. PCI 
+switches) that connect the device to other peer devices and to host. Such 
+addresses are also not routable within the device even if peer-to-peer 
+transactions within the device (e.g. between functions of a device) are 
+supported.
+
+Hypervisors that configure `T2GPA` to 1 must ensure through protocol specific 
+means that translated accesses are routed through the host such that the IOMMU
+may translate the GPA and then route the transaction based on PA to memory or 
+to a peer device. For PCIe, for example, the Access Control Service (ACS) may 
+be configured to always redirect peer-to-peer (P2P) requests upstream to the 
+host. 
+
+Use of `T2GPA` set to 1 may not be compatible with devices that implement caches
+tagged by the translated address returned in response to a TRANSLATION_REQUEST.
+As an alternative to setting `T2GPA` to 1, the hypervisor may establish a trust 
+relationship with the device if authentication protocols are supported by the 
+device. For PCIe, for example, the PCIe component measurement and 
+authentication (CMA) capability provides a mechanism to verify the devices 
+configuration and firmware/executables (Measurement) and hardware identities 
+(Authentication) to establish such a trust relationship.
+====
+
+If `EN_PRI` bit is 0, then “Page Request” messages from the device are invalid 
+requests.
+
+[NOTE]
+====
+When SR-IOV VF is used as a unit of allocation, a hypervisor may disable page 
+requests from one of the virtual functions by setting `EN_PRI` to 0. However the
+page-request interface is shared by the PF and all VFs. The IOMMU protocol 
+specific logic is encouraged to classify this condition as a non-catastrophic 
+failure in its response to avoid the shared PRI in the device being disabled
+for all PFs/VFs.
+====
+
+Setting disable-translation-fault - `DTF` - bit to 1 disables reporting of 
+faults encountered in the address translation process. Setting `DTF` to 1 does 
+not disable error responses from being generated to the device in response to 
+faulting transactions. Setting `DTF` to 1 does not disable reporting of faults 
+from the IOMMU that are not related to the address translation process.
+
+[NOTE]
+====
+A hypervisor may set `DTF` to 1 to disable fault reporting when it has 
+identified conditions that may lead to a flurry of errors such as due to an 
+abnormal termination of a virtual machine that may require the hypervisor to 
+reset the device.
+====
+
+The 'fsc' field of 'DC' holds the context for first-stage translations (S-stage 
+or VS-stage). The field holds the pointer to a PDT if the `PDTV` bit is 1. 
+If the `PDTV` bit is 0, the `fsc` field instead holds a pointer to a supervisor 
+first-stage page table (i.e. `iosatp`) if `iohgatp.MODE` is `Bare` and holds a 
+pointer to a virtual-supervisor first-stage page table (i.e. `iovsatp`) if 
+`iohgatp.MODE` is not `Bare`.
+
+The `PDTV` is expected to be set to 1 when `DC` is associated with a device 
+that supports multiple process contexts and thus generates a valid `process_id` 
+with its memory accesses.
+
+===== IO hypervisor guest address translation and protection (`iohgatp`)
+The `iohgatp` field holds the PPN of the root G-stage page table and a 
+virtual machine identified by a guest soft-context ID (`GSCID`), to facilitate 
+address-translation fences on a per-virtual-machine basis. If multiple devices
+are associated to a VM with a common G-stage page table, the hypervisor is
+expected to program the same `GSCID` in each `iohgatp`. The MODE field is used 
+to select the G-stage address translation scheme.
+
+This field controls the G-stage address translation and protection. The G-stage
+page table formats and `MODE` encodings follow the format defined by the 
+privileged specification.
+
+Implementations are not required to support all defined mode settings for 
+iohgatp. The IOMMU only needs to support the modes also supported by the MMU 
+in the harts integrated into the system.
+
+.IO hypervisor guest address translation and protection (iohgatp)
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'GSCID'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+
+===== First-Stage context (`fsc`)
+If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE` 
+is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that points to 
+a S-stage page table or VS-stage page table respectively.
+
+.IO (Virtual)Supervisor addr. translation and prot. (iovsatp/iosatp) field (when PDTV is 0)
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'reserved'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The encodings of the `iosatp`/`iovsatp` `MODE` field are as the same as the 
+encodings for `MODE` field in the `satp` CSR.
+
+When `PDTV` is 1, the `fsc` field holds the process-directory table pointer 
+(`pdtp`). When the device supports multiple process contexts, selected by the 
+`process_id`, the PDT is used to determine the first-stage page table and 
+associated `PSCID` for virtual address translation and protection.
+
+The PDT is a 1, 2, or 3-level radix tree indexed using the process directory 
+index (`PDI`) bits of the process_id. The pdtp field holds the PPN of the root
+page of the PDT and the `MODE` field that determines the number of levels of the
+PDT.
+
+.Process-directory table pointer (`pdtp`) field (when `PDTV` is 1)
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'reserved'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+When two-stage address translation is active (`iohgatp.MODE != Bare`), the PPN 
+field holds a guest PPN.  The guest physical address of the PDT root page are 
+then converted by guest physical address translation, as controlled by the 
+iohgatp, into a supervisor physical address. Translating addresses of PDT root
+page through G-stage page tables, allows the PDT to be mapped into the 
+guest OS address space to allow the guest OS to directly edit the PDT to 
+associate a virtual-address space identified by a first-stage page table with
+a `process_id`.
+
+.Table Encoding of `pdtp` `MODE` field
+[width=75%]
+[%header, cols="3,3,20"]
+|===
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection. First stage translation is
+                    not enabled.
+| 1    | `PD20`   | 20-bit process ID enabled. The directory has 3 levels. 
+                    The root PDT page has 8 entries and the next non-leaf 
+                    level has 512 entries.The leaf level has 256 entries.
+| 2    | `PD17`   | 17-bit process ID enabled. The directory has 2 levels. 
+                    The root PDT page has 512 entries and leaf level has 
+                    256 entries. The bits 19:17 of `process_id` must be 0.
+| 3    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels. 
+                    The leaf level has 256 entries.The bits 19:17 of 
+                    `process_id` must be 0.
+| 3-15 | --       | Reserved
+|===
+
+===== Translation attributes (`ta`)
+
+.Translation attributes (`ta`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'reserved'},
+  {bits: 20, name: 'PSCID'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The `PSCID` field of `ta` provides the process soft-context ID that identifies 
+the address-space of the process. `PSCID` facilitates address-translation 
+fences on a per-address-space basis. The `PSCID` field in `ta` is used as the 
+address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not 
+`Bare`.
+
+===== MSI page table pointer (`msiptp`)
+
+The `msiptp` field holds the PPN of the root MSI flat page table used to direct an 
+MSI to a guest interrupt file in an IMSIC. The MSI page table format is defined
+in section 9.5 of the Advanced Interrupt Architecture (AIA) specification.
+
+The `MODE` field is used to select the MSI address translation scheme.
+
+.MSI page table pointer (`msiptp`)
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'reserved'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+.Table Encoding of `msiptp` `MODE` field
+[width=75%]
+[%header, cols="3,3,20"]
+|===
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection. MSI recognition using
+                    MSI address mask and pattern is not performed.
+| 1    | `Flat`   | Flat MSI page table (see section 9.5 of AiA specification)
+|===
+
+===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
+
+The MSI address mask (`msi_adddr_mask`) and pattern (`msi_addr_pattern`) fields
+are used to recognize certain memory writes from the device as being MSIs. The 
+use of these fields is as specified in section 9.4 of the Advanced Interrupt 
+Architecture Specification.
+
+
+=== Process-Directory-Table (PDT)
+
+The PDT is a 1, 2, or 3-level radix tree indexed using the process directory 
+index (`PDI`) bits of the `process_id`. 
+
+The following diagrams illustrate the PDT radix-tree. The root 
+process-directory page number is located using the process-directory-table 
+pointer (`pdtp`) field of the device-context. Each non-leaf (NL) entry provides 
+the PPN of the next level process-directory-table page. The leaf
+process-directory table entry holds the process-context (`PC`).
+
+.Three, two and single-level process directory
+["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+....
+  +-------+-------+-------+      +-------+-------+   +-------+
+  |PDI[2] |PDI[1] |PDI[0] |      |PDI[1] |PDI[0] |   |PDI[0] |
+  +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
+     |       |       |             |       |           |
+     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
+     |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
+     |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
+     |  |  | |  |  | +->|PC|       |  |  | +->|PC|     |   |  |
+     |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
+     |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
+     |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
+     +->+--+    |  | |  |  |          +--+ |  |  |     +-->|PC|
+        |NL+-+  |  | |  |  |          |  | |  |  |         +--+
+        +--+ |  |  | |  |  |          |  | |  |  |         |  |
+        |  | |  |  | |  |  |          |  | |  |  |         |  |
+pdtp--->+--+ +->+--+ +->+--+  pdtp--->+--+ +->+--+ pdtp--->+--+
+....
+
+
+==== Non-leaf PDT entry
+
+A valid (`V`==1) non-leaf PDT entry holds the PPN of the next-level PDT page.
+
+.Non-leaf process-directory-table entry
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1,  name: 'V',        attr: '1'},
+  {bits: 11, name: 'reserved', attr: '11'},
+  {bits: 44, name: 'PPN',      attr: '44'},
+  {bits: 8,  name: 'reserved', attr: '8'},
+], config:{lanes: 2, hspace:1024, fontsize: 16}}
+....
+
+==== Leaf PDT entry
+The leaf PDT page  is indexed by `PDI[0]` and holds the 16-byte process-context (`PC`).
+
+.process-context
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+==== Process-context fields
+
+===== Translation attributes (`ta`)
+
+.Translation attributes (`ta`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1,  name: 'V',        attr: '1'},
+  {bits: 1,  name: 'ENS',     attr: '1'},
+  {bits: 1,  name: 'SUM',    attr: '1'},
+  {bits: 41, name: 'reserved', attr: '42'},
+  {bits: 20, name: 'PSCID',    attr: '20'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+`PC` is valid if the `V` bit is 1; If it is 0, all other bits in `PC` are don't
+care and may be freely used by software.
+
+When Enable-Supervisory-access (`ENS`) is 1, transactions requesting supervisor
+privilege are allowed with this `process_id` else the transaction is treated as 
+a unsupported transaction.
+
+When `ENS` is 1, the `SUM` (permit Supervisor User Memory access) bit 
+modifies the privilege with which supervisor privilege transactions access 
+virtual memory. When `SUM=0`, supervisor privilege transactions to pages 
+mapped with U-bit in PTE set to 1 will fault.
+
+When `ENS` is 1, supervisor privilege transactions that read with execute 
+intent to pages mapped with U-bit in PTE set to 1 will fault, regardless of 
+the state of `SUM`.
+
+===== First-Stage context (`fsc`)
+If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE` 
+is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that points to 
+a S-stage page table or VS-stage page table respectively.
+
+.IO (Virtual)Supervisor addr. translation and prot. (iovsatp/iosatp) field (when PDTV is 1)
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'reserved'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+A valid (`V`=1) leaf PDT entry holds the PPN of the root page of a first-stage 
+page table and the `MODE` used to determine the first-stage address translation 
+scheme. The `MODE` field encodings are as defined for the `MODE` field in 
+`satp`/`vsatp` CSR.
+
+The software assigned process soft-context ID (`PSCID`) is used as the address 
+space ID of the process identified by the first-stage page table.
+
+When two-stage address translation is active (`iohgatp.MODE != Bare`), the PPN 
+field holds a guest PPN of the first-stage page table. When two-stage address 
+translation is active, addresses of the first-stage page table entries are 
+then converted by guest physical address translation, as controlled by the 
+`iohgatp`, into a supervisor physical address. A guest OS may thus directly edit
+the first-stage page table to limit access by the device to a subset of its memory 
+and specify permissions for the device accesses.
+
+=== Caching in-memory data structures
+To speed up DIrect Memory Access (DMA) translations, the IOMMU may make use of
+translation caches to hold entries from device-directory-table, 
+process-directory-table, S/VS and G-stage translation tables, MSI page 
+tables. These caches are collectively referred to as the IOMMU Address 
+Translation Caches (IOATC). 
+
+These IOATC do not observe modifications to the in-memory data structures using
+explicit loads and stores by RISC-V harts or by device DMA. Software must use 
+the IOMMU commands to invalidate the cached data structure entries using IOMMU
+commands to synchronize the IOMMU operations to observe updates to in-memory 
+data structures. Simpler implementation may not implement IOATC for some or 
+for any of the in-memory data structures. The IOMMU commands may use one or 
+more IDs to tag the cached entries to identify a specific entry or a 
+group of entries.
+
+.Table Identifiers used to tag IOATC enrties
+[width=90%]
+[%header, cols="8,10,10"]
+|===
+|Data Structure cached  |IDs used to tag entries    | Invalidation command
+|Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
+|Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
+|S/VS-stage page tables |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+|G-stage page table     |`GSCID`, GPA               | <<IGVMA,IOTINVAL.GVMA>>
+|MSI page table         |`device_id`,               
+                         MSI-interrupt-file-number  | <<IMSI, IOTINVAL.MSI>>
+|===

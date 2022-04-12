@@ -1,7 +1,6 @@
 == Contributors
 
-This RISC-V specification has been contributed to directly or indirectly by:
+This RISC-V specification has been contributed to directly or indirectly by (in alphabetical order):
 
 [%hardbreaks]
-* Author1 <optional@email.com>
-* Author2
+Aaron Durbin, Allen Baum, Daniel Gracia Perez, Greg Favor, Nick Kossifidis, Perrine Peresse, Philipp Tomsich, Rieul Ducousso, Siqi Zhao, Tomasz Jeznach, Vassilis Papaefstathiou, Vedvyas Shanbhogue

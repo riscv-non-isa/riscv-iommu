@@ -1,10 +1,7 @@
-= RISC-V docs-spec-template
+= RISC-V IOMMU specification baseline
 
-This repository is used to prime GitHub repos for the RISC-V organization which will be used 
-to create specifications.  
-
-**If you are reading this in a specification repo, please update the title for this section and 
-provide your introduction to your repository.**
+This document is capturing discussions at the IOMMU TG and attempts to document the baseline.
+This is not official specification and everything in this document may change.
 
 = License
 
