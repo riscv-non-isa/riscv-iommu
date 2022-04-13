@@ -1,9 +1,17 @@
 [[intro]]
 
 == Introduction
+The IOMMU (sometimes referred to as a system MMU or SMMU) is a system-level 
+memory management unit (MMU) that connects direct-memory-access-capable I/O 
+devices to system memory. Using the same S/VS-stage and G-stage page 
+tables as the CPU’s MMU, the IOMMU provides I/O devices with the same address 
+translation and memory protection functions.
 
-One or two paragraphs about what a IOMMU is.
-Ved
+In systems built with an Incoming Message-Signaled Interrupt Controller (IMSIC),
+the IOMMU may be programmed by the hypervisor to direct message-signaled 
+interrupts (MSI) from devices controlled by the guest OS to a guest interrupt 
+file in an IMSIC. 
+
 === Glossary
 << Table >>
 
@@ -40,3 +48,5 @@ Perrine
 === IOMMU features
 list of features - call out mandatory and optional
 Ved
+
+

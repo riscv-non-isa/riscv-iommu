@@ -1,19 +1,20 @@
 [[guidelines]]
 
-== Software guidelines
-=== initialization
+== Guidelines
+=== Software guidelines
+==== initialization
 Perrine
-=== invalidations
+==== invalidations
 Ved
 [Operation  |        Required actions ]
-=== IOMMU interrupt handling
+==== IOMMU interrupt handling
 Perrine
 
-== Hardware guidelines
-=== IOMMU as a PCIe device
+=== Hardware guidelines
+==== IOMMU as a PCIe device
 Ved
-=== Debug
+==== Debug
 <<Impdef>>
 Placeholder
-=== RAS
+==== RAS
 Placeholder
