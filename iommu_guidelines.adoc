@@ -1,0 +1,19 @@
+[[guidelines]]
+
+== Software guidelines
+=== initialization
+Perrine
+=== invalidations
+Ved
+[Operation  |        Required actions ]
+=== IOMMU interrupt handling
+Perrine
+
+== Hardware guidelines
+=== IOMMU as a PCIe device
+Ved
+=== Debug
+<<Impdef>>
+Placeholder
+=== RAS
+Placeholder
