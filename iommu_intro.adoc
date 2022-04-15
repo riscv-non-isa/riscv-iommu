@@ -3,33 +3,228 @@
 == Introduction
 The IOMMU (sometimes referred to as a system MMU or SMMU) is a system-level 
 memory management unit (MMU) that connects direct-memory-access-capable I/O 
-devices to system memory. Using the same S/VS-stage and G-stage page 
-tables as the CPU’s MMU, the IOMMU provides I/O devices with the same address 
-translation and memory protection functions.
+devices to system memory.
+
+For each I/O device connected to the system through an IOMMU, software can 
+configure at the IOMMU a device context, which associates with the device a 
+specific virtual address space and other per-device parameters. By giving 
+devices each their own seperate device context at an IOMMU, each device can be 
+individually configured for a different software master, usually a guest OS or 
+the main (host) OS. On every memory access made from a device, hardware 
+indicates to the IOMMU the originating device by some form of unique device 
+identifier, which the IOMMU uses to locate the appropriate device context 
+within data structures supplied by software. For PCIe, for example, the 
+originating device may be identified by the unique 16-bit triple of PCI bus 
+number (8-bit), device number (5-bit), and function number (3-bit) 
+(collectively known as routing ID (RID) and optionally upto 8-bit segment 
+number when the IOMMU supports multiple segments. This specification refers to
+such unique device identifier as `device_id` and supports upto 24-bit wide IDs.
+
+Some devices may support shared virtual addressing which is the ability to 
+share process address space with devices. Sharing process address spaces with 
+devices allows to rely on core kernel memory management for DMA, removing some 
+complexity from application and device drivers. After binding to a device, 
+applications can instruct it to perform DMA on buffers obtained with malloc. To
+support such addressing, software can configure one or more process context 
+into the device context. On every memory access made from a device, the hardware
+indicates to the the IOMMU a unique process identifier, which the IOMMU uses
+in conjunction with the unique device identifier to locate the appropriate
+process context configured by software in the device context. For PCIe, for
+example, the process context may be identified by the unique 20-bit process
+address space ID (PASID). This specification refers to such unique process 
+identifiers as `process_id` and supports upto 20-bit wide IDs.
+
+Using the same S/VS-stage and G-stage page table formats in IOMMU for address 
+translation and protections as the CPU’s MMU removes some complexity from the
+core kernel memory management for DMA. Use of an identical format also allows
+the same G and S/VS-stage tables to be used by both MMU and the IOMMU.
+
+DMA address translation in the IOMMU has certain performance implications for 
+DMA accesses as DMA access time may be lengthened due to the time required to 
+resolve the supervisor physical address using software provided data structures.
+Similar overheads in the CPU MMU are mitigated typically through the use of a
+translation look-aside buffer (TLB) to cache these address translations such 
+that they may be re-used to reduce the translation overhead on subsequent 
+accesses. The IOMMU may employ similar address translation caches (IOATC). The
+IOMMU provides mechanisms for software to synchronize the IOATC with the 
+memory resident data structures used for address translation when they are
+modified. Software may configure the device context with a software defined
+context ID called Guest-soft-context-ID (`GSCID`) to indicate that a 
+collection of devices are assigned to the same VM and thus access a common 
+virtual address space. Software may configure the process context with a 
+software defined context ID called Process-soft-context-ID (`PSCID`) to 
+identify a collection of process ID that share a common virtual address space.
+The IOMMU may use the `GSCID` and `PSCID` to tag entries in the IOATC to avoid
+duplications and simplify invalidation operations.
+
+Some devices may participate in the translation process and provide a device
+side ATC (DevATC) for its own memory accesses. By providing a DevATC, the 
+device shares the translation caching responsibility and thereby reduce 
+probability of "thrashing" in the IOATC. The DevATC may be sized by the device
+to suit its unique performance requirements and may also be used by the device
+to optimize latency by prefetching translations. Such mechanisms require 
+close cooperation of the device and the IOMMU using a protocol. For PCIe, for
+example, the Address Trnaslation Services (ATS) protocol may be used by the
+device to request translations to cache in the DevATC and to synchronize it 
+with updates made by software address translation data structures. The
+device participating in the address translation process also enables the use
+of I/O page faults to avoid the core kernel memory manager from having to make
+all physical memory that may be accessed by the device resident at all times.
+For PCIe, for example, the device may implement the Page Request Interface (PRI)
+to dynamically request the memory manager to make a page resident if it 
+discovers the page for which it request a translation was not available. An
+IOMMU may support the interfaces to software and the protocols with the device
+to enable services such as PCIe ATS and PCIe PRI.
 
 In systems built with an Incoming Message-Signaled Interrupt Controller (IMSIC),
 the IOMMU may be programmed by the hypervisor to direct message-signaled 
 interrupts (MSI) from devices controlled by the guest OS to a guest interrupt 
-file in an IMSIC. 
+file in an IMSIC. Because MSIs from devices are simply memory writes, they 
+would naturally be subject to the same address translation that an IOMMU 
+applies to other memory writes. However, the Advanced Interrupt Architecture 
+requires that IOMMUs treat MSIs directed to virtual machines specially, in 
+part to simplify software, and in part to allow optional support for 
+memory-resident interrupt files. The device context is configured by software
+with parameters to identify memory writes as MSI and to be translated using a
+MSI address translation table configured by software in the device context.
 
 === Glossary
-<< Table >>
-Ved
+.Table Terms and definitions
+[width=75%]
+[%header, cols="5,20"]
+|===
+| Term            | Definition
+| ATS             | Address Translation Services - a PCIe protocol to support
+                    DevTLB.
+| DC              | Device Context
+| DDT             | Device-directory-table: A radix-tree structure traversed
+                    using the unique device identifier to locate the Device
+                    Context structure.
+| DDI             | Device-directory-index: a sub-field of the unique device 
+                    identifier used as a index into a leaf or non-leaf DDT
+                    structure.
+| Device Context  | A hardware representation of state that identifies a 
+                    device and the VM to which the device is assigned.
+| Device ID       | A identification number that is up to 24-bits to identify 
+                    the source of a DMA or interrupt request. For PCIe devices 
+                    this is the routing-ID.
+| DevTLB          | A address translation cache at the device.
+| DMA             | Direct Memory Access
+| GPA             | Guest Physical Address: an address in the virtualized 
+                    physical memory space of a virtual machine.
+| GSCID           | Guest soft-context identifier: An identification number used
+                    by software to uniquely identify a collection of devices 
+                    assigned to a virtual machine. An IOMMU may tag IOATC 
+                    entries with the GSCID. Device contexts programmed with
+                    same GSCID must also be programmed with identical G-stage
+                    page tables.
+| Guest           | Software in a virtual machine.
+| Hypervisor      | Software entity that controls virtualization.
+| IOATC           | IOMMU Address Translation Cache: cache in IOMMU that caches
+                    data structures used for address translations.
+| IOVA            | I/O Virtual Address: Virtual address for DMA by devices
+| MSI             | Message Signaled Interrupts.
+| PASID           | Process Address Space Identifier that identifies the 
+                    address space of a process. The PASID value is provided in 
+                    the PASID TLP prefix of the request.
+| PPN             | Physical Page Number
+| PRI             | Page Request Interface - a PCIe protocol that enables 
+                    devices to request OS memory manager services to make pages
+                    resident.
+| PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
+| PC              | Process Context
+| PDI             | Process-directory-index: a sub field of the unique process
+                    identifier used to index into a leaf or non-leaf PDT 
+                    structure.
+| Process ID      | A identification number that is up to 20-bits to identify
+                    a process context. For PCIe devices this is the PASID.
+| PSCID           | Process soft-context identifier: An identification number
+                    used by software to identify a unique address space. The 
+                    IOMMU may tag IOATC entries with PSCID.
+| PDT             | Process-directory-table: A radix tree data structure 
+                    traversed using the unique Process identifier to locate the
+                    process context structure.
+| Reserved        | A register or data structure field reserved for future use.
+                    Reserved fields in data structures must be set to 0 by 
+                    software. Software must ignore reserved fields in registers
+                    and preserve the value held in these fields when writing 
+                    values to other fields in the same register.
+| SPA             | Supervisor Physical Address: Physical address used to 
+                    to access memory and memory-mapped resources.
+| VA              | Virtual Address
+| VM              | Virtual Machine: An efficient, isolated duplicate of a real
+                    computer system. In this specification it refers to the 
+                    collection of resoures and state that is accessible when 
+                    a RISC-V hart executes with V=1.
+| VMM             | Virtual Machine Monitor. Also referred to as hypervisor.
+| VS              | Virtual Supervisor: supervisor privilege in virtualization
+                    mode.
+| WARL            | Write any values, reads legal values: attribute of a  
+                    register field that is only defined for a subset of bit 
+                    encodings, but allow any value to be written while 
+                    guaranteeing to return a legal value whenever read. 
+| WPRI            | Reserved Writes Preserve Values, Reads ignore Values: 
+                    attribute of a register field that is reserved for future
+                    use. 
+|===
+
 
 === Usage models
-Introduce the concept of IOVA and device_id and process_id here
-Can also introduce GSCID and PSCID
+
+
 ==== Non-virtualized OS
 DMA isolation for native OS using first stage PTs and use of PASID
 Bounce buffer avoidance
 Scatter/Gather
 Perrine
+
 ==== Hypervisor
-<< some devices may be passthrough and others retained by hypervisor>>
-<< For retained devices same usage as Native OS>>
-DMA isolation and passthrough of devices
-MSI translation
-Ved
+
+IOMMU makes it possible for a guest operating system, running in a virtual 
+machine, to be given direct control of an I/O device with only minimal 
+hypervisor intervention. 
+
+A guest OS with direct control of a device will program the device with guest 
+physical addresses, because that is all the OS knows. When the device then 
+performs memory accesses using those addresses, an IOMMU is responsible for 
+translating those guest physical addresses into supervisor physical addresses, 
+referencing address-translation data structures supplied by the hypervisor.
+
+To handle MSIs from a device controlled by a guest OS, the hypervisor configures
+an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC or to a 
+memory-resident interrupt file. The IOMMU is responsible to use the MSI 
+address-translation data structures supplied by the hypervisor to perform the
+MSI redirection.
+
+The following diagram illustrates the concept. The device D1 is directly
+assigned to VM-1 and device D2 is directly assigned to VM-2. The VMM configures
+the G-stage page table to be used by each device and restricts the memory
+that can be accessed by D1 to VM-1 associated memory and from D2 to VM-2
+associated memory.
+
+.DMA translation to enable direct device assignment
+["ditaa",shadows=false, separation=false, fontsize: 16]
+....
++---------------+ +---------------+ 
+|     VM - 1    | |    VM - 2     |
+|     memory    | |    memory     |
+|               | |               |
+|      ^        | |      ^        |
++------|--------+ +------|--------+
+       |                 |
++------|-----------------|--------+
+|      |       IOMMU     |        |
+| +----------+      +----------+  |
+| |device D1 |      |device D2 |  |
+| |G-stage PT|      |G-stage PT|  |                    
+| +----------+      +----------+  |
++------|-----------------|--------+
+       |                 |
+  +----------+      +----------+ 
+  | Device D1|      | Device D2|
+  +----------+      +----------+
+....
+
 ==== Guest OS
 << Same as Native OS>> - Guest controlling first stage PT
 Perrine
@@ -47,7 +242,58 @@ Call out this is a Reference/examples
 Perrine
 
 === IOMMU features
-list of features - call out mandatory and optional
-Ved
+The version 1.0 of the RISC-V IOMMU specification supports the following 
+features:
+
+* Memory-based device context to locate parameters and address translations
+  structures. The device context is located using the hardware provided 
+  unique `device_id`. The supported `device_id` width may be up to 24-bit. 
+  IOMMU is required to support at least one of the valid `device_id` widths as 
+  specified in <<DATA_STRUCTURES>>.
+
+* Memory-based process context to locate parameters and address translation
+  structures using hardware provide unique `process_id`. The supported 
+  `process_id` may be up to 20-bit. IOMMU is required to support at least one
+  of the valid `process_id` widths as specified in <<DATA_STRUCTURES>>
+
+* IOMMU must support 16-bit GSCIDs and 20-bit PSCIDs.
+
+* An implementation may support only the VS/S-stage of address translation,
+  only G-stage address translation, or two stage address translation. 
+
+* VS/S-stage and/or G-stage virtual-memory system as specified by the RISC-V
+  privileged specification to allow software flexibility to use a common page 
+  table for CPU MMU as well as IOMMU or to use a separate page table for the
+  IOMMU.
+
+* Upto 56-bit virtual-address width and 58-bit guest-physical-address width.
+
+* Support for hardware management of page-table entry Accessed and Dirty bits
+  is optional for the IOMMU.
+
+* Support for MSI address translation as specified by RISC-V Advanced Interrupt
+  Architecture (AIA) is optional. When MSI address translation is supported 
+  then supporting memory-resident-interrupt-files is optional.
+
+* Supporting Svnapot extension is optional.
+
+* Supporting Svpbmt extension is optional.
+
+* IOMMU may optionally support the PCIe ATS and PRI services. When ATS is 
+  supported the IOMMU may optionally support the ability to translate to a GPA
+  instead of a SPA in response to a translation request.
+
+* IOMMU may optionally support a performance monitoring unit (PMU). If a PMU
+  is supported then the IOMMU must support the cycles counter and at least 
+  7 hardware performance monitoring counters must be supported.
+* The IOMMU may use MSI or wire-based-interrupts to request service from 
+  software. At least one method of generating interrupts from the IOMMU must be
+  supported.
+
+Software may discover the supported features using the <<CAP, `capabilities`>>
+register of the IOMMU.
+
+
+
 
 
