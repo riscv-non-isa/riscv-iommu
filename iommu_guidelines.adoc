@@ -18,7 +18,7 @@ This section provides guidelines to software on the invalidation commands to
 send to the IOMMU when modifying the IOMMU in-memory data structures used 
 for address translations.
 
-==== Changing device directory table entry
+===== Changing device directory table entry
 If software changes a leaf-level DDT entry i.e, a device context (DC), of
 device with `device_id=D` then the following invalidations must be performed:
 
@@ -45,7 +45,7 @@ Between change to the DDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or
 the new value of the entry.
 
-==== Changing process directory table entry
+===== Changing process directory table entry
 If software changes a leaf-level PDT entry i.e, a process context (PC), for
 `device_id=D` and `process_id=P` then the following invalidations must be
 performed:
@@ -61,7 +61,7 @@ Between change to the PDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or
 the new value of the entry.
 
-==== Changing MSI page table entry
+===== Changing MSI page table entry
 If software changes a MSI page-table entry identified by by interrupt file
 number `I` then following invalidations must be performed:
 
@@ -82,7 +82,7 @@ Between change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
 or the new PTE value.
 
-==== Changing G-stage page table entry
+===== Changing G-stage page table entry
 If software changes a leaf G-stage page-table entry of a VM where the change
 affects translation for a guest-PPN `G` then following invalidations must be
 performed:
@@ -105,7 +105,7 @@ Between change to the G-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
-==== Changing VS/S-stage page table entry
+===== Changing VS/S-stage page table entry
 
 When `DC.iohgatp.MODE == Bare`, a `DC` may be configured with a S-stage
 page table (when `DC.tc.PDTV=0`) or a directory of S-stage page tables selected
@@ -129,7 +129,7 @@ Between change to the S/VS-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
-==== Accessed (A)/Dirty (D) bit updates and page promotions
+===== Accessed (A)/Dirty (D) bit updates and page promotions
 
 When IOMMU supports hardware managed A and D bit updates, if software clears
 the A and/or D bit in the S/VS-stage and/or G-stage PTEs then software must
@@ -153,7 +153,7 @@ original PTE and executing a appropriate IOTINVAL command is to do a page size
 promotion or demotion. The behavior of the IOMMU if other attributes are 
 changed in this fashion is implementation defined.
 
-==== Device Address Translation Cache invalidations
+===== Device Address Translation Cache invalidations
 
 When VS/S-stage and/or G-stage page tables are modified, invalidations may be
 needed to the Dev-ATC in the devices that may have cached translations from
@@ -186,14 +186,14 @@ the DevATC may be satisfied by the IOMMU from the IOATC, to ensure correct
 operation software must first invalidate the IOATC before sending
 invalidations to the DevATC.
 
-==== Caching invalid translations
+===== Caching invalid entries
 
 This specification does not  the caching of S/VS/G-stage PTEs whose V (valid) 
 bit is clear, DDT entries whose V bit is clear, PDT entries whose V bit is 
 clear, or MSI PTEs whose V bit is clear. Software need not perform
 invalidations when changing the V bit in these entries from 0 to 1.
 
-==== Reconfiguring PMAs
+===== Reconfiguring PMAs
 
 Where platforms support dynamic reconfiguration of PMAs, a machine-mode driver
 is usually provided that can correctly configure the platform. In some
@@ -201,14 +201,14 @@ platforms that might involve platform-specific operations and if the IOMMU
 must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
-==== IOMMU interrupt handling
+==== Guidelines for handling interrupts from IOMMU
 Perrine
 
 === Hardware integration guidelines
 This section provides guidelines to the system/hardware integrator of the 
 IOMMU in the platform.
 
-==== IOMMU as a PCIe device
+==== Integrating an IOMMU as a PCIe device
 The IOMMU may be constructed as a PCIe device itself and be discoverable
 as a dedicated PCIe function with PCIe defined Base Class 08h, Sub-Class 06h, 
 and Programming Interface 00h.
