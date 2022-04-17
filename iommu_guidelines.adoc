@@ -1,16 +1,213 @@
 [[guidelines]]
 
 == Guidelines
+This section provides a set of guidelines to hardware/system integrators as
+well as the software developers.
+
 === Software guidelines
-==== initialization
+
+This section provides guidelines to software developers on correct and 
+expected sequence of using the IOMMU interfaces. The behavior of the IOMMU
+if these guidelines are not followed is implementation defined.
+
+==== Guidelines for initialization
 Perrine
-==== invalidations
-Ved
-[Operation  |        Required actions ]
+
+==== Guidelines for invalidations
+This section provides guidelines to software on the invalidation commands to
+send to the IOMMU when modifying the IOMMU in-memory data structures used 
+for address translations.
+
+==== Changing device directory table entry
+If software changes a leaf-level DDT entry i.e, a device context (DC), of
+device with `device_id=D` then the following invalidations must be performed:
+
+* `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
+* If `DC.tc.PDTV==1`, `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
+
+* If `DC.iohgatp.MODE != Bare`
+** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
+** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+** If `DC.msiptp.MODE != Bare`, `IOTINVAL.MSI` with `AV=0` and 
+   `GV=1`, and `GSCID=DC.iohgatp.GSCID`
+* else
+** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare` 
+*** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
+** else 
+*** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
+** If `DC.msiptp.MODE != Bare`, `IOTINVAL.MSI` with `AV=GV=0`
+
+If software changes a non-leaf-level DDT entry the following invalidations
+must be performed:
+* `IODIR.INVAL_DDT` with `DV=0`
+
+Between change to the DDT entry and when an invalidation command to invalidate
+the cached entry is processed by the IOMMU, the IOMMU may use the old value or
+the new value of the entry.
+
+==== Changing process directory table entry
+If software changes a leaf-level PDT entry i.e, a process context (PC), for
+`device_id=D` and `process_id=P` then the following invalidations must be
+performed:
+
+* `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
+* If `DC.iohgatp.MODE != Bare`
+** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`, 
+   and `PSCID=PC.PSCID`
+* else
+** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
+
+Between change to the PDT entry and when an invalidation command to invalidate
+the cached entry is processed by the IOMMU, the IOMMU may use the old value or
+the new value of the entry.
+
+==== Changing MSI page table entry
+If software changes a MSI page-table entry identified by by interrupt file
+number `I` then following invalidations must be performed:
+
+* If `DC.iohgatp.MODE == Bare`
+** `IOTINVAL.MSI` with `GV=0`, `AV=1`, and `INT_FILE_NUM=I`
+* else
+** `IOTINVAL.MSI` with `GV=AV=1`, `INT_FILE_NUM=I` and `GSCID=DC.iohgatp.GSCID`
+
+To invalidate all cache entries from a MSI page table the following
+invalidations must be performed:
+
+* If `DC.iohgatp.MODE == Bare`
+** `IOTINVAL.MSI` with `GV=0`, `AV=0`
+* else
+** `IOTINVAL.MSI` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+
+Between change to the MSI PTE and when an invalidation command to invalidate
+the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
+or the new PTE value.
+
+==== Changing G-stage page table entry
+If software changes a leaf G-stage page-table entry of a VM where the change
+affects translation for a guest-PPN `G` then following invalidations must be
+performed:
+
+* `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
+
+If software changes a non-leaf G-stage page-table entry of a VM 
+then following invalidations must be performed:
+
+* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
+
+The `DC` has fields that hold a guest-PPN. An implementation may translate such
+fields to a supervisor-PPN as part of caching the `DC`. If the G-stage page
+table update affects translation of guest-PPN held in the `DC` then software
+must invalidate all such cached `DC` using `IODIR.INVAL_DDT` with `DV=1` and
+`DID` set to the corresponding `device_id`.  Alternatively, an
+`IODIR.INVAL_DDT` with `DV=0` may be used to invalidate all cached `DC`.
+
+Between change to the G-stage PTE and when an invalidation command to
+invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
+old PTE value or the new PTE value.
+
+==== Changing VS/S-stage page table entry
+
+When `DC.iohgatp.MODE == Bare`, a `DC` may be configured with a S-stage
+page table (when `DC.tc.PDTV=0`) or a directory of S-stage page tables selected
+using `process_id` from a process-directory-table (when `DC.tc.PDTV=1`).
+
+When `DC.iohgatp.MODE != Bare`, a `DC` may be configured with a VS-stage
+page table (when `DC.tc.PDTV=0`) or a directory of VS-stage page tables
+selected using `process_id` from a process-directory-table (when 
+`DC.tc.PDTV=1`).
+
+When a change is made to a S-stage page table then software must perform
+invalidations using `IOTINVAL.VMA` with `GV=0` and `AV` and `PSCV` operands
+appropriate for the modification as specified in <<IOINVAL_VMA_TABLE>>.  
+
+When a change is made to a VS-stage page table then software must perform
+invalidations using `IOTINVAL.VMA` with `GV=1`, `GSCID=DC.iohgatp.GSCID` and
+`AV` and `PSCV` operands appropriate for the modification as specified in
+<<IOINVAL_VMA_TABLE>>.  
+
+Between change to the S/VS-stage PTE and when an invalidation command to
+invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
+old PTE value or the new PTE value.
+
+==== Accessed (A)/Dirty (D) bit updates and page promotions
+
+When IOMMU supports hardware managed A and D bit updates, if software clears
+the A and/or D bit in the S/VS-stage and/or G-stage PTEs then software must
+invalidate corresponding PTE entries that may be cached by the IOMMU. If such
+invalidations are not performed, then the IOMMU may not set these bits when
+processing subsequent transactions that use such entries.
+
+When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE to 
+a superpage without first clearing the original non-leaf PTEs valid bit and
+invalidating cached translations in the IOMMU then it is possible for the
+IOMMU to cache multiple entries that match a single address. The IOMMU may 
+use either the old non-leaf PTE or the new non-leaf PTE but the behavior is
+otherwise well defined.
+
+When promoting and/or demoting page sizes, software must ensure that the 
+original and new PTEs have identical permission and memory type attributes and
+the physical address that is determined as a result of translation using either
+the original or the new PTE is otherwise identical for any given input. The
+only PTE update supported by the IOMMU without first clearing the V bit in the
+original PTE and executing a appropriate IOTINVAL command is to do a page size
+promotion or demotion. The behavior of the IOMMU if other attributes are 
+changed in this fashion is implementation defined.
+
+==== Device Address Translation Cache invalidations
+
+When VS/S-stage and/or G-stage page tables are modified, invalidations may be
+needed to the Dev-ATC in the devices that may have cached translations from
+the modified page tables. Invalidation of such page tables requires generating
+ATS invalidations using `ATS.INVAL` command. Software must specify the PAYLOAD
+following the rules defined in PCIe ATS specifications. 
+
+If software generates ATS invalidate requests at a rate that exceeds the 
+average DevATC service rate then flow control mechanisms may be triggered by 
+the device to throttle the rate and a side effect of this is congestion
+spreading to other channels and links and could lead to performance 
+degradations. An ATS capable device publishes the maximum number of 
+invalidations it can buffer before causing backpressure through the Queue
+Depth field of the ATS capability structure. When the device is virtualized
+using PCIe SR-IOV, this queue depth is shared among all the VFs of the device.
+Software must limit the number of outstanding ATS invalidations queued to 
+the device adverstized limit.
+
+The `RID` field is used to specify the routing ID of the ATS invalidation 
+request message destination. A PASID specific invalidation may be performed by
+setting `PV=1` and specifying the PASID in `PID`. When the IOMMU supports
+multiple segments then the `RID` must be qualified by the destination segment
+number by setting `DSV=1` with the segment number provided in `DSEG`.
+
+When ATS protocol is enabled for a device, the IOMMU may still cache 
+translations in its IOATC in addition to providing translations to the DevATC.
+Software must not skip IOMMU translation cache invalidations even when ATS is
+enabled in the device context of the device. Since a translation request from
+the DevATC may be satisfied by the IOMMU from the IOATC, to ensure correct
+operation software must first invalidate the IOATC before sending
+invalidations to the DevATC.
+
+==== Caching invalid translations
+
+This specification does not  the caching of S/VS/G-stage PTEs whose V (valid) 
+bit is clear, DDT entries whose V bit is clear, PDT entries whose V bit is 
+clear, or MSI PTEs whose V bit is clear. Software need not perform
+invalidations when changing the V bit in these entries from 0 to 1.
+
+==== Reconfiguring PMAs
+
+Where platforms support dynamic reconfiguration of PMAs, a machine-mode driver
+is usually provided that can correctly configure the platform. In some
+platforms that might involve platform-specific operations and if the IOMMU
+must participate in these operations then platform-specific operations in the
+IOMMU are used by the machine-mode driver to perform such reconfiguration.
+
 ==== IOMMU interrupt handling
 Perrine
 
-=== Hardware guidelines
+=== Hardware integration guidelines
+This section provides guidelines to the system/hardware integrator of the 
+IOMMU in the platform.
+
 ==== IOMMU as a PCIe device
 The IOMMU may be constructed as a PCIe device itself and be discoverable
 as a dedicated PCIe function with PCIe defined Base Class 08h, Sub-Class 06h, 
@@ -26,7 +223,6 @@ supported by the IOMMU. The MSI-X PBA may be located in the same BAR or
 another BAR of the IOMMU. The IOMMU is recommended to support MSI-X capability.
 
 ==== Debug
-<<Impdef>>
 Placeholder
 ==== RAS
 Placeholder
