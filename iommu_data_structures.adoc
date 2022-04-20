@@ -333,7 +333,7 @@ then converted by guest physical address translation, as controlled by the
 `iohgatp`, into a supervisor physical address. Translating addresses of PDT root
 page through G-stage page tables, allows the PDT to be mapped into the 
 guest OS address space to allow the guest OS to directly edit the PDT to 
-associate a virtual-address space identified by a first-stage page table with
+associate a virtual-address space identified by a VS-stage page table with
 a `process_id`.
 
 .Encoding of `pdtp.MODE` field
@@ -417,7 +417,9 @@ is as follows:
 . Let `a` be `ddtp.PPN x 4096` and let `i = LEVELS - 1`. When 
   `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is 
   `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
-. If `i == 0` go to step 8.
+. If the `device_id` is wider than supported by `ddtp.iommu_mode`, then stop
+  and report "Transaction type disallowed" (cause = 260).
+. If `i == 0` go to step 9.
 . Let `ddte` be value of eight bytes at address `a+DDI[i]x8`. If accessing 
   `ddte` violates a PMA or PMP check, stop and report 
   "DDT entry load access fault" (cause = 257).
@@ -425,7 +427,7 @@ is as follows:
 . If if any bits or encodings that are reserved for future standard use are 
   set within `ddte`, stop and report "DDT entry misconfigured" 
   (cause = 259).
-. Let `i = i - 1` and let `a = ddte.PPN x PAGESIZE`. Go to step 3.
+. Let `i = i - 1` and let `a = ddte.PPN x 4096`. Go to step 4.
 . Let `dc` be value of `DC_SIZE` bytes at address `a+DDI[0]*DC_SIZE`. If 
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
   If accessing `dc` violates a PMA or PMP check, stop and report 
@@ -442,7 +444,7 @@ is as follows:
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
     is wider than supported by `pdtp.MODE`.
-..  Is a trasaction type that is not supported by the IOMMU.
+..  Transaction type is not supported by the IOMMU.
 .   The device-context has been successfully located.
 
 See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
@@ -556,20 +558,19 @@ a S-stage page table or VS-stage page table respectively.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-A valid (`V`=1) leaf PDT entry holds the PPN of the root page of a first-stage 
-page table and the `MODE` used to determine the first-stage address translation 
+A valid (`V`=1) leaf PDT entry holds the PPN of the root page of a S/VS-stage 
+page table and the `MODE` used to determine the S/VS-stage address translation 
 scheme. The `MODE` field encodings are as defined for the `MODE` field in 
 `satp`/`vsatp` CSR.
 
 The software assigned process soft-context ID (`PSCID`) is used as the address 
-space ID of the process identified by the first-stage page table.
+space ID of the process identified by the S/VS-stage page table.
 
 When two-stage address translation is active (`iohgatp.MODE != Bare`), the `PPN` 
-field holds a guest PPN of the first-stage page table. When two-stage address 
-translation is active, addresses of the first-stage page table entries is 
-then converted by guest physical address translation, as controlled by the 
+field holds a guest PPN of the VS-stage page table. Addresses of the VS-stage page
+table entries is then converted by guest physical address translation, as controlled by the 
 `iohgatp`, into a supervisor physical address. A guest OS may thus directly edit
-the first-stage page table to limit access by the device to a subset of its memory 
+the VS-stage page table to limit access by the device to a subset of its memory 
 and specify permissions for the device accesses.
 
 ==== Process to locate the Process-context
@@ -580,7 +581,7 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 4096` and let `i = LEVELS - 1`. When 
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is 
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `i == 0` go to step 8.
+. If `i == 0` go to step 7.
 . Let `pdte` be value of eight bytes at address `a+PDI[i]x8`. If accessing 
   `pdte` violates a PMA or PMP check, stop and report 
   "PDT entry load access fault" (cause = 265).
@@ -588,13 +589,16 @@ The process to locate the Process-context for a transaction using its
 . If if any bits or encodings that are reserved for future standard use are 
   set within `pdte`, stop and report "PDT entry misconfigured" 
   (cause = 267).
-. Let `i = i - 1` and let `a = pdte.PPN x PAGESIZE`. Go to step 2.
+. Let `i = i - 1` and let `a = pdte.PPN x 4096`. Go to step 2.
 . Let `pc` be value of 16-bytes at address `a+PDI[0]*16`. If accessing `pc` 
   violates a PMA or PMP check, stop and report "PDT entry load access fault" 
   (cause = 265).
 . If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If any bits or encodings that are reserved for future standard use are set 
   within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
+. if any of the following conditions hold then stop and report 
+  "Transaction type disallowed" (cause = 260).
+..  The transaction requests supervisor privilege but `pc.ta.ENS` is not set.
 . The Process-context has been successfully located.
 
 See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
