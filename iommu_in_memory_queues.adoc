@@ -146,7 +146,7 @@ IOMMU to the corresponding first-stage page tables.
 
 [[IVMA]]
 
-.Table `IOTINVAL.VMA` operands and operations
+.`IOTINVAL.VMA` operands and operations
 [width=75%]
 [%header, cols="3,3,3,20"]
 |===
@@ -188,7 +188,7 @@ is illegal.
 
 [[IGVMA]]
 
-.Table `IOTINVAL.GVMA` operands and operations
+.`IOTINVAL.GVMA` operands and operations
 [width=75%]
 [%header, cols="3,3,20"]
 |===
@@ -374,7 +374,7 @@ The `PSCV` operand is reserved and must be 0 for `IOTINVAL.MSI`.
 
 [[IMSI]]
 
-.Table `IOTINVAL.MSI` operands and operations
+.`IOTINVAL.MSI` operands and operations
 [width=75%]
 [%header, cols="3,3,20"]
 |===
@@ -442,6 +442,7 @@ The `PAYLOAD` operand of the command is used to form the message body.
 If the `DSV` operand is 1, then a valid destination segment number is specified 
 by the `DSEG` operand.
 
+[[FAULT_QUEUE]]
 === Fault/Event-Queue (FQ)
 Fault/Event queue is an in-memory queue data structure used to report events 
 and faults raised when processing transactions. Each fault record is 64 bytes.
@@ -477,7 +478,7 @@ number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. 
 ....
 The `CAUSE` is a code indicating the cause of the fault/event.
 
-.Table Fault record `CAUSE` field encodings
+.Fault record `CAUSE` field encodings
 [width=75%]
 [%header, cols="3,20"]
 |===
@@ -494,7 +495,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |20    | Instruction guest page fault
 |21    | Read guest-page fault
 |23    | Write/AMO guest-page fault
-|256   | All inbound transactions disallowed (`ddtp.iommu_mode`  == OFF)
+|256   | All inbound transactions disallowed (`ddtp.iommu_mode == Off`)
 |257   | DDT entry load access fault
 |258   | DDT entry not valid
 |259   | DDT entry misconfigured - reserved fields not 0, unsupported encodings
@@ -510,7 +511,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 
 The `TTYP` field reports inbound transaction type.
 
-.Table Fault record `TTYP` field encodings
+.Fault record `TTYP` field encodings
 [width=75%]
 [%header, cols="3,20"]
 |===

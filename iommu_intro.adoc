@@ -89,7 +89,7 @@ with parameters to identify memory writes as MSI and to be translated using a
 MSI address translation table configured by software in the device context.
 
 === Glossary
-.Table Terms and definitions
+.Terms and definitions
 [width=75%]
 [%header, cols="5,20"]
 |===

@@ -182,25 +182,28 @@ the `EN_ATS` bit is used to enable ATS transaction processing. If `EN_ATS`
 is set to 1, IOMMU supports the following inbound transactions; otherwise 
 they are treated as unsupported transactions.
 
-* TRANSLATION_REQUEST
-* INVALIDATION_COMPLETION
-* PAGE_REQUEST
+* Translated read for execute transaction
+* Translated read transaction
+* Translated write/AMO transaction
+* PCIe ATS Translation Request
+* PCIe ATS Invalidation Completion Message
+* PCIe ATS Page Request Message
 
-If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA the 
-translation of an IOVA in a TRANSLATION_REQUEST from the device. When `T2GPA` is
-1, the IOVA in translated memory accesses is a GPA and translated through the 
-G-stage page table to a PA. This control enables a hypervisor to contain 
-DMA from a device directly controlled by the guest OS, even with ATS capability
-enabled, to the VMs memory. 
+If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA
+the translation of an IOVA in a PCIe ATS Translation Request from the device. 
+When `T2GPA` is 1, the IOVA in translated memory accesses is a GPA and 
+translated through the G-stage page table to a SPA. This control enables a 
+hypervisor to contain DMA from a device directly controlled by the guest OS, 
+even with ATS capability enabled and the device misuses the capability, 
+to the VMs memory.
 
 [NOTE]
 ====
 When `T2GPA` is enabled, the addresses provided to the device in response to a 
-TRANSLATION_REQUEST are not directly routable by the I/O fabric (e.g. PCI 
-switches) that connect the device to other peer devices and to host. Such 
-addresses are also not routable within the device even if peer-to-peer 
-transactions within the device (e.g. between functions of a device) are 
-supported.
+PCIe ATS Translation Request are not directly routable by the I/O fabric 
+(e.g. PCI switches) that connect the device to other peer devices and to host. 
+Such addresses are also not routable within the device even if peer-to-peer 
+transactions within the device (e.g. between functions of a device) are supported.
 
 Hypervisors that configure `T2GPA` to 1 must ensure through protocol specific 
 means that translated accesses are routed through the host such that the IOMMU
@@ -210,7 +213,9 @@ be configured to always redirect peer-to-peer (P2P) requests upstream to the
 host. 
 
 Use of `T2GPA` set to 1 may not be compatible with devices that implement caches
-tagged by the translated address returned in response to a TRANSLATION_REQUEST.
+tagged by the translated address returned in response to a PCIe ATS Translation
+Request. 
+
 As an alternative to setting `T2GPA` to 1, the hypervisor may establish a trust 
 relationship with the device if authentication protocols are supported by the 
 device. For PCIe, for example, the PCIe component measurement and 
@@ -219,8 +224,8 @@ configuration and firmware/executables (Measurement) and hardware identities
 (Authentication) to establish such a trust relationship.
 ====
 
-If `EN_PRI` bit is 0, then “Page Request” messages from the device are invalid 
-requests.
+If `EN_PRI` bit is 0, then PCIe ATS Page Request messages from the device are 
+invalid requests.
 
 [NOTE]
 ====
@@ -402,6 +407,45 @@ are used to recognize certain memory writes from the device as being MSIs. The
 use of these fields is as specified in Section 9.4 of the Advanced Interrupt 
 Architecture specification.
 
+==== Process to locate the Device-context
+
+The process to locate the Device-context for transaction using its `device_id` 
+is as follows:
+
+. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions 
+  disallowed" (cause = 256).
+. Let `a` be `ddtp.PPN x 4096` and let `i = LEVELS - 1`. When 
+  `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is 
+  `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
+. If `i == 0` go to step 8.
+. Let `ddte` be value of eight bytes at address `a+DDI[i]x8`. If accessing 
+  `ddte` violates a PMA or PMP check, stop and report 
+  "DDT entry load access fault" (cause = 257).
+. If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
+. If if any bits or encodings that are reserved for future standard use are 
+  set within `ddte`, stop and report "DDT entry misconfigured" 
+  (cause = 259).
+. Let `i = i - 1` and let `a = ddte.PPN x PAGESIZE`. Go to step 3.
+. Let `dc` be value of `DC_SIZE` bytes at address `a+DDI[0]*DC_SIZE`. If 
+  `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
+  If accessing `dc` violates a PMA or PMP check, stop and report 
+  "DDT entry load access fault" (cause = 257).
+. If `dc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
+. If any bits or encodings that are reserved for future standard use are set 
+  within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
+. if any of the following conditions hold then stop and report 
+  "Transaction type disallowed" (cause = 260).
+..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
+    or is a PCIe ATS Translation request or is a ATS protocol message request 
+    and `dc.tc.EN_ATS` is 0.
+..  Transaction type is a PCIe Page Request Message and `dc.tc.EN_PRI` is 0.
+..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
+..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
+    is wider than supported by `pdtp.MODE`.
+..  Is a trasaction type that is not supported by the IOMMU.
+.   The device-context has been successfully located.
+
+See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
 
 === Process-Directory-Table (PDT)
 
@@ -478,7 +522,7 @@ The leaf PDT page  is indexed by `PDI[0]` and holds the 16-byte process-context 
   {bits: 1,  name: 'SUM',    attr: '1'},
   {bits: 41, name: 'reserved', attr: '42'},
   {bits: 20, name: 'PSCID',    attr: '20'},
-], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
 `PC` is valid if the `V` bit is 1; If it is 0, all other bits in `PC` are don't
@@ -502,7 +546,7 @@ If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
 is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that points to 
 a S-stage page table or VS-stage page table respectively.
 
-.IO (Virtual)Supervisor addr. translation and prot. (iovsatp/iosatp) field (when PDTV is 1)
+.IO (Virtual)Supervisor addr. translation and prot. (`iovsatp`/`iosatp`) field (when `PDTV` is 1)
 [wavedrom, , ]
 ....
 {reg: [
@@ -528,6 +572,33 @@ then converted by guest physical address translation, as controlled by the
 the first-stage page table to limit access by the device to a subset of its memory 
 and specify permissions for the device accesses.
 
+==== Process to locate the Process-context
+
+The process to locate the Process-context for a transaction using its 
+`process_id` is as follows:
+
+. Let `a` be `pdtp.PPN x 4096` and let `i = LEVELS - 1`. When 
+  `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is 
+  `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
+. If `i == 0` go to step 8.
+. Let `pdte` be value of eight bytes at address `a+PDI[i]x8`. If accessing 
+  `pdte` violates a PMA or PMP check, stop and report 
+  "PDT entry load access fault" (cause = 265).
+. If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
+. If if any bits or encodings that are reserved for future standard use are 
+  set within `pdte`, stop and report "PDT entry misconfigured" 
+  (cause = 267).
+. Let `i = i - 1` and let `a = pdte.PPN x PAGESIZE`. Go to step 2.
+. Let `pc` be value of 16-bytes at address `a+PDI[0]*16`. If accessing `pc` 
+  violates a PMA or PMP check, stop and report "PDT entry load access fault" 
+  (cause = 265).
+. If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
+. If any bits or encodings that are reserved for future standard use are set 
+  within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
+. The Process-context has been successfully located.
+
+See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
+
 === Caching in-memory data structures
 To speed up DIrect Memory Access (DMA) translations, the IOMMU may make use of
 translation caches to hold entries from device-directory-table, 
@@ -544,7 +615,7 @@ for any of the in-memory data structures. The IOMMU commands may use one or
 more IDs to tag the cached entries to identify a specific entry or a 
 group of entries.
 
-.Table Identifiers used to tag IOATC enrties
+.Identifiers used to tag IOATC enrties
 [width=90%]
 [%header, cols="8,10,10"]
 |===
