@@ -1,0 +1,25 @@
+[[guidelines]]
+
+== Hardware guidelines
+This section provides guidelines to the system/hardware integrator of the 
+IOMMU in the platform.
+
+=== Integrating an IOMMU as a PCIe device
+The IOMMU may be constructed as a PCIe device itself and be discoverable
+as a dedicated PCIe function with PCIe defined Base Class 08h, Sub-Class 06h, 
+and Programming Interface 00h.
+
+Such IOMMU must map the IOMMU registers defined in this specification as PCIe
+BAR mapped registers.
+
+The IOMMU may support MSI or MSI-X or both. When MSI-X is supported,  the MSI-X
+capability block must point to the msi_tbl in BAR mapped registers such that
+system software can configure MSI address and data pairs for each message 
+supported by the IOMMU. The MSI-X PBA may be located in the same BAR or 
+another BAR of the IOMMU. The IOMMU is recommended to support MSI-X capability.
+
+=== Debug
+Placeholder
+
+==== RAS
+Placeholder

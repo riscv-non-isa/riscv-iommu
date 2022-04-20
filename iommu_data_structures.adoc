@@ -1,6 +1,6 @@
 [[DATA_STRUCTURES]]
 == Data Structures
-A data structure called device-context (DC) is used by the IOMMU to associate 
+A data structure called device-context (`DC`) is used by the IOMMU to associate 
 a device with an address space and to hold other per-device parameters used 
 by the IOMMU to perform address translations. A radix-tree data structure called
 device directory table (DDT) traversed using the `device_id` is used to hold
@@ -407,48 +407,6 @@ are used to recognize certain memory writes from the device as being MSIs. The
 use of these fields is as specified in Section 9.4 of the Advanced Interrupt 
 Architecture specification.
 
-==== Process to locate the Device-context
-
-The process to locate the Device-context for transaction using its `device_id` 
-is as follows:
-
-. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions 
-  disallowed" (cause = 256).
-. Let `a` be `ddtp.PPN x 4096` and let `i = LEVELS - 1`. When 
-  `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is 
-  `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
-. If the `device_id` is wider than supported by `ddtp.iommu_mode`, then stop
-  and report "Transaction type disallowed" (cause = 260).
-. If `i == 0` go to step 9.
-. Let `ddte` be value of eight bytes at address `a+DDI[i]x8`. If accessing 
-  `ddte` violates a PMA or PMP check, stop and report 
-  "DDT entry load access fault" (cause = 257).
-. If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If if any bits or encodings that are reserved for future standard use are 
-  set within `ddte`, stop and report "DDT entry misconfigured" 
-  (cause = 259).
-. Let `i = i - 1` and let `a = ddte.PPN x 4096`. Go to step 4.
-. Let `dc` be value of `DC_SIZE` bytes at address `a+DDI[0]*DC_SIZE`. If 
-  `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
-  If accessing `dc` violates a PMA or PMP check, stop and report 
-  "DDT entry load access fault" (cause = 257).
-. If `dc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If any bits or encodings that are reserved for future standard use are set 
-  within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
-. if any of the following conditions hold then stop and report 
-  "Transaction type disallowed" (cause = 260).
-..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
-    or is a PCIe ATS Translation request or is a ATS protocol message request 
-    and `dc.tc.EN_ATS` is 0.
-..  Transaction type is a PCIe Page Request Message and `dc.tc.EN_PRI` is 0.
-..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
-..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
-    is wider than supported by `pdtp.MODE`.
-..  Transaction type is not supported by the IOMMU.
-.   The device-context has been successfully located.
-
-See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
-
 === Process-Directory-Table (PDT)
 
 The PDT is a 1, 2, or 3-level radix tree indexed using the process directory 
@@ -573,23 +531,83 @@ table entries is then converted by guest physical address translation, as contro
 the VS-stage page table to limit access by the device to a subset of its memory 
 and specify permissions for the device accesses.
 
+=== Process to translate an IOVA
+The process to translate an `IOVA` is as follows:
+
+. Use `device_id` to then locate the device-context as specified in <<GET_DC>>.
+. If a `process_id` is present then locate the process-context as specified in
+  <<GET_PC>>.
+. If transaction is a write and the IOMMU support MSI address translation using
+  MSI page tables then determine if the `IOVA` is a MSI address and translate
+  it using MSI address translation process specified in <<MSI_TRANS>>.
+. If a G-stage page table is active in the device-context then use the 
+  two-stage address translation process specified in Section 8.5 of the 
+  privileged specification. The VS-stage page-table is in the process-context
+  when `process_id` is valid else it is in the device-context itself.
+. If a G-stage page table is not active in the device-context then translate
+  using the S-stage page table from device-context using the process 
+  specified in Section 4.3.2 of the privileged specification.
+
+Exceptions detected during this process are reported using the fault/event 
+reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
+
+[[GET_DC]]
+==== Process to locate the Device-context
+
+The process to locate the Device-context for transaction using its `device_id` 
+is as follows:
+
+. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions 
+  disallowed" (cause = 256).
+. Let `a` be `ddtp.PPN x 2^12^` and let `i = LEVELS - 1`. When 
+  `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is 
+  `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
+. If `i == 0` go to step 8.
+. Let `ddte` be value of eight bytes at address `a + DDI[i]x8`. If accessing 
+  `ddte` violates a PMA or PMP check, stop and report 
+  "DDT entry load access fault" (cause = 257).
+. If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
+. If if any bits or encodings that are reserved for future standard use are 
+  set within `ddte`, stop and report "DDT entry misconfigured" 
+  (cause = 259).
+. Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 3.
+. Let `dc` be value of `DC_SIZE` bytes at address `a + DDI[0]*DC_SIZE`. If 
+  `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
+  If accessing `dc` violates a PMA or PMP check, stop and report 
+  "DDT entry load access fault" (cause = 257).
+. If `dc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
+. If any bits or encodings that are reserved for future standard use are set 
+  within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
+. if any of the following conditions hold then stop and report 
+  "Transaction type disallowed" (cause = 260).
+..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
+    or is a PCIe ATS Translation request or is a ATS protocol message request 
+    and `dc.tc.EN_ATS` is 0.
+..  Transaction type is a PCIe Page Request Message and `dc.tc.EN_PRI` is 0.
+..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
+..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
+    is wider than supported by `pdtp.MODE`.
+..  Is a trasaction type that is not supported by the IOMMU.
+.   The device-context has been successfully located.
+
+[[GET_PC]]
 ==== Process to locate the Process-context
 
 The process to locate the Process-context for a transaction using its 
 `process_id` is as follows:
 
-. Let `a` be `pdtp.PPN x 4096` and let `i = LEVELS - 1`. When 
+. Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When 
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is 
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `i == 0` go to step 7.
-. Let `pdte` be value of eight bytes at address `a+PDI[i]x8`. If accessing 
+. If `i == 0` go to step 8.
+. Let `pdte` be value of eight bytes at address `a + PDI[i]x8`. If accessing 
   `pdte` violates a PMA or PMP check, stop and report 
   "PDT entry load access fault" (cause = 265).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If if any bits or encodings that are reserved for future standard use are 
   set within `pdte`, stop and report "PDT entry misconfigured" 
   (cause = 267).
-. Let `i = i - 1` and let `a = pdte.PPN x 4096`. Go to step 2.
+. Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
 . Let `pc` be value of 16-bytes at address `a+PDI[0]*16`. If accessing `pc` 
   violates a PMA or PMP check, stop and report "PDT entry load access fault" 
   (cause = 265).
@@ -601,7 +619,50 @@ The process to locate the Process-context for a transaction using its
 ..  The transaction requests supervisor privilege but `pc.ta.ENS` is not set.
 . The Process-context has been successfully located.
 
-See <<FAULT_QUEUE>> for fault/event reporting and fault record formats.
+[[MSI_TRANS]]
+==== Process to translate addresses of MSIs
+
+When MSI address translation using MSI PTE is supported, the process to 
+identify a incoming 32-bit write made by a device as a MSI write and 
+translating the write using the MSI page table is as follows:
+
+. Let `A` be a 32-bit aligned 32-bit write from from a device.
+. Let `dc` be the device-context located using the `device_id` of the device 
+  using the process outlined in <<GET_DC>>.
+. If `dc.msiptp.MODE == Bare`, then MSI address translation using MSI page 
+  tables is not enabled. Stop this process and instead use the regular 
+  translation data structures to do the address translation.
+. If `(A >> 12) & dc.msi_addr_mask` is not equal to 
+  `dc.msi_addr_pattern & dc.msi_addr_mask` then this write is not a MSI write.
+  Stop this process and instead use the regular translation data structures to
+  do the address translation.
+. Let the interrupt file number `I` be `extract((A >> 12), dc.msi_addr_mask)`.
+  The `extract` function here is the same generic bit extract performed by 
+  RISC-V instruction BEXT.
+. Let `a` be `(dc.msiptp.PPN x 2^12^)`.
+. Let `msipte` be the value of sixteen bytes at address `(a | (I x 16))`. If 
+  accessing `msipte` violates a PMA or PMP check, stop and report 
+  "MSI PTE load access fault" (cause = 261).
+. If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
+. If `msipte.C == 1`, then further process is to interpret the PTE is 
+  implementation defined. If `msipte.C == 0` then the process is outlined in 
+  subsequent steps.
+. If `msipte.W == 1` the PTE is write-through mode PTE and the translation 
+  process is as follows:
+.. If any bits or encodings that are reserved for future standard use are set 
+   within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
+.. Translate the address as outlined in Section 9.5.1 of the Advanced 
+   Interrupt Architecture specification.
+. If `msipte.W == 0` the PTE is a MRIF mode PTE and the translation process 
+  is as follows:
+.. If `capabilities.MSI_MRIF == 0`, stop and report "MSI PTE misconfigured"
+   (cause = 262). 
+.. If any bits or encodings that are reserved for future standard use are 
+   set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
+.. Perform the process as outlined in Section 9.5.2 of the Advanced Interrupt
+   Architecture specification. If accessing the MRIF violates a PMA or PMP 
+   check, stop and report "MRIF access fault" (cause = 264).
+. MSI address translation process is complete.
 
 === Caching in-memory data structures
 To speed up DIrect Memory Access (DMA) translations, the IOMMU may make use of
@@ -627,7 +688,7 @@ group of entries.
 |Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
 |S/VS-stage page tables |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
-|G-stage page table     |`GSCID`, GPA               | <<IGVMA,IOTINVAL.GVMA>>
+|G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`device_id`,               
                          MSI-interrupt-file-number  | <<IMSI, IOTINVAL.MSI>>
 |===
