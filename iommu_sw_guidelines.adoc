@@ -1,4 +1,4 @@
-[[guidelines]]
+[[sw_guidelines]]
 
 == Software guidelines
 

@@ -4,11 +4,11 @@ A data structure called device-context (`DC`) is used by the IOMMU to associate
 a device with an address space and to hold other per-device parameters used 
 by the IOMMU to perform address translations. A radix-tree data structure called
 device directory table (DDT) traversed using the `device_id` is used to hold
-the DC. 
+the `DC`. 
 
 Two formats of the device-context structure are supported:
 
-* *Base Format* - A 32-byte DC used when MSI address translation using 
+* *Base Format* - A 32-byte `DC` used when MSI address translation using 
   MSI flat page table and redirection of MSI to memory-resident interrupt files
   (MRIFs) are not supported. 
 
@@ -16,12 +16,12 @@ Two formats of the device-context structure are supported:
   and extends the base device context with additional information for 
   processing MSIs.
 
-DC associates the device, identified by `device_id`,  with a 
+`DC` associates the device, identified by `device_id`,  with a 
 guest-physical-address space by providing a pointer to a G-stage page 
 table and a virtual machine identifier called the guest soft-context ID 
 (`GSCID`). 
 
-To support devices with multiple process contexts, the DC points to a 
+To support devices with multiple process contexts, the `DC` points to a 
 radix-tree data structure called the Process Directory Table (PDT) used to 
 associate a `process_id` with a virtual address space. The PDT is used to hold
 the pointer to a S or VS-stage page table for a `process_id`.
@@ -91,22 +91,22 @@ directory table entry holds the device-context (`DC`).
 .Three, two and single-level device directory
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 ....
-  +-------+-------+-------+      +-------+-------+   +-------+
-  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |   |DDI[0] |
-  +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
-     |       |       |             |       |           |
-     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
-     |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
-     |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
-     |  |  | |  |  | +->|DC|       |  |  | +->|DC|     |   |  |
-     |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
-     |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
-     |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
-     +->+--+    |  | |  |  |          +--+ |  |  |     +-->|DC|
-        |NL+-+  |  | |  |  |          |  | |  |  |         +--+
-        +--+ |  |  | |  |  |          |  | |  |  |         |  |
-        |  | |  |  | |  |  |          |  | |  |  |         |  |
-ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+ ddtp--->+--+
+  +-------+-------+-------+      +-------+-------+    +-------+
+  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
+  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
+     |       |       |             |       |            |
+     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
+     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
+     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
+     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
+     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
+     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
+     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
+     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
+        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
+        +--+ |  |  | |  |  |          |  | |  |  |          |  |
+        |  | |  |  | |  |  |          |  | |  |  |          |  |
+ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
 ....
 
 ==== Non-leaf DDT entry
@@ -534,19 +534,40 @@ and specify permissions for the device accesses.
 === Process to translate an IOVA
 The process to translate an `IOVA` is as follows:
 
-. Use `device_id` to then locate the device-context as specified in <<GET_DC>>.
-. If a `process_id` is present then locate the process-context as specified in
-  <<GET_PC>>.
-. If transaction is a write and the IOMMU support MSI address translation using
-  MSI page tables then determine if the `IOVA` is a MSI address and translate
+. Use `device_id` to then locate the device-context (`DC`) as specified in <<GET_DC>>.
+. If `DC.tc.pdtv` is set to 0, the `device_id` does not support a `process_id`.
+  Then go to step 4 with the following page table information:
+** If a G-stage page table is not active in the device-context (`DC.iohgatp.mode`
+   is bare) then S-stage page-table is defined in the first-stage context (`DC.fsc`)
+   as it holds the `iosatp`. `DC.ta` holds the `PSCID` associated with the S-stage
+   translation.
+** If a G-stage page table is active in the device-context (`DC.iohgatp.mode` is not
+   bare), then VS-stage page table is defined in the first-stage context (`DC.fsc`) 
+   as it holds the `iovsatp` and the G-stage page table is defined in `DC.iohgatp`,
+   which also holds the `GSCID`. `DC.ta` holds the `PSCID` associated with the VS-stage
+   translation.
+. If `DC.tc.pdtv` is set to 1, the `device_id` supports a `process_id` and `DC.fsc`
+  holds the `pdtp`, then locate the process-context (`PC`) as specified in <<GET_PC>>.
+** If a G-stage page table is not active in the device-context (`DC.iohgatp.mode` is
+   bare) then S-stage page-table is defined in the first-stage context (`PC.fsc`) as
+   it holds the `iosatp`. `PC.ta` holds the `PSCID` associated with the S-stage
+   translation.
+** If a G-stage page table is active in the device-context (`DC.iohgatp.mode` is not
+   bare), then VS-stage page table is defined in the first-stage context (`PC.fsc`) as
+   it holds the `iovsatp` and the G-stage page table is defined in `DC.iohgatp`, which
+   also holds the `GSCID`. `PC.ta` holds the `PSCID` associated with the VS-stage
+   translation.
+. If the transaction is a write and the IOMMU support MSI address translation using
+  MSI flat page tables then determine if the `IOVA` is a MSI address and translate
   it using MSI address translation process specified in <<MSI_TRANS>>.
+. If a G-stage page table is not active in the device-context then use the
+  single stage address translation process specified in Section 4.3.2 of the
+  RISC-V privileged specification. The S-stage page-table is in the process-context
+  when `process_id` is valid else it is in the device-context itself.
 . If a G-stage page table is active in the device-context then use the 
-  two-stage address translation process specified in Section 8.5 of the 
+  two-stage address translation process specified in Section 8.5 of the RISC-V
   privileged specification. The VS-stage page-table is in the process-context
   when `process_id` is valid else it is in the device-context itself.
-. If a G-stage page table is not active in the device-context then translate
-  using the S-stage page table from device-context using the process 
-  specified in Section 4.3.2 of the privileged specification.
 
 Exceptions detected during this process are reported using the fault/event 
 reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
@@ -562,7 +583,9 @@ is as follows:
 . Let `a` be `ddtp.PPN x 2^12^` and let `i = LEVELS - 1`. When 
   `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is 
   `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
-. If `i == 0` go to step 8.
+  . If the `device_id` is wider than supported by `ddtp.iommu_mode`, then stop
+  and report "Transaction type disallowed" (cause = 260).
+. If `i == 0` go to step 9.
 . Let `ddte` be value of eight bytes at address `a + DDI[i]x8`. If accessing 
   `ddte` violates a PMA or PMP check, stop and report 
   "DDT entry load access fault" (cause = 257).
@@ -570,12 +593,12 @@ is as follows:
 . If if any bits or encodings that are reserved for future standard use are 
   set within `ddte`, stop and report "DDT entry misconfigured" 
   (cause = 259).
-. Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 3.
+. Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 4.
 . Let `dc` be value of `DC_SIZE` bytes at address `a + DDI[0]*DC_SIZE`. If 
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
   If accessing `dc` violates a PMA or PMP check, stop and report 
   "DDT entry load access fault" (cause = 257).
-. If `dc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
+. If `dc.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encodings that are reserved for future standard use are set 
   within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
 . if any of the following conditions hold then stop and report 
@@ -587,7 +610,7 @@ is as follows:
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
     is wider than supported by `pdtp.MODE`.
-..  Is a trasaction type that is not supported by the IOMMU.
+..  Transaction type is not supported by the IOMMU.
 .   The device-context has been successfully located.
 
 [[GET_PC]]
@@ -599,7 +622,7 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When 
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is 
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `i == 0` go to step 8.
+. If `i == 0` go to step 7.
 . Let `pdte` be value of eight bytes at address `a + PDI[i]x8`. If accessing 
   `pdte` violates a PMA or PMP check, stop and report 
   "PDT entry load access fault" (cause = 265).
@@ -619,10 +642,14 @@ The process to locate the Process-context for a transaction using its
 ..  The transaction requests supervisor privilege but `pc.ta.ENS` is not set.
 . The Process-context has been successfully located.
 
+NOTE: When `DC.iohgatp.mode` is not bare, `pdtp.PPN` as well as `pdte.PPN` are
+Guest Physical Addresses (GPA) which must be translated into Physical Addresses
+using the G-stage translation defined in `DC.iohgatp`.
+
 [[MSI_TRANS]]
 ==== Process to translate addresses of MSIs
 
-When MSI address translation using MSI PTE is supported, the process to 
+When MSI address translation using MSI flat PTE is supported, the process to 
 identify a incoming 32-bit write made by a device as a MSI write and 
 translating the write using the MSI page table is as follows:
 

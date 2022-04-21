@@ -1,4 +1,4 @@
-[[guidelines]]
+[[hw_guidelines]]
 
 == Hardware guidelines
 This section provides guidelines to the system/hardware integrator of the 

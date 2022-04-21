@@ -129,7 +129,7 @@ ordered with respect to explicit load and stores to these data structures by
 the RISC-V hart in the machine. 
 
 The IOMMU translation-table cache invalidation commands, IOTINVAL.VMA and 
-IOTINVAL.GVMA synchronize updates to in-memory first-stage and second-stage 
+IOTINVAL.GVMA synchronize updates to in-memory S/VS-stage and G-stage 
 page table data structures with the operation of the IOMMU and flush the 
 matching IOATC entries.
 
@@ -163,7 +163,7 @@ IOMMU to the corresponding first-stage page tables.
 |0   |1   |1     | Invalidates cached information from leaf 
                    S-stage page table entries corresponding to the IOVA in 
                    `ADDR`, for the host address space identified by `PSCID` operand.
-                   Global mappings are not invalidated.
+                   Global mappings may not be invalidated.
 |1   |0   |0     | Invalidates cached information from any level of 
                    the VS-stage page table, for all VM address spaces 
                    associated with `GSCID`.
@@ -178,7 +178,7 @@ IOMMU to the corresponding first-stage page tables.
 |1   |1   |1     | Invalidates cached information from leaf 
                    VS-stage page table entries corresponding to the IOVA in 
                    `ADDR`, for the VM address space identified by `PSCID` and `GSCID`
-                   operand. Global mappings are not invalidated.
+                   operand. Global mappings may not be invalidated.
 |===
 
 `IOTINVAL.GVMA` guarantees that previous stores made to the G-stage page 
