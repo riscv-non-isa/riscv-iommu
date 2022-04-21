@@ -11,7 +11,7 @@ See the https://github.com/riscv/docs-spec-template/blob/main/LICENSE[LICENSE] f
 = Contributors
 
 Contributors to this specification are contained in the 
-https://github.com/riscv/docs-spec-template/blob/main/contributors.adoc[contributors.adoc] file.
+https://github.com/riscv-non-isa/riscv-iommu/blob/main/contributors.adoc[contributors.adoc] file.
 
 = Dependencies
 
