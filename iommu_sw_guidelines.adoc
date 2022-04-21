@@ -32,8 +32,13 @@ sequence:
 
 === Guidelines for invalidations
 This section provides guidelines to software on the invalidation commands to
-send to the IOMMU when modifying the IOMMU in-memory data structures used 
-for address translations.
+send to the IOMMU through the CQ when modifying the IOMMU in-memory data structures. Software must perform the invalidation after the update is globally
+visible. The ordering on stores provided by FENCE instructions and the acquire/
+release bits on atomic instructions also orders the data structure updates
+associated with those stores as observed by IOMMU.
+
+A IOFENCE.C command may be used by software to ensure that all previous 
+commands fetched from the CQ have been completed and committed.
 
 ==== Changing device directory table entry
 If software changes a leaf-level DDT entry i.e, a device context (DC), of
@@ -167,7 +172,7 @@ original and new PTEs have identical permission and memory type attributes and
 the physical address that is determined as a result of translation using either
 the original or the new PTE is otherwise identical for any given input. The
 only PTE update supported by the IOMMU without first clearing the V bit in the
-original PTE and executing a appropriate IOTINVAL command is to do a page size
+original PTE and executing a appropriate `IOTINVAL` command is to do a page size
 promotion or demotion. The behavior of the IOMMU if other attributes are 
 changed in this fashion is implementation defined.
 
@@ -206,10 +211,10 @@ invalidations to the DevATC.
 
 ==== Caching invalid entries
 
-This specification does not  the caching of S/VS/G-stage PTEs whose V (valid) 
-bit is clear, DDT entries whose V bit is clear, PDT entries whose V bit is 
-clear, or MSI PTEs whose V bit is clear. Software need not perform
-invalidations when changing the V bit in these entries from 0 to 1.
+This specification does not allow the caching of S/VS/G-stage PTEs whose 
+`V` (valid) bit is clear, DDT entries whose `V` bit is clear, PDT entries whose
+`V` bit is clear, or MSI PTEs whose `V` bit is clear. Software need not perform
+invalidations when changing the `V` bit in these entries from 0 to 1.
 
 ==== Reconfiguring PMAs
 
