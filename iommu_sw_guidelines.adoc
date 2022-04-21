@@ -56,6 +56,7 @@ device with `device_id=D` then the following invalidations must be performed:
 
 If software changes a non-leaf-level DDT entry the following invalidations
 must be performed:
+
 * `IODIR.INVAL_DDT` with `DV=0`
 
 Between change to the DDT entry and when an invalidation command to invalidate
