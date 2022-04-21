@@ -61,8 +61,8 @@ jobs:
     - name: Archive PDF result
       uses: actions/upload-artifact@v2
       with:
-        name: example-spec.pdf
-        path: example-spec.pdf
+        name: riscv-iommu.pdf
+        path: riscv-iommu.pdf
         retention-days: 7
     - name: Create Release
       id: create_release
