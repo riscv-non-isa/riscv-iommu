@@ -534,40 +534,40 @@ and specify permissions for the device accesses.
 === Process to translate an IOVA
 The process to translate an `IOVA` is as follows:
 
-. Use `device_id` to then locate the device-context (`DC`) as specified in <<GET_DC>>.
-. If `DC.tc.pdtv` is set to 0, the `device_id` does not support a `process_id`.
-  Then go to step 4 with the following page table information:
-** If a G-stage page table is not active in the device-context (`DC.iohgatp.mode`
-   is bare) then S-stage page-table is defined in the first-stage context (`DC.fsc`)
-   as it holds the `iosatp`. `DC.ta` holds the `PSCID` associated with the S-stage
-   translation.
-** If a G-stage page table is active in the device-context (`DC.iohgatp.mode` is not
-   bare), then VS-stage page table is defined in the first-stage context (`DC.fsc`) 
-   as it holds the `iovsatp` and the G-stage page table is defined in `DC.iohgatp`,
-   which also holds the `GSCID`. `DC.ta` holds the `PSCID` associated with the VS-stage
-   translation.
-. If `DC.tc.pdtv` is set to 1, the `device_id` supports a `process_id` and `DC.fsc`
-  holds the `pdtp`, then locate the process-context (`PC`) as specified in <<GET_PC>>.
-** If a G-stage page table is not active in the device-context (`DC.iohgatp.mode` is
-   bare) then S-stage page-table is defined in the first-stage context (`PC.fsc`) as
-   it holds the `iosatp`. `PC.ta` holds the `PSCID` associated with the S-stage
-   translation.
-** If a G-stage page table is active in the device-context (`DC.iohgatp.mode` is not
-   bare), then VS-stage page table is defined in the first-stage context (`PC.fsc`) as
-   it holds the `iovsatp` and the G-stage page table is defined in `DC.iohgatp`, which
-   also holds the `GSCID`. `PC.ta` holds the `PSCID` associated with the VS-stage
-   translation.
+. Use `device_id` to then locate the device-context (`DC`) as specified in 
+  <<GET_DC>>.
+. If `DC.tc.pdtv` is set to 0, the `device_id` does not support a 
+  `process_id`; go to step 4 with the following page table information:
+** If a G-stage page table is not active in the device-context
+   (`DC.iohgatp.mode` is `Bare`) then S-stage page-table is defined in 
+   the first-stage context (`DC.fsc`) as it holds the `iosatp`. `DC.ta` holds 
+   the `PSCID` associated with the S-stage translation.
+** If a G-stage page table is active in the device-context (`DC.iohgatp.mode` 
+   is not `Bare`), then VS-stage page table is defined in the first-stage 
+   context (`DC.fsc`) as it holds the `iovsatp` and the G-stage page table is
+   defined in `DC.iohgatp`, which also holds the `GSCID`. `DC.ta` holds the 
+   `PSCID` associated with the VS-stage translation.
+. If `DC.tc.pdtv` is set to 1, the `device_id` supports a `process_id` and 
+  `DC.fsc` holds the `pdtp`;locate the process-context (`PC`) as specified in
+  <<GET_PC>>.
+** If a G-stage page table is not active in the device-context 
+   (`DC.iohgatp.mode` is `Bare`) then S-stage page-table is defined in the 
+   first-stage context (`PC.fsc`) as it holds the `iosatp`. `PC.ta` holds the
+   `PSCID` associated with the S-stage translation.
+** If a G-stage page table is active in the device-context 
+   (`DC.iohgatp.mode` is not `Bare`), then VS-stage page table is defined in 
+   the first-stage context (`PC.fsc`) as it holds the `iovsatp` and the G-stage
+   page table is defined in `DC.iohgatp`, which also holds the `GSCID`. `PC.ta`
+   holds the `PSCID` associated with the VS-stage translation.
 . If the transaction is a write and the IOMMU support MSI address translation using
   MSI flat page tables then determine if the `IOVA` is a MSI address and translate
   it using MSI address translation process specified in <<MSI_TRANS>>.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
-  RISC-V privileged specification. The S-stage page-table is in the process-context
-  when `process_id` is valid else it is in the device-context itself.
+  RISC-V privileged specification.
 . If a G-stage page table is active in the device-context then use the 
   two-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification. The VS-stage page-table is in the process-context
-  when `process_id` is valid else it is in the device-context itself.
+  privileged specification.
 
 Exceptions detected during this process are reported using the fault/event 
 reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
