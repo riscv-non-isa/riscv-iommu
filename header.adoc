@@ -1,5 +1,5 @@
 [[header]]
-:description: RISC-V IOMMU Specification Document (Ziommu)
+:description: RISC-V IOMMU Specification Document
 :company: RISC-V.org
 :revdate: 3/2022
 :revnumber: 0.1
@@ -36,7 +36,7 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
-= RISC-V IOMMU Specification Document (Ziommu)
+= RISC-V IOMMU Specification Document
 IOMMU Task Group
 
 // Preamble
