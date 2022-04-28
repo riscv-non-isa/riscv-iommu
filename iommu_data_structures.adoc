@@ -88,12 +88,37 @@ device-directory-table pointer (`ddtp`). Each non-leaf (`NL`) entry provides
 the PPN of the next level device-directory-table page. The leaf device
 directory table entry holds the device-context (`DC`).
 
-.Three, two and single-level device directory
+.Three, two and single-level device directory with extended format `DC`
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 ....
   +-------+-------+-------+      +-------+-------+    +-------+
   |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
   +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
+     |       |       |             |       |            |
+     +-9-bit +-9-bit +-6-bit       +-9-bit +-6-bit      +-6-bit
+     |       |       |             |       |            |
+     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
+     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
+     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
+     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
+     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
+     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
+     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
+     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
+        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
+        +--+ |  |  | |  |  |          |  | |  |  |          |  |
+        |  | |  |  | |  |  |          |  | |  |  |          |  |
+ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
+....
+
+.Three, two and single-level device directory with base format `DC`
+["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+....
+  +-------+-------+-------+      +-------+-------+    +-------+
+  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
+  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
+     |       |       |             |       |            |
+     +-8-bit +-9-bit +-7-bit       +-9-bit +-7-bit      +-7-bit
      |       |       |             |       |            |
      |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
      |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
@@ -425,6 +450,8 @@ process-directory table entry holds the process-context (`PC`).
   |PDI[2] |PDI[1] |PDI[0] |      |PDI[1] |PDI[0] |   |PDI[0] |
   +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
      |       |       |             |       |           |
+     +-3-bit +-9-bit +-8-bit       +-9-bit +-8-bit     +-8-bit
+     |       |       |             |       |           |
      |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
      |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
      |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
@@ -564,13 +591,15 @@ The process to translate an `IOVA` is as follows:
   it using MSI address translation process specified in <<MSI_TRANS>>.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
-  RISC-V privileged specification.
+  RISC-V privileged specification. If a fault is detecting by the single stage
+  address translation process then stop and report the fault.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification.
+  privileged specification. If a fault is detecting by the single stage address
+  translation process then stop and report the fault.
 
-Exceptions detected during this process are reported using the fault/event
-reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
+Faults detected during this process are reported using the fault/event reporting
+mechanism and fault record formats specified in <<FAULT_QUEUE>>.
 
 [[GET_DC]]
 ==== Process to locate the Device-context
@@ -586,9 +615,9 @@ is as follows:
   . If the `device_id` is wider than supported by `ddtp.iommu_mode`, then stop
   and report "Transaction type disallowed" (cause = 260).
 . If `i == 0` go to step 9.
-. Let `ddte` be value of eight bytes at address `a + DDI[i]x8`. If the address
-  of `ddte` is beyond physical memory width of the platform stop and report
-  "DDT entry load access fault" (cause = 257).
+. Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
+  `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
+  access fault" (cause = 257).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If if any bits or encodings that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
@@ -596,8 +625,8 @@ is as follows:
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 4.
 . Let `dc` be value of `DC_SIZE` bytes at address `a + DDI[0]*DC_SIZE`. If
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
-  If address of `dc` is beyond physical address width of the platform, stop and
-  report "DDT entry load access fault" (cause = 257).
+  If accessing `dc` violates a PMA or PMP check, then stop and report 
+  "DDT entry load access fault" (cause = 257).
 . If `dc.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encodings that are reserved for future standard use are set
   within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
@@ -616,24 +645,33 @@ is as follows:
 [[GET_PC]]
 ==== Process to locate the Process-context
 
+The device-context provides the PDT root page PPN (`pdtp.ppn`).  When 
+`DC.iohgatp.mode` is not bare, `pdtp.PPN` as well as `pdte.PPN` are Guest 
+Physical Addresses (GPA) which must be translated into Supervisor Physical
+Addresses (SPA) using the G-stage page table pointed by `DC.iohgatp`.
+
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
 
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `i == 0` go to step 7.
-. Let `pdte` be value of eight bytes at address `a + PDI[i]x8`. If address of
-  `pdte` is beyond physical address width of the platform, stop and report
+. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
+  to translate `a` to a SPA. If faults occur during G-stage address 
+  translation of `a` then stop and the fault detected by the G-stage 
+  address translation process. The translated `a` is used in subsequent
+  steps. 
+. If `i == 0` go to step 8.
+. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If 
+  accessing `pdte` violates a PMA or PMP check, then stop and report 
   "PDT entry load access fault" (cause = 265).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If if any bits or encodings that are reserved for future standard use are
-  set within `pdte`, stop and report "PDT entry misconfigured"
-  (cause = 267).
-. Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
-. Let `pc` be value of 16-bytes at address `a+PDI[0]*16`. If address of `pc`
-  is beyond physical address width of the platform, stop and report 
-  "PDT entry load access fault" (cause = 265).
+  set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
+. Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
+. Let `pc` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `pc`
+  violates a PMA or PMP check, then stop and report "PDT entry load access 
+  fault" (cause = 265).
 . If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If any bits or encodings that are reserved for future standard use are set
   within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
@@ -641,10 +679,6 @@ The process to locate the Process-context for a transaction using its
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `pc.ta.ENS` is not set.
 . The Process-context has been successfully located.
-
-NOTE: When `DC.iohgatp.mode` is not bare, `pdtp.PPN` as well as `pdte.PPN` are
-Guest Physical Addresses (GPA) which must be translated into Physical Addresses
-using the G-stage translation defined in `DC.iohgatp`.
 
 [[MSI_TRANS]]
 ==== Process to translate addresses of MSIs
@@ -668,8 +702,8 @@ translating the write using the MSI page table is as follows:
   RISC-V instruction BEXT.
 . Let `a` be `(dc.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(a | (I x 16))`. If
-  address of `msipte` is beyond physical address width of the platform, stop
-  and report "MSI PTE load access fault" (cause = 261).
+  accessing `msipte` violates a PMA or PMP check, then stop and report 
+  "MSI PTE load access fault" (cause = 261).
 . If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
 . If `msipte.C == 1`, then further process is to interpret the PTE is
   implementation defined. If `msipte.C == 0` then the process is outlined in
@@ -687,25 +721,29 @@ translating the write using the MSI page table is as follows:
 .. If any bits or encodings that are reserved for future standard use are
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
 .. Perform the process as outlined in Section 9.5.2 of the Advanced Interrupt
-   Architecture specification. If address of MRIF is beyond physical address
-   width of the platform, stop and report "MRIF access fault" (cause = 264).
+   Architecture specification. If accessing MRIF violates a PMA or PMP check,
+   then stop and report "MRIF access fault" (cause = 264).
 . MSI address translation process is complete.
 
-=== Treatment of physical addresses
+=== Faults from virtual address translation process
 
-If the physical address of a S, VS, or G-stage PTE has bits beyond the
-physical address width of the platform then the IOMMU causes an access-fault
-exception corresponding to the original access type. If the physical address
-determined as a result of address translation has bits beyond the physical
-address width of the platform then the IOMMU causes an access-fault 
-exception corresponding to the original access type.
+Faults detected during the S-stage or two-stage address translation specified
+in the privileged specification cause the IOVA translation process to stop and
+report the detected fault.
 
 === Caching in-memory data structures
+
 To speed up Direct Memory Access (DMA) translations, the IOMMU may make use of
 translation caches to hold entries from device-directory-table,
 process-directory-table, S/VS and G-stage translation tables, MSI page
 tables. These caches are collectively referred to as the IOMMU Address
 Translation Caches (IOATC).
+
+This specification does not allow the caching of S/VS/G-stage PTEs whose `V` 
+(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear, 
+Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
+(valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
+PTEs whose `V` bit is clear.
 
 These IOATC do not observe modifications to the in-memory data structures using
 explicit loads and stores by RISC-V harts or by device DMA. Software must use

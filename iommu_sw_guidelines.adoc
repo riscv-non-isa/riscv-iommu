@@ -211,10 +211,14 @@ invalidations to the DevATC.
 
 ==== Caching invalid entries
 
-This specification does not allow the caching of S/VS/G-stage PTEs whose 
-`V` (valid) bit is clear, DDT entries whose `V` bit is clear, PDT entries whose
-`V` bit is clear, or MSI PTEs whose `V` bit is clear. Software need not perform
-invalidations when changing the `V` bit in these entries from 0 to 1.
+This specification does not allow the caching of S/VS/G-stage PTEs whose `V` 
+(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear, 
+Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
+(valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
+PTEs whose `V` bit is clear.
+
+Software need not perform invalidations when changing the `V` bit in these
+entries from 0 to 1.
 
 ==== Reconfiguring PMAs
 
