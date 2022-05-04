@@ -605,18 +605,19 @@ status of the command-queue.
 |Bits |Field   |Attribute | Description
 |0    |`cqen`  |RO        | The command-queue-enable bit enables the command-
                             queue when set to 1. Changing `cqen` from 0 to 1
-                            sets the `cqh`, `cqt` to 0 and sets cqcsr bits 
-                            `cmd_ill`, `cmd_to`, `cqmf`, `fence_w_ip` to 0. 
-                            The command-queue may take some time to be active 
-                            following setting the `cqen` to 1. When the command 
-                            queue is active, the `cqon` bit reads 1.
+                            sets the `cqh` and `cqt` to 0. The command-queue 
+                            may take some time to be active following setting 
+                            the `cqen` to 1. When the command queue is active,
+                            the `cqon` bit reads 1.
 
                             When `cqen` is changed from 1 to 0, the command 
                             queue may stay active till the commands already 
                             fetched from the command-queue are being processed 
                             and/or there are outstanding implicit loads from 
                             the command-queue.  When the command-queue turns 
-                            off, the `cqon` bit reads 0.
+                            off, the `cqon` bit reads 0, `cqh` is set to 0, 
+                            `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`, 
+                            `cmd_to`, `cqmf`, `fence_w_ip` are set to 0.
 
                             When the `cqon` bit reads 0, the IOMMU guarantees 
                             that no implicit memory accesses to the command 
