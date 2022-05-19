@@ -32,13 +32,14 @@ sequence:
 
 === Guidelines for invalidation's
 This section provides guidelines to software on the invalidation commands to
-send to the IOMMU through the CQ when modifying the IOMMU in-memory data structures. Software must perform the invalidation after the update is globally
+send to the IOMMU through the `CQ` when modifying the IOMMU in-memory data 
+structures. Software must perform the invalidation after the update is globally
 visible. The ordering on stores provided by FENCE instructions and the acquire/
 release bits on atomic instructions also orders the data structure updates
 associated with those stores as observed by IOMMU.
 
 A IOFENCE.C command may be used by software to ensure that all previous 
-commands fetched from the CQ have been completed and committed.
+commands fetched from the `CQ` have been completed and committed.
 
 ==== Changing device directory table entry
 If software changes a leaf-level DDT entry i.e, a device context (DC), of
