@@ -279,9 +279,9 @@ with the VM.
 [NOTE]
 ====
 When `T2GPA` is enabled, the addresses provided to the device in response to a
-PCIe ATS Translation Request are not directly routable by the I/O fabric
+PCIe ATS Translation Request cannot be directly routed by the I/O fabric
 (e.g. PCI switches) that connect the device to other peer devices and to host.
-Such addresses are also not routable within the device even if peer-to-peer
+Such addresses are also cannot be routed within the device when peer-to-peer
 transactions within the device (e.g. between functions of a device) are 
 supported.
 
