@@ -303,7 +303,7 @@ have been completed and committed.
 
 The commands may be used to order memory accesses from I/O devices connected to
 the IOMMU as viewed by the IOMMU, other RISC-V harts, and external devices or 
-coprocessors. The `PR` and `PW` bits can be used to request that the IOMMU ensure 
+co-processors. The `PR` and `PW` bits can be used to request that the IOMMU ensure 
 that all previous requests from devices that have already been processed by the
 IOMMU be committed to a global ordering point such that they can be observed by
 all RISC-V harts and IOMMUs in the machine. 
@@ -436,11 +436,12 @@ not complete till either the request times out or a valid response is received
 from the device.
 ====
 
-The `ATS.PRGR` command instructs the IOMMU to send a “Page Group Response” 
-message to the PCIe device function identified by the `RID`. The 
-“Page Group Response” message is used by system hardware and/or software to 
-communicate with the device functions page-request interface to signal 
-completion of a “Page Request”, or the catastrophic failure of the interface.
+The `ATS.PRGR` command instructs the IOMMU to send a “Page Request Group 
+Response” message to the PCIe device function identified by the `RID`. The 
+“Page Request Group Response” message is used by system hardware and/or 
+software to communicate with the device functions page-request interface to 
+signal completion of a “Page Request”, or the catastrophic failure of the 
+interface.
 
 If the `PV` operand is set to 1, the message is generated with a PASID TLP 
 prefix with the PASID field set to the `PID` operand. 
@@ -486,35 +487,36 @@ number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. 
 ....
 The `CAUSE` is a code indicating the cause of the fault/event.
 
+[[FAULT_CAUSE]]
 .Fault record `CAUSE` field encodings
 [width=75%]
-[%header, cols="3,20"]
+[%header, cols="4,20,6"]
 |===
-|CAUSE | Description
-|0     | Instruction address misaligned
-|1     | Instruction access fault
-|4     | Read address misaligned
-|5     | Read access fault
-|6     | Write/AMO address misaligned
-|7     | Write/AMO access fault
-|12    | Instruction page fault
-|13    | Read page fault
-|15    | Write/AMO page fault
-|20    | Instruction guest page fault
-|21    | Read guest-page fault
-|23    | Write/AMO guest-page fault
-|256   | All inbound transactions disallowed (`ddtp.iommu_mode == Off`)
-|257   | DDT entry load access fault
-|258   | DDT entry not valid
-|259   | DDT entry misconfigured - reserved fields not 0, unsupported encodings
-|260   | Transaction type disallowed
-|261   | MSI PTE load access fault
-|262   | MSI PTE not valid
-|262   | MSI PTE misconfigured
-|264   | MRIF access fault
-|265   | PDT entry load access fault.
-|266   | PDT entry not valid
-|267   | PDT entry misconfigured - reserved fields not 0, unsupported encodings
+|CAUSE | Description                         | Reported if `DTF` is 1?
+|0     | Instruction address misaligned      | No
+|1     | Instruction access fault            | No
+|4     | Read address misaligned             | No
+|5     | Read access fault                   | No
+|6     | Write/AMO address misaligned        | No
+|7     | Write/AMO access fault              | No
+|12    | Instruction page fault              | No
+|13    | Read page fault                     | No
+|15    | Write/AMO page fault                | No
+|20    | Instruction guest page fault        | No
+|21    | Read guest-page fault               | No
+|23    | Write/AMO guest-page fault          | No
+|256   | All inbound transactions disallowed | Yes
+|257   | DDT entry load access fault         | Yes
+|258   | DDT entry not valid                 | Yes
+|259   | DDT entry misconfigured             | Yes
+|260   | Transaction type disallowed         | No
+|261   | MSI PTE load access fault           | No
+|262   | MSI PTE not valid                   | No
+|263   | MSI PTE misconfigured               | No
+|264   | MRIF access fault                   | No
+|265   | PDT entry load access fault         | No
+|266   | PDT entry not valid                 | No
+|267   | PDT entry misconfigured             | No
 |===
 
 The `TTYP` field reports inbound transaction type.
@@ -585,19 +587,21 @@ If `pqh` == `pqt`, the page-request queue is empty.
 
 If `pqt` == (`pqh` - 1) the page-request queue is full.
 
-The IOMMU may be unable to report page-requests through the queue due to error
-conditions such as the queue being full or the IOMMU encountering access faults
-when attempting to access queue memory. A memory-mapped page-request queue 
-control and status register (`pqcsr`) is used to hold information about such 
-faults. If the queue full condition is detected, the IOMMU discards the 
-message and may auto-complete the page-request as specified by the PCIe ATS 
-specification. On a page queue full condition the page-request-queue overflow
-(`pqof`) bit is set in `pqcsr`. If the IOMMU encountered a fault in accessing o
-the queue memory, page-request-queue memory access fault (`pqmf`) bit in 
-`pqcsr`. While either error bits are set in `pqcsr`, the IOMMU discards 
-subsequent page-request messages and may auto-complete them using an IOMMU 
-generated “Page Group Response” message as specified by PCIe ATS 
-specifications.
+The IOMMU may be unable to report "Page Request" messages through the queue due
+to error conditions such as the queue being disabled, queue being full, or the
+IOMMU encountering access faults when attempting to access queue memory. A 
+memory-mapped page-request queue control and status register (`pqcsr`) is used
+to hold information about such faults.  On a page queue full condition the 
+page-request-queue overflow (`pqof`) bit is set in `pqcsr`. If the IOMMU 
+encountered a fault in accessing the queue memory, page-request-queue memory 
+access fault (`pqmf`) bit in `pqcsr`. While either error bits are set in 
+`pqcsr`, the IOMMU discards all subsequent "Page Request" messages; including
+the message that caused the error bits to be set. "Page request" messages that
+do not require a response, i.e. those with the "Last Request in PRG" field is 0,
+are silently discarded. "Page request" messages that require a response, i.e. 
+those with "Last Request in PRG" field set to 1 and are not Stop Marker 
+messages, may be auto-completed by an IOMMU generated 
+“Page Request Group Response” message as specified by PCIe ATS specifications.
 
 When an error bit is in the `pqcsr` changes state from 0 to 1 or when a new 
 message is produced in the queue, page-request-queue interrupt pending (`pip`) 
