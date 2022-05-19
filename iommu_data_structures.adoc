@@ -113,8 +113,8 @@ the PDT radix-tree table are as follows:
 The `process_id` partitioning is designed to required a maximum of 4 KiB, a
 page, of memory for each process directory table. The root of the table when
 using a 20-bit wide `process_id` is not fully populated. The option of making
-the root table occupay 32 KiB was considered but not adopted as these tables
-are allocated at run time and contigous memory allocation larger than a page
+the root table occupy 32 KiB was considered but not adopted as these tables
+are allocated at run time and contiguous memory allocation larger than a page
 may stress the Guest and hypervisor memory allocators.
 ====
 
@@ -126,7 +126,7 @@ is not prohibited by this specification.
 ====
 
 === Device-Directory-Table (DDT)
-DDT is upto 3-level radix tree indexed using the device directory index (DDI)
+DDT is up to 3-level radix tree indexed using the device directory index (DDI)
 bits of the `device_id`.
 
 The following diagrams illustrate the DDT radix-tree. The PPN of the root 
@@ -244,7 +244,8 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
   {bits: 1,  name: 'T2GPA'},
   {bits: 1,  name: 'DTF'},
   {bits: 1,  name: 'PDTV'},
-  {bits: 26, name: 'reserved'},
+  {bits: 1,  name: 'PRPR'},
+  {bits: 25, name: 'reserved'},
   {bits: 32, name: 'for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -262,7 +263,6 @@ they are treated as unsupported transactions.
 * Translated write/AMO transaction
 * PCIe ATS Translation Request
 * PCIe ATS Invalidation Completion Message
-* PCIe ATS Page Request Message
 
 If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA
 , instead of a SPA, as the translation of an IOVA in response to a  PCIe ATS
@@ -300,12 +300,29 @@ As an alternative to setting `T2GPA` to 1, the hypervisor may establish a trust
 relationship with the device if authentication protocols are supported by the
 device. For PCIe, for example, the PCIe component measurement and authentication
 (CMA) capability provides a mechanism to verify the devices configuration and 
-firmware/executables (Measurement) and hardware identities (Authentication) to 
+firmware/executable (Measurement) and hardware identities (Authentication) to 
 establish such a trust relationship.
 ====
 
-If `EN_PRI` bit is 0, then PCIe ATS Page Request messages from the device are
-invalid requests.
+If `EN_PRI` bit is 0, then PCIe "Page Request" messages from the device are 
+invalid requests. A "Page Request" message received from a device is responded to
+with a "Page Request Group Response" message. Normally, a software handler 
+generates this response message. However, under some conditions the IOMMU itself 
+may generate a response. For IOMMU generated "Page Request Group Response" 
+messages the PRG-response-PASID-required (`PRPR`) bit when set to 1 indicates 
+that the IOMMU response message should include a PASID prefix if the associated
+"Page Request" had a PASID prefix.
+
+[NOTE]
+====
+Functions that support PASID and have the "PRG Response PASID Required" 
+capability bit set to 1, expect that "Page Request Group Response" messages will
+contain a PASID if the associated "Page Request" message had a PASID. If the 
+capability bit is 0, the function does not expect PASID on any "Page Request 
+Group Response" message and the behavior of the function if it receives the 
+response with a PASID prefix is undefined. The `PRPR` bit should be configured
+with the value held in the "PRG Response PASID Required" capability bit.
+====
 
 [NOTE]
 ====
@@ -321,7 +338,8 @@ Setting the disable-translation-fault - `DTF` - bit to 1 disables reporting of
 faults encountered in the address translation process. Setting `DTF` to 1 does
 not disable error responses from being generated to the device in response to
 faulting transactions. Setting `DTF` to 1 does not disable reporting of faults
-from the IOMMU that are not related to the address translation process.
+from the IOMMU that are not related to the address translation process. The 
+faults that are not reported when `DTF` is 1 are listed in <<FAULT_CAUSE>>.
 
 [NOTE]
 ====
@@ -339,7 +357,7 @@ the PPN of the root page of a VS-stage page table (i.e. `iovsatp`).
 
 The `PDTV` is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
-with its memory accesses. For PCIe, for example, PASID capable deviecs that 
+with its memory accesses. For PCIe, for example, PASID capable devices that 
 have the PASID capability enabled, signal the `process_id` in the PASID TLP
 prefix of the TLP.
 
@@ -351,7 +369,7 @@ are associated to a VM with a common G-stage page table, the hypervisor is
 expected to program the same `GSCID` in each `iohgatp`. The `MODE` field is used
 to select the G-stage address translation scheme.
 
-The G-stage page table format and `MODE` encodings follow the format defined by
+The G-stage page table format and `MODE` encoding follow the format defined by
 the privileged specification.
 
 Implementations are not required to support all defined mode settings for
@@ -385,8 +403,8 @@ respectively.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The encodings of the `iosatp`/`iovsatp` `MODE` field are as the same as the
-encodings for `MODE` field in the `satp` CSR.
+The encoding of the `iosatp`/`iovsatp` `MODE` field are as the same as the
+encoding for `MODE` field in the `satp` CSR.
 
 When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
 (`pdtp`). When the device supports multiple process contexts, selected by the
@@ -583,7 +601,7 @@ the state of `SUM`.
 ===== First-Stage context (`fsc`)
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
 is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide 
-the controls for S-stage page or VS-stage address trasnslation and protection
+the controls for S-stage page or VS-stage address translation and protection
 respectively.
 
 .IO (Virtual)Supervisor addr. translation and prot. (`iovsatp`/`iosatp`) field (when `PDTV` is 1)
@@ -598,7 +616,7 @@ respectively.
 
 A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a S/VS-stage
 page table and the `MODE` used to determine the S/VS-stage address translation
-scheme. The `MODE` field encodings are as defined for the `MODE` field in the
+scheme. The `MODE` field encoding are as defined for the `MODE` field in the
 `satp`/`vsatp` CSR.
 
 The software assigned process soft-context ID (`PSCID`) is used as the address
@@ -652,8 +670,17 @@ The process to translate an `IOVA` is as follows:
   privileged specification. If a fault is detecting by the single stage address
   translation process then stop and report the fault.
 
-Faults detected during this process are reported using the fault/event reporting
-mechanism and fault record formats specified in <<FAULT_QUEUE>>.
+When the translation process reports a fault, and the request is a Untranslated
+request, a Translated request, or a message the IOMMU requests the IO bridge to
+abort the transaction. Guidelines for handling faulting transactions in the IO 
+bridge are provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the 
+fault/event reporting mechanism and fault record formats specified in 
+<<FAULT_QUEUE>>. 
+
+If the fault was detected by a PCIe ATS Translation Request then the IOMMU may 
+provide a PCIe protocol defined response instead of reporting fault to software
+or causing an abort. The handling of faulting PCIe ATS Translation Requests is 
+specified in <<ATS_FAULTS>>.
 
 [[GET_DC]]
 ==== Process to locate the Device-context
@@ -673,7 +700,7 @@ is as follows:
   `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
   access fault" (cause = 257).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If if any bits or encodings that are reserved for future standard use are
+. If if any bits or encoding that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
   (cause = 259).
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 4.
@@ -682,14 +709,14 @@ is as follows:
   If accessing `dc` violates a PMA or PMP check, then stop and report 
   "DDT entry load access fault" (cause = 257).
 . If `dc.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If any bits or encodings that are reserved for future standard use are set
+. If any bits or encoding that are reserved for future standard use are set
   within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request or is a ATS protocol message request
     and `dc.tc.EN_ATS` is 0.
-..  Transaction type is a PCIe Page Request Message and `dc.tc.EN_PRI` is 0.
+..  Transaction type is a PCIe "Page Request" Message and `dc.tc.EN_PRI` is 0.
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
     is wider than supported by `pdtp.MODE`.
@@ -720,14 +747,14 @@ The process to locate the Process-context for a transaction using its
   accessing `pdte` violates a PMA or PMP check, then stop and report 
   "PDT entry load access fault" (cause = 265).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
-. If if any bits or encodings that are reserved for future standard use are
+. If if any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
 . Let `pc` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `pc`
   violates a PMA or PMP check, then stop and report "PDT entry load access 
   fault" (cause = 265).
 . If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
-. If any bits or encodings that are reserved for future standard use are set
+. If any bits or encoding that are reserved for future standard use are set
   within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
@@ -764,7 +791,7 @@ translating the write using the MSI page table is as follows:
   subsequent steps.
 . If `msipte.W == 1` the PTE is write-through mode PTE and the translation
   process is as follows:
-.. If any bits or encodings that are reserved for future standard use are set
+.. If any bits or encoding that are reserved for future standard use are set
    within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
 .. Translate the address as outlined in Section 9.5.1 of the Advanced
    Interrupt Architecture specification.
@@ -772,7 +799,7 @@ translating the write using the MSI page table is as follows:
   is as follows:
 .. If `capabilities.MSI_MRIF == 0`, stop and report "MSI PTE misconfigured"
    (cause = 262).
-.. If any bits or encodings that are reserved for future standard use are
+.. If any bits or encoding that are reserved for future standard use are
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
 .. Perform the process as outlined in Section 9.5.2 of the Advanced Interrupt
    Architecture specification. If accessing MRIF violates a PMA or PMP check,
@@ -784,6 +811,106 @@ translating the write using the MSI page table is as follows:
 Faults detected during the S-stage or two-stage address translation specified
 in the privileged specification cause the IOVA translation process to stop and
 report the detected fault.
+
+[[ATS_FAULTS]]
+=== PCIe ATS translation request handling
+ATS translation requests that encounter a configuration error results in a 
+Completer Abort (CA) response to the requester. The following cause codes
+belong to this category:
+
+* Instruction access fault (cause = 1)
+* Read access fault (cause = 5)
+* Write/AMO access fault (cause = 7)
+* MSI PTE load access fault (cause = 261)
+* MSI PTE misconfigured (cause = 263)
+* PDT entry load access fault (cause = 265)
+* PDT entry misconfigured (cause = 267)
+
+If there is a permanent error or if ATS transactions are disabled then a 
+Unsupported Request (UR) response is generated. The following cause codes
+belong to this category:
+
+* All inbound transactions disallowed (cause = 256)
+* DDT entry load access fault (cause = 257)
+* DDT entry not valid (cause = 258)
+* DDT entry misconfigured (cause = 259)
+* Transaction type disallowed (cause = 260)
+
+When translation could not be completed due to PDT entry being not present, MSI
+PTE being not present, or first and/or second stage PTE being not present or 
+misconfigured then a Success Response with R and W bits set to 0 is generated. 
+The translated address returned with such completions is undefined. The 
+following cause codes belong to this category:
+
+* Instruction page fault (cause = 12)
+* Read page fault (cause = 13)
+* Write/AMO page fault (cause = 14)
+* Instruction guest page fault (cause = 20)
+* Read guest-page fault (cause = 21)
+* Write/AMO guest-page fault (cause = 23)
+* PDT entry not valid (cause = 266)
+* MSI PTE not valid (cause = 262)
+
+If the translation request has a PASID prefix with "Privilege Mode Requested" 
+field set to 0, or the request does not have a PASID prefix then the request 
+does not target privileged memory. If the U-bit that indicates if the memory is
+accessible to user mode is 0 then a Success response with R and W bits set to 0
+is generated.
+
+If the translation request has a PASID prefix with "Privilege Mode Requested"
+field set to 1, then the request targets privileged memory. If the U-bit that
+indicates if the page is accessible to user mode is 1 and the `SUM` bit in `ta`
+field of the process-context is 0 then a Success response with R and W bits set
+to 0 is generated.
+
+If the translation could be successfully completed but the requested 
+permissions are not present (Execute requested but no execute permission; 
+no-write not requested and no write permission; no read permission)
+then a Success response is returned with the denied permission (R, W or X) 
+set to 0 and the other permission bits set to value determined from the
+page tables. The X permission is granted only if the R permission is also
+granted. Execute-only translations are not compatible with PCIe ATS as PCIe
+requires read permission to be granted if the execute permission is granted.
+
+When a Success response is generated for a ATS translation request, no fault
+records are reported to software through the fault/event reporting mechanism;
+even when the response indicates no access was granted or some permissions were
+denied.
+
+If the translation request has an address determined to be an MSI address using
+the rules defined by the AiA specification but the MSI PTE is configured in MRIF
+mode then a Success response is generated with R, W, and U bit set to 1. The U 
+bit being set to 1 in the response instructs the device that it must only use
+Untranslated requests to access the implied 4 KiB memory range.
+
+[NOTE]
+====
+When a MSI PTE is configured in MRIF mode, a MSI write with data value D
+requires the IOMMU to set the interrupt-pending bit for interrupt identity D
+in the MRIF. A translation request from a device to a GPA that is mapped 
+through a MRIF mode MSI PTE is not eligible to receive a translated address. 
+This is accomplished by setting "Untranslated Access Only" (U) field of the 
+returned response to 1.
+====
+
+When a Success response is generated for a ATS translation request, the setting
+of the Priv, N, CXL.io, and AMA fields is as follows:
+
+* Priv field of the ATS translation completion is always set to 0 if the request
+  does not have a PASID prefix. When a PASID prefix is present then the Priv 
+  field is set to the value in "Privilege Mode Requested" field as the 
+  permissions provided correspond to those the privilege mode indicate in the 
+  request.
+* N field of the ATS translation completion is always set to 0. The device may
+  use other means to determine if the No-snoop flag should be set in the 
+  translated requests.
+* If requesting device is not a CXL device then CXL.io is set to 0. 
+* If requesting device is a CXL type 1 or type 2 device and the memory
+  attribute, as determined by the Svpbmt extension, is NC or IO then the CXL.io
+  bit is set to 1. If the Svpbmt extension is not supported then the setting of
+  this bit is unspecified.
+* The AMA field is by default set to 000b. The IOMMU may support an 
+  implementation specific method to provide other encodings.
 
 === Caching in-memory data structures
 
@@ -808,7 +935,7 @@ any of the in-memory data structures. The IOMMU commands may use one or
 more IDs to tag the cached entries to identify a specific entry or a
 group of entries.
 
-.Identifiers used to tag IOATC enrties
+.Identifiers used to tag IOATC entries
 [width=90%]
 [%header, cols="8,10,10"]
 |===
