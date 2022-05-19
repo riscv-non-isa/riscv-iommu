@@ -209,7 +209,7 @@ an IMSIC or to a memory-resident-interrupt-file and clear the `MSI_FLAT` and
 === Features-control register (`fctrl`)
 
 This register must be readable in any implementation. An implementation may 
-allow one or more fields in the register to be writeable to support enabling
+allow one or more fields in the register to be writable to support enabling
 or disabling the feature controlled by that field.
 
 If software enables or disables a feature when the IOMMU is not OFF 
@@ -278,7 +278,7 @@ If software enables or disables a feature when the IOMMU is not OFF
                                 previous write to `ddtp`.
 
                                 An IOMMU that can complete these operations 
-                                synchronously may hardwire this bit to 0.
+                                synchronously may hard-wire this bit to 0.
 |59    |`iommu_mode` |RW     a| The IOMMU may be configured to be in following
                                 modes:
 
@@ -401,7 +401,7 @@ the software queues the next command for the IOMMU.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the command-queue where 
                             software queues the next command for IOMMU.  Only 
-                            `LOG2SZ:0` bits are writeable when the queue is 
+                            `LOG2SZ:0` bits are writable when the queue is 
                             in enabled state (i.e., `cqsr.cqon == 1`).
 |===
 
@@ -444,8 +444,8 @@ and number of entries in the queue.
 [[FQH]]
 === Fault queue head (`fqh`)
 
-This 32-bits register (RW) hodlds the index into fault-queue where the
-software will fetch the next fault reccord.
+This 32-bits register (RW) holds the index into fault-queue where the
+software will fetch the next fault record.
 
 .Fault queue head register fields
 
@@ -462,7 +462,7 @@ software will fetch the next fault reccord.
 |Bits |Field   |Attribute |Description
 |31:0 |`index` |WARL      | Holds the `index` into the fault-queue from which 
                             software reads the next fault record.  Only 
-                            `LOG2SZ:0` bits are writeable when the queue is 
+                            `LOG2SZ:0` bits are writable when the queue is 
                             in enabled state (i.e., `fqsr.fqon == 1`).
 |===
 
@@ -522,7 +522,7 @@ page-request-queue and number of entries in the queue.
                                must be naturally aligned to `2^LOG2SZ^ x 16`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory page-request-queue used by IOMMU to 
-                               queue page requests.
+                               queue "Page Request" messages.
 |63:49 |`WPRI`    |WPRI      | Reserved for standard use
 |===
 
@@ -546,8 +546,8 @@ software will fetch the next page-request.
 |===
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the page-request-queue from 
-                            which software reads the next page request.  Only 
-                            `LOG2SZ:0` bits are writeable when the queue is 
+                            which software reads the next "Page Request" message.
+                            Only `LOG2SZ:0` bits are writable when the queue is 
                             in enabled state (i.e., `pqsr.pqon == 1`).
 |===
 
@@ -571,7 +571,7 @@ where the IOMMU writes the next page-request.
 |===
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |RO        | Holds the `index` into the page-request-queue 
-                            where IOMMU writes the next page request.
+                            where IOMMU writes the next "Page Request" message.
 |===
 
 [[CSR]]
@@ -685,10 +685,10 @@ status of the command-queue.
 
                             Software must verify that the busy bit is 0 before 
                             writing to the `cqcsr`. An IOMMU that can complete 
-                            controls synchronously may hardwire this bit to 0.
+                            controls synchronously may hard-wire this bit to 0.
 
                             An IOMMU that can complete these operations 
-                            synchronously may hardwire this bit to 0.
+                            synchronously may hard-wire this bit to 0.
 |27:18 |`WPRI`|WPRI      | Reserved for standard use
 |31:28 |_custom_|        | _These bits are reserved for custom use._
 |===
@@ -788,7 +788,7 @@ status of the fault-queue.
                            before writing to the `fqcsr`. 
 
                            An IOMMU that can complete controls synchronously 
-                           may hardwire this bit to 0. 
+                           may hard-wire this bit to 0. 
 |27:18 |`WPRI`|WPRI      | Reserved for standard use
 |31:28 |_custom_|        | _These bits are reserved for custom use._
 |===
@@ -826,7 +826,7 @@ status of the page-request-queue.
 
                               Changing `pqen` from 0 to 1, resets the `pqh` 
                               and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
-                              `pqof` to 0. The page request queue may take 
+                              `pqof` to 0. The page-request-queue may take 
                               some time to be active following setting the 
                               `pqen` to 1. When the page-request-queue is 
                               active, the `pqon` bit reads 1.
@@ -849,7 +849,7 @@ status of the page-request-queue.
                               the PCIe ATS specifications
 |1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
-                              interrupts from page request queue.
+                              interrupts from page-request-queue.
 |7:2    |`WPRI`  |WPRI      | Reserved for standard use
 |8      |`pqmf`  |RW1C      | The `pqmf` bit is set to 1 if the IOMMU 
                               encounters an access fault when storing a 
@@ -860,7 +860,7 @@ status of the page-request-queue.
                               (i.e. `ipsr.pip == 1`) and not masked 
                               (i.e.  `pqsr.pie == 1`).
 
-                              The page-request message that caused the `pqmf` 
+                              The "Page Request" message that caused the `pqmf` 
                               or `pqof` error and all subsequent page-request 
                               messages are discarded till software clears the 
                               `pqof` and/or `pqmf` bits by writing 1 to it. 
@@ -882,7 +882,7 @@ status of the page-request-queue.
                               (i.e. `ipsr.pip == 1`) and not masked 
                               (i.e. `pqsr.pie == 1`).
 
-                              The page-request message that caused the `pqmf` 
+                              The "Page Request" message that caused the `pqmf` 
                               or `pqof` error and all subsequent page-request 
                               messages are discarded till software clears the 
                               `pqof` and/or `pqmf` bits by writing 1 to it. 
@@ -916,7 +916,7 @@ status of the page-request-queue.
                               `busy` bit is 0 before writing to the `pqcsr`.
 
                               An IOMMU that can complete controls synchronously
-                              may hardwire this bit to 0
+                              may hard-wire this bit to 0
 |27:18 |`WPRI`   |WPRI      | Reserved for standard use
 |31:28 |_custom_ |          | _These bits are designated for custom use._
 |===
@@ -1024,7 +1024,7 @@ with events to count b) one or more counters to be sampled atomically.
 [[CYC]]
 === Performance-monitoring cycles counter (`iohpmcycles`)
 This 64-bits register is a free running clock cycle counter.
-There is no associtated `iohpmevt0`.
+There is no associated `iohpmevt0`.
 
 .iohpmcycles register fields
 
@@ -1239,7 +1239,7 @@ The vector is used:
 
 If an implementation only supports a single vector then all bits of this
 register may be hardwired to 0 (WARL). Likewise if only two vectors are 
-supported then only bit 0 for each cause could be writeable.
+supported then only bit 0 for each cause could be writable.
 
 .icvec register fields
 

@@ -15,7 +15,7 @@ sequence:
 ** If MSI generation is supported, `msi_addr_*`, `msi_data_*` and
    `msi_vec_ctrl_*` must be set along with `icvec`
 ** If wire interrupt is supported, nothing specific is required as the 
-   registers above are in this case hardcoded to 0.
+   registers above are in this case hard-coded to 0.
 .   Set up the Fault queue base address and size (`fqb`) then enable 
     the queue and associated interrupt if desired in `fqcsr`.
 .   Set up the Command queue base address and size (`cqb`) then enable 
@@ -30,7 +30,7 @@ sequence:
 *  if 17-bit to 24-bit DeviceID or less is supported, set 
    `ddtp.iommu_mode` to `3LVL`.
 
-=== Guidelines for invalidations
+=== Guidelines for invalidation's
 This section provides guidelines to software on the invalidation commands to
 send to the IOMMU through the CQ when modifying the IOMMU in-memory data structures. Software must perform the invalidation after the update is globally
 visible. The ordering on stores provided by FENCE instructions and the acquire/
@@ -42,7 +42,7 @@ commands fetched from the CQ have been completed and committed.
 
 ==== Changing device directory table entry
 If software changes a leaf-level DDT entry i.e, a device context (DC), of
-device with `device_id=D` then the following invalidations must be performed:
+device with `device_id=D` then the following invalidation's must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
 * If `DC.tc.PDTV==1`, `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
@@ -59,7 +59,7 @@ device with `device_id=D` then the following invalidations must be performed:
 *** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
 ** If `DC.msiptp.MODE != Bare`, `IOTINVAL.MSI` with `AV=GV=0`
 
-If software changes a non-leaf-level DDT entry the following invalidations
+If software changes a non-leaf-level DDT entry the following invalidation's
 must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=0`
@@ -70,7 +70,7 @@ the new value of the entry.
 
 ==== Changing process directory table entry
 If software changes a leaf-level PDT entry i.e, a process context (PC), for
-`device_id=D` and `process_id=P` then the following invalidations must be
+`device_id=D` and `process_id=P` then the following invalidation's must be
 performed:
 
 * `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
@@ -86,7 +86,7 @@ the new value of the entry.
 
 ==== Changing MSI page table entry
 If software changes a MSI page-table entry identified by by interrupt file
-number `I` then following invalidations must be performed:
+number `I` then following invalidation's must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
 ** `IOTINVAL.MSI` with `GV=0`, `AV=1`, and `INT_FILE_NUM=I`
@@ -94,7 +94,7 @@ number `I` then following invalidations must be performed:
 ** `IOTINVAL.MSI` with `GV=AV=1`, `INT_FILE_NUM=I` and `GSCID=DC.iohgatp.GSCID`
 
 To invalidate all cache entries from a MSI page table the following
-invalidations must be performed:
+invalidation's must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
 ** `IOTINVAL.MSI` with `GV=0`, `AV=0`
@@ -107,13 +107,13 @@ or the new PTE value.
 
 ==== Changing G-stage page table entry
 If software changes a leaf G-stage page-table entry of a VM where the change
-affects translation for a guest-PPN `G` then following invalidations must be
+affects translation for a guest-PPN `G` then following invalidation's must be
 performed:
 
 * `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
 
 If software changes a non-leaf G-stage page-table entry of a VM 
-then following invalidations must be performed:
+then following invalidation's must be performed:
 
 * `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
 
@@ -140,11 +140,11 @@ selected using `process_id` from a process-directory-table (when
 `DC.tc.PDTV=1`).
 
 When a change is made to a S-stage page table then software must perform
-invalidations using `IOTINVAL.VMA` with `GV=0` and `AV` and `PSCV` operands
+invalidation's using `IOTINVAL.VMA` with `GV=0` and `AV` and `PSCV` operands
 appropriate for the modification as specified in <<IVMA>>.  
 
 When a change is made to a VS-stage page table then software must perform
-invalidations using `IOTINVAL.VMA` with `GV=1`, `GSCID=DC.iohgatp.GSCID` and
+invalidation's using `IOTINVAL.VMA` with `GV=1`, `GSCID=DC.iohgatp.GSCID` and
 `AV` and `PSCV` operands appropriate for the modification as specified in
 <<IVMA>>.  
 
@@ -157,11 +157,11 @@ old PTE value or the new PTE value.
 When IOMMU supports hardware managed A and D bit updates, if software clears
 the A and/or D bit in the S/VS-stage and/or G-stage PTEs then software must
 invalidate corresponding PTE entries that may be cached by the IOMMU. If such
-invalidations are not performed, then the IOMMU may not set these bits when
+invalidation's are not performed, then the IOMMU may not set these bits when
 processing subsequent transactions that use such entries.
 
 When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE to 
-a superpage without first clearing the original non-leaf PTEs valid bit and
+a super-page without first clearing the original non-leaf PTEs valid bit and
 invalidating cached translations in the IOMMU then it is possible for the
 IOMMU to cache multiple entries that match a single address. The IOMMU may 
 use either the old non-leaf PTE or the new non-leaf PTE but the behavior is
@@ -176,24 +176,24 @@ original PTE and executing a appropriate `IOTINVAL` command is to do a page size
 promotion or demotion. The behavior of the IOMMU if other attributes are 
 changed in this fashion is implementation defined.
 
-==== Device Address Translation Cache invalidations
+==== Device Address Translation Cache invalidation's
 
-When VS/S-stage and/or G-stage page tables are modified, invalidations may be
+When VS/S-stage and/or G-stage page tables are modified, invalidation's may be
 needed to the Dev-ATC in the devices that may have cached translations from
 the modified page tables. Invalidation of such page tables requires generating
-ATS invalidations using `ATS.INVAL` command. Software must specify the PAYLOAD
+ATS invalidation's using `ATS.INVAL` command. Software must specify the `PAYLOAD`
 following the rules defined in PCIe ATS specifications. 
 
 If software generates ATS invalidate requests at a rate that exceeds the 
 average DevATC service rate then flow control mechanisms may be triggered by 
 the device to throttle the rate and a side effect of this is congestion
 spreading to other channels and links and could lead to performance 
-degradations. An ATS capable device publishes the maximum number of 
-invalidations it can buffer before causing backpressure through the Queue
+degradation. An ATS capable device publishes the maximum number of 
+invalidation's it can buffer before causing back-pressure through the Queue
 Depth field of the ATS capability structure. When the device is virtualized
 using PCIe SR-IOV, this queue depth is shared among all the VFs of the device.
-Software must limit the number of outstanding ATS invalidations queued to 
-the device adverstized limit.
+Software must limit the number of outstanding ATS invalidation's queued to 
+the device advertised limit.
 
 The `RID` field is used to specify the routing ID of the ATS invalidation 
 request message destination. A PASID specific invalidation may be performed by
@@ -203,11 +203,11 @@ number by setting `DSV=1` with the segment number provided in `DSEG`.
 
 When ATS protocol is enabled for a device, the IOMMU may still cache 
 translations in its IOATC in addition to providing translations to the DevATC.
-Software must not skip IOMMU translation cache invalidations even when ATS is
+Software must not skip IOMMU translation cache invalidation's even when ATS is
 enabled in the device context of the device. Since a translation request from
 the DevATC may be satisfied by the IOMMU from the IOATC, to ensure correct
 operation software must first invalidate the IOATC before sending
-invalidations to the DevATC.
+invalidation's to the DevATC.
 
 ==== Caching invalid entries
 
@@ -217,7 +217,7 @@ Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
 PTEs whose `V` bit is clear.
 
-Software need not perform invalidations when changing the `V` bit in these
+Software need not perform invalidation's when changing the `V` bit in these
 entries from 0 to 1.
 
 ==== Reconfiguring PMAs

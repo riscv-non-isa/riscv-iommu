@@ -8,7 +8,7 @@ devices to system memory.
 For each I/O device connected to the system through an IOMMU, software can 
 configure at the IOMMU a device context, which associates with the device a 
 specific virtual address space and other per-device parameters. By giving 
-devices each their own seperate device context at an IOMMU, each device can be 
+devices each their own separate device context at an IOMMU, each device can be 
 individually configured for a different software master, usually a guest OS or 
 the main (host) OS. On every memory access made from a device, hardware 
 indicates to the IOMMU the originating device by some form of unique device 
@@ -16,9 +16,9 @@ identifier, which the IOMMU uses to locate the appropriate device context
 within data structures supplied by software. For PCIe, for example, the 
 originating device may be identified by the unique 16-bit triple of PCI bus 
 number (8-bit), device number (5-bit), and function number (3-bit) 
-(collectively known as routing ID (RID) and optionally upto 8-bit segment 
+(collectively known as routing ID (RID) and optionally up to 8-bit segment 
 number when the IOMMU supports multiple segments. This specification refers to
-such unique device identifier as `device_id` and supports upto 24-bit wide IDs.
+such unique device identifier as `device_id` and supports up to 24-bit wide IDs.
 
 Some devices may support shared virtual addressing which is the ability to 
 share process address space with devices. Sharing process address spaces with 
@@ -32,7 +32,7 @@ in conjunction with the unique device identifier to locate the appropriate
 process context configured by software in the device context. For PCIe, for
 example, the process context may be identified by the unique 20-bit process
 address space ID (PASID). This specification refers to such unique process 
-identifiers as `process_id` and supports upto 20-bit wide IDs.
+identifiers as `process_id` and supports up to 20-bit wide IDs.
 
 Using the same S/VS-stage and G-stage page table formats in IOMMU for address 
 translation and protections as the CPU’s MMU removes some complexity from the
@@ -55,7 +55,7 @@ virtual address space. Software may configure the process context with a
 software defined context ID called Process-soft-context-ID (`PSCID`) to 
 identify a collection of process ID that share a common virtual address space.
 The IOMMU may use the `GSCID` and `PSCID` to tag entries in the IOATC to avoid
-duplications and simplify invalidation operations.
+duplication and simplify invalidation operations.
 
 Some devices may participate in the translation process and provide a device
 side ATC (DevATC) for its own memory accesses. By providing a DevATC, the 
@@ -64,7 +64,7 @@ probability of "thrashing" in the IOATC. The DevATC may be sized by the device
 to suit its unique performance requirements and may also be used by the device
 to optimize latency by prefetching translations. Such mechanisms require 
 close cooperation of the device and the IOMMU using a protocol. For PCIe, for
-example, the Address Trnaslation Services (ATS) protocol may be used by the
+example, the Address Translation Services (ATS) protocol may be used by the
 device to request translations to cache in the DevATC and to synchronize it 
 with updates made by software address translation data structures. The
 device participating in the address translation process also enables the use
@@ -156,7 +156,7 @@ MSI address translation table configured by software in the device context.
 | VA              | Virtual Address
 | VM              | Virtual Machine: An efficient, isolated duplicate of a real
                     computer system. In this specification it refers to the 
-                    collection of resoures and state that is accessible when 
+                    collection of resources and state that is accessible when 
                     a RISC-V hart executes with V=1.
 | VMM             | Virtual Machine Monitor. Also referred to as hypervisor.
 | VS              | Virtual Supervisor: supervisor privilege in virtualization
@@ -198,7 +198,7 @@ to translate IOVA to SPA and thereby limit the addresses that may be accessed.
 
 The OS may also use the MSI address translation capability to dynamically 
 redirect interrupts from one RISC-V hart to another without needing to reprogram 
-the devices themself.
+the devices themselves.
 
 Legacy 32-bit devices cannot access the memory above 4 GiB. The integration of 
 the IOMMU, through its address remapping capability, offers a simple mechanism 
@@ -307,7 +307,7 @@ the Hypervisor (also known as para-virtualization). The Guest OS may then
 use the facilities provided by the virtual IOMMU to avail the same benefits
 as those discussed for a Non-virtualized OS. The Guest OS employs a page table,
 really a VS-stage page table, to perform similar configurations for the device a 
-Non-virtulized OS.
+Non-virtualized OS.
 
 With two-stage address translations enabled, the IOVA may be first translated to 
 a GPA using the VS-stage page tables managed by the guest OS and the GPA 
@@ -395,7 +395,7 @@ IP to the IO bridge and has several interfaces:
   structure from main memory. This interface is used to access:
 .. the device and process directories to get the context information and translation rules
 .. the page tables to get the translated address for S/VS and G-stage
-.. the queues for software's interface (command queue, fault queue, and page request queue)
+.. the queues for software's interface (command-queue, fault-queue, and page-request-queue)
 * Device Translation Completion interface: it is a master interface which 
   provides the requested translated Physical Address and an error status. As the 
   IOMMU may not respond to requests in order, this interface will also provide 
@@ -457,7 +457,7 @@ features:
   table for CPU MMU as well as IOMMU or to use a separate page table for the
   IOMMU.
 
-* Upto 57-bit virtual-address width and 59-bit guest-physical-address width.
+* Up to 57-bit virtual-address width and 59-bit guest-physical-address width.
 
 * Support for hardware management of page-table entry Accessed and Dirty bits
   is optional for the IOMMU.
