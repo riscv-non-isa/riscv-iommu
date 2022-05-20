@@ -48,5 +48,51 @@ be set to "Unsupported Request" (UR) or "Completer Abort" (CA).
 === Debug
 Placeholder
 
-=== RAS
-Placeholder
+=== Reliability, Availability, and Serviceability (RAS)
+The IOMMU may support the RISC-V RAS architecture that specifies the methods for
+enabling error detection, logging the detected errors (including their severity,
+nature, and location), and configuring means to report the error to an error 
+handler. The `capabilities.RAS` enumerates if the IOMMU complies with the RISC-V
+RAS architecture.
+
+Some errors, such as those in the IOATC, may be correctable by reloading the 
+cached in-memory data structures when the error is detected. Such errors are not
+expected to affect the functioning of the IOMMU.
+
+Some errors may corrupt critical internal of the IOMMU and such errors may 
+lead the IOMMU to a failed state. Examples of such state may include registers 
+such as the `ddtp`, `cqb`, etc. On entering such a failed state, the IOMMU may
+request the IO bridge to abort all incoming transactions.
+
+Some errors, such as corruptions that occur within the internal data paths of 
+the IOMMU, may not be correctable but the effects of such error may be contained
+to the transaction being processed by the IOMMU. 
+
+As part of processing a transaction, the IOMMU may need to read data from 
+in-memory data structures such as the DDT, PDT, or S/VS/G-stage page tables. 
+The provider (a memory controller or a cache) of the data may detect that the 
+data requested has a uncorrectable error and signal that the data is corrupted 
+and defer the error to the IOMMU. Such technique to defer the handling of the 
+corrupted data to the consumer of the data is also commonly known as data 
+poisoning. The effects of such errors may be contained to the transaction that
+caused the corrupted data to be accessed.
+
+In the cases where the error effects the transaction being processed but 
+otherwise allow the IOMMU to continue providing service, the IOMMU may abort
+(see [[IOBR_FAULT_RESP]]) the transaction and report the the fault by queuing
+a fault record in the `FQ`. The following cause codes are used to report such
+faulting transactions:
+
+* DDT data corruption (cause = 268)
+* PDT data corruption (cause = 269)
+* MSI PT data corruption (cause = 270)
+* MSI MRIF data corruption (cause = 271)
+* Internal data-path error (cause = 272)
+* For VS/S/G-stage PTE report the cause code defined by the RISC-V RAS 
+  specification.
+
+If the IO bridge is not capable of signaling such deferred errors uniquely
+from other errors that prevent the IOMMU from accessing in-memory data 
+structures then the IOMMU may report such errors as access faults instead
+of using the differentiated data corruption cause codes.
+
