@@ -8,27 +8,104 @@ if these guidelines are not followed is implementation defined.
 
 === Guidelines for initialization
 
-This section provides guidelines to software for the IOMMU initialization 
-sequence:
+This guidelines initializing the IOMMU are as follows:
 
-. Set up the interrupt related registers
-** If MSI generation is supported, `msi_addr_*`, `msi_data_*` and
-   `msi_vec_ctrl_*` must be set along with `icvec`
-** If wire interrupt is supported, nothing specific is required as the 
-   registers above are in this case hard-coded to 0.
-.   Set up the Fault queue base address and size (`fqb`) then enable 
-    the queue and associated interrupt if desired in `fqcsr`.
-.   Set up the Command queue base address and size (`cqb`) then enable 
-    the queue and associated interrupt if desired in `cqcsr`.
-. Set up the hardware performance monitor if present and desired.
-. Set the Context table in system memory (Device Directory and Process 
-  Directory if supported)
-. Set the translation mode and the base address of the device directory
-  in the `ddtp` register.
-*  if 7-bit DeviceID or less is supported, set `ddtp.iommu_mode` to `1LVL`.
-*  if 8-bit to 16-bit DeviceID is supported, set `ddtp.iommu_mode` to `2LVL`.
-*  if 17-bit to 24-bit DeviceID or less is supported, set 
-   `ddtp.iommu_mode` to `3LVL`.
+. Read the `capabilities` register to discover the capabilities of the IOMMU.
+. Stop and report failure if `capabilities.version` is not supported.
+. Stop and report failure if big-endian memory access is needed and the 
+  `capabilities.END` field is 0 (i.e. little-endian only).
+. Stop and report failure if wired-interrupts are needed for IOMMU initiated
+  interrupts and `capabilities.IGS` is not `WIS` and is not `BOTH`.
+. Stop and report failure if other required capabilities 
+  (e.g. virtual-addressing modes, MSI translation, etc.) are not supported.
+. Read the feature control register (`fctrl`).
+. If big-endian memory access is required then set `fctrl.END` to 1 if 
+  the field is not already 1
+. If wired interrupts from IOMMU are needed then set `fctrl.WIS` to 1 if 
+  the field is not already 1
+. The `icvec` register is used to program an interrupt vector for each 
+  interrupt cause. Determine the number of vectors supported by the IOMMU by 
+  writing 0xF to each field and reading back the number of writable bits. If 
+  the number of writable bits is `N` then the number of supported vectors is
+  `2^N^`. For each cause `C` associate a vector `V' with the cause. `V` is a 
+   number between 0 and `(2^N^ - 1)`. 
+. If the IOMMU is configured to use wired interrupts, then each vector `V` 
+  corresponds to a interrupt wire connected to a platform level interrupt 
+  controller (e.g. APLIC). Determine the interrupt controller configuration 
+  register to be programmed for each such wire using configuration information
+  provided by configuration mechanisms such as device tree and program the 
+  interrupt controller.
+. If the IOMMU is configured to use MSI, then each vector `V` is an index into
+  the `msi_cfg_tbl`. For each vector `V`, allocate a MSI address `A` and 
+  an interrupt identity `D`. Configure the `msi_addr_V` with value `A`, 
+  `msi_data_V` with value `D`. Configure the interrupt mask `M` in 
+  `msi_vec_ctrl_V` appropriately.
+. To program the command queue, first determine the number of entries `N` needed
+  in the command queue. The number of entries in the command queue is always a 
+  power of two. Let `N = 2^k^`.  If `N` is 256 or lower then allocate a memory 
+  buffer that is aligned to a 4-KiB page address and is of size `N` x 16-bytes. 
+  If `N` is greater than 256 then allocate a memory buffer that is naturally 
+  aligned to a `N` * 16-byte address boundary. Let the physical page number of 
+  the buffer be `B`. Program the command queue registers as follows:
+
+**  Poll on `cqcsr.busy` till it reads 0.
+**  `cqb.PPN = B`
+**  `cqb.LOG2SZ-1 = (k - 1)`
+**  `cqcsr.cqen = 1`
+**  Poll on `cqcsr.cqon` till it reads 1.
+
+. To program the fault queue, first determine the number of entries N needed in
+  the fault queue. The number of entries in the fault queue is always a power 
+  of two.  Let `N = 2^k^`. If `N` is 64 or lower then allocate a memory buffer 
+  that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If `N` 
+  is greater than 64 then allocate a memory buffer that is naturally aligned to
+  a `N` * 64-byte address boundary. Let the physical page number of the buffer 
+  be `B`. Program the fault queue registers as follows:
+
+**  Poll on `fqcsr.busy` till it reads 0.
+**  `fqb.PPN = B`
+**  `fqb.LOG2SZ-1 = (k - 1)`
+**  `fqcsr.fqen = 1`
+**  Poll on `fqcsr.fqon` till it reads 1.
+
+. To program the page-request queue, first determine the number of entries `N` 
+  needed in the page-request queue. The number of entries in the page-request
+  queue is always a power of. Let `N = 2^k^`.  If `N` is 256 or lower then 
+  allocate a memory buffer that is aligned to 4-KiB page address and is of 
+  size `N` x 16-bytes. If `N` is greater than 256 then allocate a memory buffer
+  at an address that is naturally aligned to a `N` * 16-byte address boundary.
+  Let the physical page number of the buffer be `B`. Program the page-request 
+  queue registers as follows:
+
+**  Poll on `pqcsr.busy` till it reads 0.
+**  `pqb.PPN = B`
+**  `pqb.LOG2SZ-1 = (k - 1)`
+**  `pqcsr.pqen = 1`
+**  Poll on `pqcsr.pqon` till it reads 1.
+
+. To program the DDT pointer, first determine the supported `device_id` width `D` 
+  and the format of the device-context data structure. If `capabilities.MSI` is
+  0, then the IOMMU uses base format device-context else extended format 
+  device-context are used. Allocate a page (4 KiB) of memory to use as the root
+  table of the DDT. Let `B` be the PPN of the allocated memory. Initialize the 
+  allocated memory to all 0. Determine the mode `M` of the DDT based on `D` and 
+  if the IOMMU requires base or extended format device-contexts.
+. If extended format device-context are used then
+.. If `D` is less than or equal to 6-bits then `M = 1LVL`
+.. If `D` is less than or equal to 15-bits then `M = 2LVL`
+.. If `D` is less than or equal to 24-bits then `M = 3LVL`
+. If base format device-context are used then
+.. If `D` is less than or equal to 7-bits then `M = 1LVL`
+.. If `D` is less than or equal to 16-bits then `M = 2LVL`
+.. If `D` is less than or equal to 24-bits then `M = 3LVL`
+
+. Program the `ddtp` register as follows:
+
+** `ddtp.MODE = M`
+** `ddtp.PPN = B`
+
+The IOMMU is initialized and may be now be configured with device-context
+for devices in scope of the IOMMU. 
 
 === Guidelines for invalidation's
 This section provides guidelines to software on the invalidation commands to
@@ -180,7 +257,7 @@ changed in this fashion is implementation defined.
 ==== Device Address Translation Cache invalidation's
 
 When VS/S-stage and/or G-stage page tables are modified, invalidation's may be
-needed to the Dev-ATC in the devices that may have cached translations from
+needed to the DevATC in the devices that may have cached translations from
 the modified page tables. Invalidation of such page tables requires generating
 ATS invalidation's using `ATS.INVAL` command. Software must specify the `PAYLOAD`
 following the rules defined in PCIe ATS specifications. 
@@ -231,3 +308,35 @@ IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
 ==== Guidelines for handling interrupts from IOMMU
 Placeholder
+
+=== Guidelines for enabling and disabling ATS and/or PRI
+
+To enable ATS and/or PRI:
+
+. Place the device in an idle state such that no transactions are generated 
+  by the device. 
+. If the device-context for the device is already valid then first mark the 
+  device-context as invalid and queue commands to the IOMMU to invalidate all 
+  cache G/S/VS-stage page table entries, DDT entries, MSI PT entries 
+  (if required), and PDT entries (if required).
+. Program the device-context with `EN_ATS` set to 1 and if required the `T2GPA`
+  field set to 1. Set `EN_PRI` to 1 if required.
+. Mark the device-context as valid. 
+. Enable device to use ATS and if required PRI.
+
+To disable ATS and/or PRI:
+
+. Place the device in an idle state such that no transactions are generated 
+  by the device. 
+. Disable ATS and/or PRI at the device
+. Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context.
+. Queue commands to the IOMMU to invalidate all cached G/S/VS-stage page table 
+  entries, DDT entries, MSI PT entries (if required), and PDT entries 
+  (if required).
+. Queue commands to the IOMMU to invalidate DevATC by generating Invalidation
+  Request messages.
+. Enable DMA operations in the device
+
+
+
+
