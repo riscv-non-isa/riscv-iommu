@@ -517,6 +517,11 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |265   | PDT entry load access fault         | No
 |266   | PDT entry not valid                 | No
 |267   | PDT entry misconfigured             | No
+|268   | DDT data corruption                 | No
+|269   | PDT data corruption                 | No
+|270   | MSI PT data corruption              | No
+|271   | MSI MRIF data corruption            | No
+|262   | Internal datapath error             | No
 |===
 
 The `TTYP` field reports inbound transaction type.
@@ -547,17 +552,17 @@ the `TTYP` is a message request then the message code is reported in `iotval`.
 and if the privilege of the transaction was Supervisor then `PRIV` bit is 1 
 else its 0.
 
-If the `CAUSE` is guest-page fault then the guest-physical-address right shifted
-by 2 is reported in `iotval[63:2]`. If bit 0 of `iotval2` 1, then 
-guest-page-fault was caused by an implicit memory access for VS-stage address 
-translation. If bit 0 of `iotval2` is 1, and the implicit access was a write then
-bit 1 is set to 1 else its set to 0.
+If the `CAUSE` is a guest-page fault then the guest-physical-address right 
+shifted by 2 is reported in `iotval2[63:2]`. If bit 0 of `iotval2` 1, then 
+guest-page-fault was caused by an implicit memory access for VS-stage address
+translation. If bit 0 of `iotval2` is 1, and the implicit access was a write
+then bit 1 is set to 1 else its set to 0.
 
 The IOMMU may be unable to report faults through the fault-queue due to error 
 conditions such as the fault-queue being full or the IOMMU encountering access
 faults when attempting to access the queue memory. A memory-mapped fault 
 control and status register (`fqcsr`) holds information about such faults. If 
-the fault-queue full condition is detected the IOMMU sets a fault-queue overflow 
+the fault-queue full condition is detected the IOMMU sets a fault-queue overflow
 (`fqof`) bit in fqcsr. If the IOMMU encounters a fault in accessing the 
 fault-queue memory, the IOMMU sets a fault-queue memory access fault (`fqmf`) 
 bit in `fqcsr`. While either error bits are set in `fqcsr`, the IOMMU discards 
