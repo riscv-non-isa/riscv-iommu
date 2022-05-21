@@ -27,7 +27,7 @@ This guidelines initializing the IOMMU are as follows:
   interrupt cause. Determine the number of vectors supported by the IOMMU by 
   writing 0xF to each field and reading back the number of writable bits. If 
   the number of writable bits is `N` then the number of supported vectors is
-  `2^N^`. For each cause `C` associate a vector `V' with the cause. `V` is a 
+  `2^N^`. For each cause `C` associate a vector `V` with the cause. `V` is a 
    number between 0 and `(2^N^ - 1)`. 
 . If the IOMMU is configured to use wired interrupts, then each vector `V` 
   corresponds to a interrupt wire connected to a platform level interrupt 
@@ -37,22 +37,23 @@ This guidelines initializing the IOMMU are as follows:
   interrupt controller.
 . If the IOMMU is configured to use MSI, then each vector `V` is an index into
   the `msi_cfg_tbl`. For each vector `V`, allocate a MSI address `A` and 
-  an interrupt identity `D`. Configure the `msi_addr_V` with value `A`, 
-  `msi_data_V` with value `D`. Configure the interrupt mask `M` in 
-  `msi_vec_ctrl_V` appropriately.
+  an interrupt identity `D`. Configure the `msi_addr_V` register with value `A`,
+  `msi_data_V` register with value `D`. Configure the interrupt mask `M` in 
+  `msi_vec_ctrl_V` register appropriately.
 . To program the command queue, first determine the number of entries `N` needed
   in the command queue. The number of entries in the command queue is always a 
   power of two. Let `N = 2^k^`.  If `N` is 256 or lower then allocate a memory 
   buffer that is aligned to a 4-KiB page address and is of size `N` x 16-bytes. 
   If `N` is greater than 256 then allocate a memory buffer that is naturally 
   aligned to a `N` * 16-byte address boundary. Let the physical page number of 
-  the buffer be `B`. Program the command queue registers as follows:
+  the buffer be `B`. Program the command queue registers as follows.
 
-**  Poll on `cqcsr.busy` till it reads 0.
-**  `cqb.PPN = B`
-**  `cqb.LOG2SZ-1 = (k - 1)`
+**  Poll on `cqcsr.busy` till it reads 0
+**  `temp_cqb_var.PPN = B`
+**  `temp_cqb_var.LOG2SZ-1 = (k - 1)`
+**  `cqb = temp_cqb_var`
 **  `cqcsr.cqen = 1`
-**  Poll on `cqcsr.cqon` till it reads 1.
+**  Poll on `cqcsr.cqon` till it reads 1
 
 . To program the fault queue, first determine the number of entries N needed in
   the fault queue. The number of entries in the fault queue is always a power 
@@ -62,11 +63,12 @@ This guidelines initializing the IOMMU are as follows:
   a `N` * 64-byte address boundary. Let the physical page number of the buffer 
   be `B`. Program the fault queue registers as follows:
 
-**  Poll on `fqcsr.busy` till it reads 0.
-**  `fqb.PPN = B`
-**  `fqb.LOG2SZ-1 = (k - 1)`
+**  Poll on `fqcsr.busy` till it reads 0
+**  `temp_fqb_var.PPN = B`
+**  `temp_fqb_var.LOG2SZ-1 = (k - 1)`
+**  `fqb = temp_fqb_var`
 **  `fqcsr.fqen = 1`
-**  Poll on `fqcsr.fqon` till it reads 1.
+**  Poll on `fqcsr.fqon` till it reads 1
 
 . To program the page-request queue, first determine the number of entries `N` 
   needed in the page-request queue. The number of entries in the page-request
@@ -77,35 +79,37 @@ This guidelines initializing the IOMMU are as follows:
   Let the physical page number of the buffer be `B`. Program the page-request 
   queue registers as follows:
 
-**  Poll on `pqcsr.busy` till it reads 0.
-**  `pqb.PPN = B`
-**  `pqb.LOG2SZ-1 = (k - 1)`
+**  Poll on `pqcsr.busy` till it reads 0
+**  `temp_pqb_var.PPN = B`
+**  `temp_pqb_var.LOG2SZ-1 = (k - 1)`
+**  `pqb = temp_pqb_var`
 **  `pqcsr.pqen = 1`
-**  Poll on `pqcsr.pqon` till it reads 1.
+**  Poll on `pqcsr.pqon` till it reads 1
 
-. To program the DDT pointer, first determine the supported `device_id` width `D` 
+. To program the DDT pointer, first determine the supported `device_id` width `Dw` 
   and the format of the device-context data structure. If `capabilities.MSI` is
   0, then the IOMMU uses base format device-context else extended format 
   device-context are used. Allocate a page (4 KiB) of memory to use as the root
   table of the DDT. Let `B` be the PPN of the allocated memory. Initialize the 
-  allocated memory to all 0. Determine the mode `M` of the DDT based on `D` and 
+  allocated memory to all 0. Determine the mode `M` of the DDT based on `Dw` and 
   if the IOMMU requires base or extended format device-contexts.
 . If extended format device-context are used then
-.. If `D` is less than or equal to 6-bits then `M = 1LVL`
-.. If `D` is less than or equal to 15-bits then `M = 2LVL`
-.. If `D` is less than or equal to 24-bits then `M = 3LVL`
+.. If `Dw` is less than or equal to  6-bits then `M = 1LVL`
+.. If `Dw` is less than or equal to 15-bits then `M = 2LVL`
+.. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
 . If base format device-context are used then
-.. If `D` is less than or equal to 7-bits then `M = 1LVL`
-.. If `D` is less than or equal to 16-bits then `M = 2LVL`
-.. If `D` is less than or equal to 24-bits then `M = 3LVL`
+.. If `Dw` is less than or equal to  7-bits then `M = 1LVL`
+.. If `Dw` is less than or equal to 16-bits then `M = 2LVL`
+.. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
 
 . Program the `ddtp` register as follows:
 
-** `ddtp.MODE = M`
-** `ddtp.PPN = B`
+** `temp_ddtp_var.MODE = M`
+** `temp_ddtp_var.PPN = B`
+** `ddtp = temp_ddtp_var`
 
 The IOMMU is initialized and may be now be configured with device-context
-for devices in scope of the IOMMU. 
+for devices in scope of the IOMMU.
 
 === Guidelines for invalidation's
 This section provides guidelines to software on the invalidation commands to
@@ -115,12 +119,12 @@ visible. The ordering on stores provided by FENCE instructions and the acquire/
 release bits on atomic instructions also orders the data structure updates
 associated with those stores as observed by IOMMU.
 
-A IOFENCE.C command may be used by software to ensure that all previous 
+A `IOFENCE.C` command may be used by software to ensure that all previous 
 commands fetched from the `CQ` have been completed and committed.
 
 ==== Changing device directory table entry
-If software changes a leaf-level DDT entry i.e, a device context (DC), of
-device with `device_id=D` then the following invalidation's must be performed:
+If software changes a leaf-level DDT entry i.e, a device context (`DC`), of
+device with `device_id = D` then the following invalidation's must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
 * If `DC.tc.PDTV==1`, `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
