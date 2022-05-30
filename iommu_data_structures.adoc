@@ -63,8 +63,8 @@ Two formats of the device-context structure are supported:
   IOMMU.
 
 * *Extended Format* - is 64-bytes in size and extends the base format `DC` with
-  additional fields to process MSIs as defined by the RISC-V Advanced interrupt
-  Architecture (AiA).
+  additional fields to process MSIs as defined by the RISC-V Advanced Interrupt
+  Architecture (AIA).
 
 The DDT used to locate the `DC` may be configured to be a 1, 2, or 3 level 
 radix-table depending on the maximum width of the `device_id` supported. The
@@ -501,7 +501,7 @@ The `MODE` field is used to select the MSI address translation scheme.
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection. MSI recognition using
                     MSI address mask and pattern is not performed.
-| 1    | `Flat`   | Flat MSI page table (see Section 9.5 of the AiA specification)
+| 1    | `Flat`   | Flat MSI page table (see Section 9.5 of the AIA specification)
 |===
 
 ===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
@@ -860,7 +860,7 @@ in the privileged specification cause the IOVA translation process to stop and
 report the detected fault.
 
 [[ATS_FAULTS]]
-=== PCIe ATS translation request handling
+=== PCIe ATS translation request fault handling
 ATS translation requests that encounter a configuration error results in a 
 Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
@@ -891,7 +891,7 @@ following cause codes belong to this category:
 
 * Instruction page fault (cause = 12)
 * Read page fault (cause = 13)
-* Write/AMO page fault (cause = 14)
+* Write/AMO page fault (cause = 15)
 * Instruction guest page fault (cause = 20)
 * Read guest-page fault (cause = 21)
 * Write/AMO guest-page fault (cause = 23)
@@ -925,7 +925,7 @@ even when the response indicates no access was granted or some permissions were
 denied.
 
 If the translation request has an address determined to be an MSI address using
-the rules defined by the AiA specification but the MSI PTE is configured in MRIF
+the rules defined by the AIA specification but the MSI PTE is configured in MRIF
 mode then a Success response is generated with R, W, and U bit set to 1. The U 
 bit being set to 1 in the response instructs the device that it must only use
 Untranslated requests to access the implied 4 KiB memory range.

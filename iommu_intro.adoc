@@ -358,19 +358,19 @@ interrupt register file of an IMSIC in the RISC-V hart.
 
 The following figure shows an example of a typical SOC with RISC-V hart(s). The
 SOC incorporates memory controllers and several IO devices. This SOC also 
-incorporates two instances of the IOMMU. The first instance interfaces one IO 
-Device A to the system fabric and the second instance interfaces several clients 
-(IO Devices B, and C) to the system fabric. As shown in this figure, the IO Bridge
-along with the IOMMU is placed between the device(s) and the fabric or 
-interconnect. IO Devices can perform DMA transactions using IO Virtual Addresses 
-(VA, GVA or GPA) or any other bus addresses in inbound transactions that the 
-IOMMU will translate into Physical Addresses (PA).
+incorporates two instances of the IOMMU. The first instance, IOMMU 0, interfaces
+one Root Port to the system fabric and the second instance, IOMMU 1, interfaces
+several clients (IO Devices A, and B) to the system fabric. As shown in this
+figure, the IO Bridge along with its IOMMU is placed between the device(s) and
+the fabric or interconnect. IO Devices can perform DMA transactions using IO
+Virtual Addresses (VA, GVA or GPA) or any other bus addresses in inbound
+transactions that the IOMMU will translate into Physical Addresses (PA).
 
 The device may be directly connected to the IOMMU or may be connected through I/O 
 ports using a protocol such as PCI Express (PCIe). The outbound transactions to 
 the device do not transit through the IOMMU.
 
-The IO Device A in the example is representing Root Ports connected to several 
+The IOMMU 0 in the example is performing address translation for several 
 endpoints with or without ATC support. The IOMMU may support ATS in order to 
 manage the endpoint’s device address translation cache (DevATC).
 

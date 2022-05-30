@@ -75,8 +75,9 @@ table.
 |96    |`iohpmcycles`   |8   |<<CYC, Performance-monitoring cycles counter>>
 |104   |`iohpmctr1 - 31`|248 |<<CTR, Performance-monitoring event counters>>
 |352   |`iohpmevt1 - 31`|248 |<<EVT, Performance-monitoring event selector>>
-|600   |`iocntconf`     |4   |<<CONF, Counters reserved for confidential mode usage>>
-|604   |Reserved        |78  |Reserved for future use (`WPRI`)
+//|600   |`iocntconf`     |4   |<<CONF, Counters reserved for confidential mode usage>>
+//|604   |Reserved        |78  |Reserved for future use (`WPRI`)
+|600   |Reserved        |82  |Reserved for future use (`WPRI`)
 |682   |_custom_        |78  |_Reserved for custom use (`WARL`)_
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause to vector register>>
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration Table>>
@@ -183,7 +184,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 !===
 
 |30    |`PMON`     |RO        | IOMMU implements a performance-monitoring unit
-|31    | reserved  |RO        | Reserved for standard use
+|31    |`RAS`      |RO        | IOMMU implements the RISC-V RAS Registers
 |37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
 |47:38 | reserved  |RO        | Reserved for standard use
 |63:48 |_custom_   |RO        | _Reserved for custom use_
@@ -328,7 +329,7 @@ The reset default for the `iommu_mode` is recommended to be `Off`.
 === Command-queue base (`cqb`)
 
 This 64-bits register (RW) holds the PPN of the root page of the command-queue
-and number of entries in the queue.
+and number of entries in the queue. Each command is 16 bytes.
 
 .Command-queue base register fields
 [wavedrom, , ]
@@ -411,7 +412,7 @@ the software queues the next command for the IOMMU.
 === Fault queue base (`fqb`)
 
 This 64-bits register (RW) holds the PPN of the root page of the fault-queue
-and number of entries in the queue.
+and number of entries in the queue. Each fault record is 32 bytes.
 
 .Fault queue base register fields
 
@@ -431,12 +432,12 @@ and number of entries in the queue.
 |4:0   |`LOG2SZ-1`|WARL     a| The `LOG2SZ-1` field holds the number of 
                                entries in fault-queue as a log-to-base-2 
                                minus 1. A value of 0 indicates a queue of 2 
-                               entries. Each fault record is 64-bytes. 
-                               If the fault-queue has 64 or fewer entries then 
+                               entries. Each fault record is 32-bytes. 
+                               If the fault-queue has 128 or fewer entries then 
                                the base address of the queue is always aligned 
-                               to 4-KiB. If the fault-queue has more than 64 
+                               to 4-KiB. If the fault-queue has more than 128 
                                entries then the fault-queue base address must 
-                               be naturally aligned to `2^LOG2SZ^ x 64`.
+                               be naturally aligned to `2^LOG2SZ^ x 32`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory fault-queue used by IOMMU to queue 
                                fault record.
@@ -495,7 +496,8 @@ IOMMU queues the next fault record.
 === Page-request-queue base (`pqb`)
 
 This 64-bits register (RW) holds the PPN of the root page of the 
-page-request-queue and number of entries in the queue.
+page-request-queue and number of entries in the queue. Each page-request
+message is 16 bytes.
 
 .Page-Request-queue base register fields
 
@@ -963,7 +965,7 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 === Performance-monitoring counter overflow status (`iocountovf`)
 The performance-monitoring counter overflow status is a 32-bit read-only
 register that contains shadow copies of the OF bits in the `iohpmevt*`
-registers - where iocntovf bit X corresponds to iohpmevtX and bit 0 corresponds
+registers - where iocntovf bit X corresponds to `iohpmevtX` and bit 0 corresponds
 to the OF bit of `iohpmcycles`.
 
 This register enables overflow interrupt handler software to quickly and easily
@@ -1090,7 +1092,8 @@ a transactions with a range of IDs to be counted by the counter.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 15, name: 'eventID'},
+  {bits: 14, name: 'eventID'},
+  {bits: 1, name: 'custom'},
   {bits: 1, name: 'DMASK'},
   {bits: 20, name: 'PID_PSCID'},
   {bits: 24, name: 'DID_GSCID'},
@@ -1105,14 +1108,17 @@ a transactions with a range of IDs to be counted by the counter.
 [%header, cols="^1,2,^1,5"]
 |===
 |Bits   |Field      |Attribute | Description
-|14:0   |`eventID`  |WARL      | Indicates the event to count. 
+|13:0   |`eventID`  |WARL      | Indicates the event to count. 
 
                                  A value of 0 indicates no events are counted.
                                  Other event IDs are implementation defined.
 
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
+|14     |`custom`   |WARL      | When set to 1, `eventID` is custom.
 
+                                 When set to 0, `eventID` is defined in the
+                                 <<Event_list>>
 |15     |`DMASK`    |WARL      | When set to 1, partial matching of the
                                  `DID_GSCID` is performed for the transaction.
                                  The lower bits of the `DID_GSCID` all the way 
@@ -1139,8 +1145,6 @@ a transactions with a range of IDs to be counted by the counter.
 
 When `capabilities.HPM` is set, the `iohpmevt1-7` registers must be present.
 
-Some events types may be filtered by IDs.  When a event type that does not 
-support filtering by IDs is programmed then the filtering options are ignored.
 The table below summarizes the filtering option for events that support 
 filtering by IDs.
 
@@ -1197,6 +1201,32 @@ The following example illustrates the use of DMASK and filtering by `device_id`.
 | 1       | yyyyyyyy  01111111  11111111 | seg - any bus:dev:func
 |===
 
+[[Event_list]]
+When `iohpmevt*.custom == 0`, the following table lists the standard events that can be counted:
+
+.Standard Events list
+[cols="^1,6,^3", options="header"]
+|===
+| *eventID* | *Event* | *IDT*
+| 0 | Do not count | 
+| 1 | Counts the number of Untranslated requests at device interface | IDT==0 filtering available
+| 2 | Counts the number of Translated requests at device interface | IDT==0 filtering available
+| 3 | Counts the number of ATS Translation requests at device interface | IDT==0 filtering available
+| 4 | Counts the number of Device Context cache miss | IDT==0 filtering available 
+| 5 | Counts the number of Process Context cache miss | IDT==0 filtering available 
+| 6 | Counts the number of TLB miss | IDT==0 or 1 filtering available
+| 7 | Counts the number of Device Directory Walks | IDT==0 filtering available 
+| 8 | Counts the number of Process Directory Walks | IDT==0 filtering available 
+| 9 | Counts the number of S/VS-stage Page Table Walks | IDT==0 or 1 filtering available
+| 10 | Counts the number of G-stage Page Table Walks | IDT==0 or 1 filtering available
+|===
+
+Some events types may be filtered by IDs. When a event type that does not 
+support filtering by IDs is programmed then the associatedcounter does not
+increment.
+
+When `iohpmevt*.custom == 1`, events to be counted are custom (implementation defined).
+
 The `OF` bit is set when the corresponding `iohpmctr*` overflows, and remains
 set until cleared by software. Since `iohpmctr*` values are unsigned values,
 overflow is defined as unsigned overflow. Note that there is no loss of
@@ -1220,10 +1250,10 @@ counter has overflowed, it and the `OF` bit must be reinitialized before
 another overflow interrupt can be generated.
 ====
 
-[[CONF]]
-=== Counters reserved for confidential mode usage (`iocntconf`)
+//[[CONF]]
+//=== Counters reserved for confidential mode usage (`iocntconf`)
 
-Reserved for future standard use.
+//Reserved for future standard use.
 
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
