@@ -748,17 +748,16 @@ is as follows:
 . If `dc.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encoding that are reserved for future standard use are set
   within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
+. The device-context has been successfully located and may be cached.
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
-    or is a PCIe ATS Translation request or is a ATS protocol message request
-    and `dc.tc.EN_ATS` is 0.
+    or is a PCIe ATS Translation request and `dc.tc.EN_ATS` is 0.
 ..  Transaction type is a PCIe "Page Request" Message and `dc.tc.EN_PRI` is 0.
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 0
 ..  Transaction has a valid `process_id` and `dc.tc.PDTV` is 1 and the `process_id`
     is wider than supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
-.   The device-context has been successfully located.
 
 [[GET_PC]]
 ==== Process to locate the Process-context
