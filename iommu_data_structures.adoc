@@ -315,6 +315,15 @@ that the IOMMU response message should include a PASID prefix if the associated
 
 [NOTE]
 ====
+If the `dc` cannot be located to process a "Page Request" then the the IOMMU 
+cannot determine the `EN_PRI` and `PRPR` controls. The IOMMU generates a 
+"Page Request Group Response" with response code set to Response Failure. If
+the "Page Request" had a PASID prefix then reponse is generated with a PASID
+prefix.
+====
+
+[NOTE]
+====
 Functions that support PASID and have the "PRG Response PASID Required" 
 capability bit set to 1, expect that "Page Request Group Response" messages will
 contain a PASID if the associated "Page Request" message had a PASID. If the 
@@ -330,8 +339,8 @@ When SR-IOV VF is used as a unit of allocation, a hypervisor may disable page
 requests from one of the virtual functions by setting `EN_PRI` to 0. However the
 page-request interface is shared by the PF and all VFs. The IOMMU protocol
 specific logic is encouraged to classify this condition as a non-catastrophic
-failure in its response to avoid the shared PRI in the device being disabled
-for all PFs/VFs.
+failure, an Invalid Request, in its response to avoid the shared PRI in the 
+device being disabled for all PFs/VFs.
 ====
 
 Setting the disable-translation-fault - `DTF` - bit to 1 disables reporting of
@@ -501,6 +510,23 @@ The MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`) fields
 are used to recognize certain memory writes from the device as being MSIs. The
 use of these fields is as specified in Section 9.4 of the Advanced Interrupt
 Architecture specification.
+
+.MSI address mask (`msi_addr_mask`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 52, name: 'mask'},
+  {bits: 12, name: 'reserved'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+.MSI address pattern (`msi_addr_pattern`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 52, name: 'pattern'},
+  {bits: 12, name: 'reserved'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
 
 === Process-Directory-Table (PDT)
 
@@ -690,15 +716,24 @@ is as follows:
 
 . If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
   disallowed" (cause = 256).
+. If `ddtp.iommu_mode == Bare` and any of the folowing conditions hold then
+  stop and report "Transaction type disallowed" (cause = 260).
+..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
+    or is a PCIe ATS Translation request or is a ATS protocol message request.
+..  Transaction type is a PCIe "Page Request" Message.
+..  Transaction has a valid `process_id`
+..  Transaction type is not supported by the IOMMU in `Bare` mode.
 . Let `a` be `ddtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is
   `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
   . If the `device_id` is wider than supported by `ddtp.iommu_mode`, then stop
   and report "Transaction type disallowed" (cause = 260).
-. If `i == 0` go to step 9.
+. If `i == 0` go to step 11.
 . Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
   `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
   access fault" (cause = 257).
+. If `ddte` access detects a data corruption (a.k.a. poisoned data), then 
+  stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If if any bits or encoding that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
@@ -707,7 +742,9 @@ is as follows:
 . Let `dc` be value of `DC_SIZE` bytes at address `a + DDI[0]*DC_SIZE`. If
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
   If accessing `dc` violates a PMA or PMP check, then stop and report 
-  "DDT entry load access fault" (cause = 257).
+  "DDT entry load access fault" (cause = 257). If `dc` access detects a data 
+  corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
+  (cause = 268).
 . If `dc.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encoding that are reserved for future standard use are set
   within `dc`, stop and report "DDT entry misconfigured" (cause = 259).
@@ -742,17 +779,21 @@ The process to locate the Process-context for a transaction using its
   translation of `a` then stop and the fault detected by the G-stage 
   address translation process. The translated `a` is used in subsequent
   steps. 
-. If `i == 0` go to step 8.
+. If `i == 0` go to step 9.
 . Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If 
   accessing `pdte` violates a PMA or PMP check, then stop and report 
   "PDT entry load access fault" (cause = 265).
+. If `pdte` access detects a data corruption (a.k.a. poisoned data), then 
+  stop and report "PDT data corruption" (cause = 269).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If if any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
 . Let `pc` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `pc`
   violates a PMA or PMP check, then stop and report "PDT entry load access 
-  fault" (cause = 265).
+  fault" (cause = 265).If `pc` access detects a data corruption 
+  (a.k.a. poisoned data), then stop and report "PDT data corruption" 
+  (cause = 269).
 . If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If any bits or encoding that are reserved for future standard use are set
   within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
@@ -774,6 +815,9 @@ translating the write using the MSI page table is as follows:
 . If `dc.msiptp.MODE == Bare`, then MSI address translation using MSI page
   tables is not enabled. Stop this process and instead use the regular
   translation data structures to do the address translation.
+. If the write has a valid `process_id` (e.g., PASID prefix present), then
+  the write is not determined to be a MSI write. Stop this process and instead
+  use the regular translation data structures to do the address translation.
 . If `(A >> 12) & dc.msi_addr_mask` is not equal to
   `dc.msi_addr_pattern & dc.msi_addr_mask` then this write is not a MSI write.
   Stop this process and instead use the regular translation data structures to
@@ -785,6 +829,8 @@ translating the write using the MSI page table is as follows:
 . Let `msipte` be the value of sixteen bytes at address `(a | (I x 16))`. If
   accessing `msipte` violates a PMA or PMP check, then stop and report 
   "MSI PTE load access fault" (cause = 261).
+. If `msipte` access detects a data corruption (a.k.a. poisoned data), then 
+  stop and report "MSI PT data corruption" (cause = 270).
 . If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
 . If `msipte.C == 1`, then further process is to interpret the PTE is
   implementation defined. If `msipte.C == 0` then the process is outlined in
@@ -803,7 +849,9 @@ translating the write using the MSI page table is as follows:
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
 .. Perform the process as outlined in Section 9.5.2 of the Advanced Interrupt
    Architecture specification. If accessing MRIF violates a PMA or PMP check,
-   then stop and report "MRIF access fault" (cause = 264).
+   then stop and report "MRIF access fault" (cause = 264). If MRIF access
+   detects a data corruption (a.k.a poisoned data), then stop and report 
+   "MSI MRIF data corruption" (cause = 271).
 . MSI address translation process is complete.
 
 === Faults from virtual address translation process
