@@ -79,7 +79,7 @@ caused the corrupted data to be accessed.
 
 In the cases where the error effects the transaction being processed but 
 otherwise allow the IOMMU to continue providing service, the IOMMU may abort
-(see [[IOBR_FAULT_RESP]]) the transaction and report the the fault by queuing
+(see <<IOBR_FAULT_RESP>>) the transaction and report the the fault by queuing
 a fault record in the `FQ`. The following cause codes are used to report such
 faulting transactions:
 
