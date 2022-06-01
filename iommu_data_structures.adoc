@@ -860,7 +860,7 @@ in the privileged specification cause the IOVA translation process to stop and
 report the detected fault.
 
 [[ATS_FAULTS]]
-=== PCIe ATS translation request fault handling
+=== PCIe ATS translation request handling
 ATS translation requests that encounter a configuration error results in a 
 Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
