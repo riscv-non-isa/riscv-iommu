@@ -1207,23 +1207,23 @@ The following table lists the standard events that can be counted:
 .Standard Events list
 [cols="^1,3,^3", options="header"]
 |===
-| *eventID* | *Event counted* | *IDT settings supported*
-| 0 | Do not count | 
-| 1 | Untranslated requests at device interface | 0
-| 2 | Translated requests at device interface | 0
-| 3 | ATS Translation requests at device interface | 0
-| 4 | Device Context cache miss | 0 
-| 5 | Process Context cache miss | 0
-| 6 | TLB miss | 0/1
-| 7 | Device Directory Walks | 0 
-| 8 | Process Directory Walks | 0
-| 9 | S/VS-stage Page Table Walks | 0/1
-| 10 | G-stage Page Table Walks | 0/1
+| *eventID*  | *Event counted*              | *IDT settings supported*
+| 0          | Do not count                 | 
+| 1          | Untranslated requests        | 0
+| 2          | Translated requests          | 0
+| 3          | ATS Translation requests     | 0
+| 4          | Device-context cache miss    | 0 
+| 5          | Process-context cache miss   | 0
+| 6          | TLB miss                     | 0/1
+| 7          | Device Directory Walks       | 0 
+| 8          | Process Directory Walks      | 0
+| 9          | S/VS-stage Page Table Walks  | 0/1
+| 10         | G-stage Page Table Walks     | 0/1
 | 11 - 16383 | reserved for future standard | -
 |===
 
 Some events types may be filtered by IDs. When a event type that does not 
-support filtering by IDs is programmed then the associatedcounter does not
+support filtering by IDs is programmed then the associated counter does not
 increment.
 
 The `OF` bit is set when the corresponding `iohpmctr*` overflows, and remains
