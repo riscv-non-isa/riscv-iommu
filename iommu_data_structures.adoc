@@ -315,15 +315,6 @@ that the IOMMU response message should include a PASID prefix if the associated
 
 [NOTE]
 ====
-If the `dc` cannot be located to process a "Page Request" then the the IOMMU 
-cannot determine the `EN_PRI` and `PRPR` controls. The IOMMU generates a 
-"Page Request Group Response" with response code set to Response Failure. If
-the "Page Request" had a PASID prefix then reponse is generated with a PASID
-prefix.
-====
-
-[NOTE]
-====
 Functions that support PASID and have the "PRG Response PASID Required" 
 capability bit set to 1, expect that "Page Request Group Response" messages will
 contain a PASID if the associated "Page Request" message had a PASID. If the 
@@ -333,15 +324,6 @@ response with a PASID prefix is undefined. The `PRPR` bit should be configured
 with the value held in the "PRG Response PASID Required" capability bit.
 ====
 
-[NOTE]
-====
-When SR-IOV VF is used as a unit of allocation, a hypervisor may disable page
-requests from one of the virtual functions by setting `EN_PRI` to 0. However the
-page-request interface is shared by the PF and all VFs. The IOMMU protocol
-specific logic is encouraged to classify this condition as a non-catastrophic
-failure, an Invalid Request, in its response to avoid the shared PRI in the 
-device being disabled for all PFs/VFs.
-====
 
 Setting the disable-translation-fault - `DTF` - bit to 1 disables reporting of
 faults encountered in the address translation process. Setting `DTF` to 1 does
@@ -958,6 +940,72 @@ of the Priv, N, CXL.io, and AMA fields is as follows:
   this bit is unspecified.
 * The AMA field is by default set to 000b. The IOMMU may support an 
   implementation specific method to provide other encodings.
+
+=== PCIe ATS Page Request handling
+To process a "Page Request" or "Stop Marker" message, the IOMMU first locates 
+the device-context to determine if ATS and PRI are enabled for the requestor. 
+If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
+ IOMMU queues the message into an in-memory queue caleld the 
+page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
+"Page Request", a software handler may generate a "Page Request Group Response"
+message to the device.
+
+When PRI is enabled for a device, the IOMMU may still be unable to report 
+"Page Request" or "Stop Marker" messages through the `PQ` due to error 
+conditions such as the queue being disabled, queue being full, or the IOMMU 
+encountering access faults when attempting to access queue memory. These error 
+conditions are specified in <<PRQ>>.
+
+If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable 
+to locate the `dc` to determine the `EN_PRI` configuration, or the request 
+could not be queued into `PQ` then the IOMMU behavior depends on the type 
+of "Page Request". 
+
+* If the "Page Request" does not require a response, i.e. the "Last Request in
+  PRG" field of the message is set to 0, then such message are silently 
+  discarded. "Stop Marker" messages do not require a response and are always
+  silently discarded on such errors.
+* If the "Page Request" needs a response, then the IOMMU itself may generate
+  a "Page Request Group Response" message to the device.
+
+When the IOMMU generates the response, the status field of the response depends
+on the cause of the error. 
+
+The status is set to Response Failure if the following faults are encountered: 
+
+* All inbound transactions disallowed (cause = 256) 
+* DDT entry load access fault (cause = 257) 
+* DDT entry misconfigured (cause = 259) 
+* DDT entry not valid (cause = 258)
+
+The status is set to Invalid Request if the following faults are encountered: 
+
+* Transaction type disallowed (cause = 260)
+
+[NOTE]
+====
+When SR-IOV VF is used as a unit of allocation, a hypervisor may disable page
+requests from one of the virtual functions by setting `EN_PRI` to 0. However the
+page-request interface is shared by the PF and all VFs.  The IOMMU protocol
+specific logic classifies this condition (cause = 260) as a non-catastrophic 
+failure, an Invalid Request, in its response to avoid the shared PRI in the 
+device being disabled for all PFs/VFs.
+====
+
+[NOTE]
+====
+A "Stop Marker" is encoded as a "Page Request" with a PASID prefix but with
+the L, W, and R fields set to 1, 0, and 0 respectively.
+====
+
+For IOMMU generated "Page Request Group Response" messages that have status 
+Invalid Request, the PRG-response-PASID-required (`PRPR`) bit when set to 1 
+indicates that the IOMMU response message should include a PASID prefix if 
+the associated "Page Request" had a PASID prefix. 
+
+For IOMMU generated "Page Request Group Response" with response code set to 
+Response Failure, if the "Page Request" had a PASID prefix then reponse is 
+generated with a PASID prefix.
 
 === Caching in-memory data structures
 

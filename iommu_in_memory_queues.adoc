@@ -572,11 +572,13 @@ bit is in the `fqcsr` changes state from 0 to 1 or when a new fault record is
 produced in the fault-queue, fault interrupt pending (`fip`) bit is set in the 
 `fqcsr`. 
 
+[[PRQ]]
 === Page-Request-Queue (`PQ`)
 Page-request queue is an in-memory queue data structure used to report PCIe 
-ATS “Page Request” messages to software. The base PPN of this in-memory queue 
-and the size of the queue is configured into a memory-mapped register called 
-page-request queue base (`pqb`). Each Page Request Message is 16 bytes.
+ATS “Page Request” and "Stop Marker" messages to software. The base PPN of 
+this in-memory queue and the size of the queue is configured into a 
+memory-mapped register called page-request queue base (`pqb`). 
+Each Page Request record is 16 bytes.
 
 The tail of the queue resides in a IOMMU controlled read-only memory-mapped 
 register called `pqt`.  The `pqt` holds an index into the queue where the next 
@@ -606,8 +608,9 @@ the message that caused the error bits to be set. "Page request" messages that
 do not require a response, i.e. those with the "Last Request in PRG" field is 0,
 are silently discarded. "Page request" messages that require a response, i.e. 
 those with "Last Request in PRG" field set to 1 and are not Stop Marker 
-messages, may be auto-completed by an IOMMU generated 
-“Page Request Group Response” message as specified by PCIe ATS specifications.
+messages, may be auto-completed by an IOMMU generated “Page Request Group 
+Response” message as specified by PCIe ATS specifications. Such responses 
+shall have the status set to Invalid Request.
 
 When an error bit is in the `pqcsr` changes state from 0 to 1 or when a new 
 message is produced in the queue, page-request-queue interrupt pending (`pip`) 
