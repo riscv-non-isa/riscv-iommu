@@ -759,7 +759,7 @@ status of the fault-queue.
                            are generated until software clears `fqmf` bit by 
                            writing 1 to the bit. An interrupt is generated if 
                            enabled and not already pending 
-                           (i.e. `ispr.fip == 1`) and not masked 
+                           (i.e. `ipsr.fip == 1`) and not masked 
                            (i.e. `fqsr.fie == 0`).
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the 
                             IOMMU needs to queue a fault record but the 
@@ -768,7 +768,7 @@ status of the fault-queue.
                             The fault-record is discarded and no more fault 
                             records are generated till software clears `fqof` 
                             by writing 1 to the bit. An interrupt is generated 
-                            if not already pending (i.e. `ispr.fip == 1`) and 
+                            if not already pending (i.e. `ipsr.fip == 1`) and 
                             not masked (i.e. `fqsr.fie == 0`).
 |10:15 |`WPRI`|WPRI      | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
@@ -965,7 +965,7 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 === Performance-monitoring counter overflow status (`iocountovf`)
 The performance-monitoring counter overflow status is a 32-bit read-only
 register that contains shadow copies of the OF bits in the `iohpmevt*`
-registers - where iocntovf bit X corresponds to `iohpmevtX` and bit 0 corresponds
+registers - where `iocntovf` bit X corresponds to `iohpmevtX` and bit 0 corresponds
 to the OF bit of `iohpmcycles`.
 
 This register enables overflow interrupt handler software to quickly and easily
@@ -1107,16 +1107,12 @@ a transactions with a range of IDs to be counted by the counter.
 [%header, cols="^1,2,^1,5"]
 |===
 |Bits   |Field      |Attribute | Description
-|14:0   |`eventID`  |WARL      | Indicates the event to count. 
-
-                                 A value of 0 indicates no events are counted.
-
+|14:0   |`eventID`  |WARL     a| Indicates the event to count. A value of 0 
+                                 indicates no events are counted. +
                                  Encodings 1 to 16383 are reserved for standard
-                                 events defined in the <<Event_list>>.
-
-                                 Encodings 16384 to 32767 are for custom use and
-                                 are implementation defined.
-
+                                 events defined in the <<Event_list>>. +
+                                 Encodings 16384 to 32767 are for reserved for 
+                                 custom use and are implementation defined. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
 |15     |`DMASK`    |WARL      | When set to 1, partial matching of the
@@ -1201,9 +1197,9 @@ The following example illustrates the use of DMASK and filtering by `device_id`.
 | 1       | yyyyyyyy  01111111  11111111 | seg - any bus:dev:func
 |===
 
-[[Event_list]]
 The following table lists the standard events that can be counted:
 
+[[Event_list]]
 .Standard Events list
 [cols="^1,3,^3", options="header"]
 |===
@@ -1238,7 +1234,7 @@ interrupt request is generated. Consequently the `OF` bit also functions as a
 count overflow interrupt disable for the associated `iohpmctr*`.
 
 A pending HPM Counter Overflow interrupt (OR of all `iohpmctr*` overflows) is 
-and reported through `ipcsr` register.
+and reported through `ipsr` register.
 
 [NOTE]
 ====

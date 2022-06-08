@@ -362,7 +362,7 @@ incorporates two instances of the IOMMU. The device may be directly connected
 to the IO Bridge and the system interconnect or may be connected through a
 Root Port when a I/O protocol transaction to system interconnect transaction
 translation is required. In case of PCie, for example, the Root Port is a
-PCIe port that maps a portion of a heirarchy through an associated virtual 
+PCIe port that maps a portion of a hierarchy through an associated virtual 
 PCI-PCI bridge and maps the PCIe I/O protocol transactions to the system
 interconnect transactions.
 
@@ -377,7 +377,7 @@ PCIe ATS protocol.
 When such I/O protocol to system fabric protocol translation using a Root Port 
 is not required, the devices may interface directly with the system fabric. 
 The second instance, IOMMU 1 (associated with the IO Bridge 1), illustrates 
-interfacind devices (IO Devices A and B) to the system fabric without the use
+interfacing devices (IO Devices A and B) to the system fabric without the use
 of a Root Port.
 
 The IO Bridge is placed between the device(s) and the fabric/interconnect to 
@@ -392,18 +392,19 @@ The IOMMU is not invoked for outbound transactions.
 image::placement.svg[width=800]
 
 The IOMMU is invoked by the IO bridge for address translation and protection for
-inbound transactions. The data associaetd with the inbound transactions is not 
+inbound transactions. The data associated with the inbound transactions is not 
 processed by the IOMMU. The IOMMU behaves like a look-aside IP to the IO bridge 
 and has several interfaces:
 
 * Host interface: it is a slave interface to the IOMMU for the harts to access 
-  its MMIO registers and perform global configuration and/or maintenance operations.
+  its MMIO registers and perform global configuration and/or maintenance 
+  operations.
 * Device Translation Request interface: it is a slave interface, which receives 
   the translation requests from the IO Bridge. On this interface the IO Bridge 
   provides information about the request such as:
 .. The hardware identities associated with transaction - the `device_id` and 
    if applicable the `process_id`. The IOMMU uses the hardware identities to
-   retreive the context information to perform the requested address translations.
+   retrieve the context information to perform the requested address translations.
 .. The IOVA and the type of the transaction (Translated or Untranslated).
 .. Whether the request is for a read, write, execute, or an atomic operation.
 .. The privilege mode associated with the request when applicable.
@@ -416,20 +417,21 @@ and has several interfaces:
 * The Data Structure interface: is used by the IOMMU for implicit access to 
   memory. It is a master interface to the IO Bridge and is used to fetch the 
   required data structure from main memory. This interface is used to access:
-.. The device and process directories to get the context information and translation rules
-.. The G-state and/or S/VS page table entriess to translate the IOVA
+.. The device and process directories to get the context information and 
+   translation rules
+.. The G-state and/or S/VS page table entries to translate the IOVA
 .. The in-memory queues (command-queue, fault-queue, and page-request-queue)
    used to interface with software.
 * Device Translation Completion interface: it is a master interface which 
   provides the completion response from the IOMMU for previously requested
-  address translations. The completions interface may provide informations 
+  address translations. The completion interface may provide information 
   such as:
-.. Status of the request to indicate if the request completed successfully or
-   a fault occurred.
-.. If the request was completed successfully the System Physical Address (SPA).
+.. Status of the request. Indicates if request completed successfully or a fault
+   occurred.
+.. If the request was completed successfully; the System Physical Address (SPA).
 .. Opaque information (e.g. tags), if applicable, associated with the request.
 .. The page-based memory types (PBMT), if Svpbmt is supported, obtained from the
-   VS/S and/or G-stage page tables. When two-stage addresss translation is
+   IOMMU address translation page tables. When two-stage address translation is
    performed the IOMMU provides the page-based memory type as resolved between
    the G-stage and VS-stage page table entries.
 * ATS interface: The ATS interface, if the optional PCIe ATS capability is 
@@ -449,9 +451,9 @@ image::interfaces.svg[width=800]
 Similar to the RISC-V harts, physical memory attributes (PMA) and physical memory 
 protection (PMP) checks must be completed on any inbound IO transactions even when
 the IOMMU is in bypass (bare state). The placement and integration of the PMA and 
-IOPMP (and other variants) checkers is a platform choice.
+PMP checkers is a platform choice.
 
-PMA and IOPMP checkers reside outside the IOMMU. The example above is showing 
+PMA and PMP checkers reside outside the IOMMU. The example above is showing 
 them in the IO bridge.
 
 Implicit accesses by the IOMMU itself through the data structure interface are 
@@ -463,10 +465,10 @@ address on the device translation completion interface to the I/O bridge. The
 PMA in I/O bridge may use the provided PBMT to override the PMA(s) for the 
 associated memory pages.
 
-The IOPMP or other variants may use the hardware ID of the bus master to determine
-physical memory access privileges. As the IOMMU itself is a bus master for its 
-implicit accesses, the IOMMU hardware ID may be used by the IOPMP to select the 
-appropriate access control rules.
+The PMP may use the hardware ID of the bus master to determine physical memory 
+access privileges. As the IOMMU itself is a bus master for its implicit 
+accesses, the IOMMU hardware ID may be used by the PMP to select the appropriate
+access control rules.
 
 === IOMMU features
 The version 1.0 of the RISC-V IOMMU specification supports the following 

@@ -26,10 +26,6 @@ This guidelines initializing the IOMMU are as follows:
   already 1.
 . Stop and report failure if other required capabilities 
   (e.g. virtual-addressing modes, MSI translation, etc.) are not supported.
-//. If big-endian memory access is required then set `fctrl.END` to 1 if 
-//  the field is not already 1
-//. If wired interrupts from IOMMU are needed then set `fctrl.WIS` to 1 if 
-//  the field is not already 1
 . The `icvec` register is used to program an interrupt vector for each 
   interrupt cause. Determine the number of vectors supported by the IOMMU by 
   writing 0xF to each field and reading back the number of writable bits. If 
@@ -318,7 +314,18 @@ must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
 ==== Guidelines for handling interrupts from IOMMU
-Placeholder
+IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the PMU. Each 
+interrupt source may be configured with a unique vector or a vector may be
+shared among one or more interrupt sources. The interrupt may be delivered
+as a MSI or a wire-based-interrupt. The interrupt handler performs the 
+following actions:
+
+. Read the `ipsr` register to determine the source of the pending interrupts
+. If `ipsr.cip` bit is set then a interrupt is pending from the `CQ`. 
+.. Read the `cqcsr` to determine the cause of the interrupt.
+.. If the cause is a command-queue memory fault, i.e., `cqcsr.cqmf` is 1, 
+   then determine and remedy the fault if possible. If the fault was 
+   corrected then clear the 
 
 === Guidelines for enabling and disabling ATS and/or PRI
 

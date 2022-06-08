@@ -698,7 +698,7 @@ is as follows:
 
 . If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
   disallowed" (cause = 256).
-. If `ddtp.iommu_mode == Bare` and any of the folowing conditions hold then
+. If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
   stop and report "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request or is a ATS protocol message request.
@@ -805,7 +805,7 @@ translating the write using the MSI page table is as follows:
   do the address translation.
 . Let the interrupt file number `I` be `extract((A >> 12), dc.msi_addr_mask)`.
   The `extract` function here is the same generic bit extract performed by
-  RISC-V instruction BEXT.
+  RISC-V instruction `BEXT``.
 . Let `a` be `(dc.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(a | (I x 16))`. If
   accessing `msipte` violates a PMA or PMP check, then stop and report 
@@ -945,7 +945,7 @@ of the Priv, N, CXL.io, and AMA fields is as follows:
 To process a "Page Request" or "Stop Marker" message, the IOMMU first locates 
 the device-context to determine if ATS and PRI are enabled for the requestor. 
 If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
- IOMMU queues the message into an in-memory queue caleld the 
+ IOMMU queues the message into an in-memory queue called the 
 page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
@@ -1004,7 +1004,7 @@ indicates that the IOMMU response message should include a PASID prefix if
 the associated "Page Request" had a PASID prefix. 
 
 For IOMMU generated "Page Request Group Response" with response code set to 
-Response Failure, if the "Page Request" had a PASID prefix then reponse is 
+Response Failure, if the "Page Request" had a PASID prefix then response is 
 generated with a PASID prefix.
 
 === Caching in-memory data structures
