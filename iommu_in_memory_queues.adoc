@@ -449,6 +449,20 @@ prefix with the PASID field set to the `PID` operand.
 
 The `PAYLOAD` operand of the command is used to form the message body. 
 
+[NOTE]
+====
+The format of the payload of an ATS "Invalidation Request" message is 
+specified by the PCIe specification. Software specifies the untranslated 
+address range to be invalidated in the payload.
+====
+
+[NOTE]
+====
+The format of the payload of an ATS "Page Request Group Response" message is
+specified by the PCIe specification. The `PAYLOAD[15:0]` bits are used as 
+the contents of the bytes 8 and 9 of the message.
+====
+
 If the `DSV` operand is 1, then a valid destination segment number is specified 
 by the `DSEG` operand.
 
@@ -578,7 +592,7 @@ Page-request queue is an in-memory queue data structure used to report PCIe
 ATS “Page Request” and "Stop Marker" messages to software. The base PPN of 
 this in-memory queue and the size of the queue is configured into a 
 memory-mapped register called page-request queue base (`pqb`). 
-Each Page Request record is 16 bytes.
+Each Page-Request record is 16 bytes.
 
 The tail of the queue resides in a IOMMU controlled read-only memory-mapped 
 register called `pqt`.  The `pqt` holds an index into the queue where the next 
@@ -638,5 +652,3 @@ prefix. `X` bit is set to 0 if the message did not have a PASID TLP prefix,
 otherwise it reports the “Execute Requested” bit from the PASID TLP prefix. All
 other fields are set to 0. The payload of the “Page Request” message 
 (bytes 0x08 through 0x0F of the message) is held in the `PAYLOAD` field.
-
-

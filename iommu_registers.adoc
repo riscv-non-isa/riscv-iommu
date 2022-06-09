@@ -862,7 +862,7 @@ status of the page-request-queue.
                               When `pqmf` is set to 1, an interrupt is 
                               generated if not already pending 
                               (i.e. `ipsr.pip == 1`) and not masked 
-                              (i.e.  `pqsr.pie == 1`).
+                              (i.e. `pqsr.pie == 1`).
 
                               The "Page Request" message that caused the `pqmf` 
                               or `pqof` error and all subsequent page-request 

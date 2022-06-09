@@ -33,7 +33,7 @@ This guidelines initializing the IOMMU are as follows:
   `2^N^`. For each cause `C` associate a vector `V` with the cause. `V` is a 
   number between 0 and `(2^N^ - 1)`. 
 . If the IOMMU is configured to use wired interrupts, then each vector `V` 
-  corresponds to a interrupt wire connected to a platform level interrupt 
+  corresponds to an interrupt wire connected to a platform level interrupt 
   controller (e.g. APLIC). Determine the interrupt controller configuration 
   register to be programmed for each such wire using configuration information
   provided by configuration mechanisms such as device tree and program the 
@@ -317,15 +317,39 @@ IOMMU are used by the machine-mode driver to perform such reconfiguration.
 IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the PMU. Each 
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
-as a MSI or a wire-based-interrupt. The interrupt handler performs the 
+as a MSI or a wire-based-interrupt. The interrupt handler may perform the 
 following actions:
 
 . Read the `ipsr` register to determine the source of the pending interrupts
-. If `ipsr.cip` bit is set then a interrupt is pending from the `CQ`. 
-.. Read the `cqcsr` to determine the cause of the interrupt.
-.. If the cause is a command-queue memory fault, i.e., `cqcsr.cqmf` is 1, 
-   then determine and remedy the fault if possible. If the fault was 
-   corrected then clear the 
+. Write the value read back to the register to clear the pending bits
+. If `ipsr.cip` bit is set then an interrupt is pending from the `CQ`. 
+.. Read the `cqcsr` to determine the cause of the error by examining the state
+   of the `cmd_to`, `cmd_ill`, and `cqmf` bits that indicate error conditions
+   that were encountered by the IOMMU. An IOMMU that supports wired-interrupts
+   may be requested to generate an interrupt from the command queue on 
+   completion of a `IOFENCE.C` command. This cause is indicated by the 
+   `fence_w_ip` bit. 
+.. Correct the cause of the interrupt and clear the bit corresponding to the 
+   cause in `cqcsr` by writing 1 to the bit to re-enable command processing. 
+   Software may write the value read in the initial step of this process to 
+   clear the bits. Note that command processing does not stop when 
+   `fence_w_ip` is set to 1.
+. If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`. 
+.. Read the `fqcsr` to determine the cause of the error by examining the state
+   of the `fqmf` and `fqof` bits.
+.. Correct the cause of the interrupt and clear the bit corresponding to the
+   cause in `fqcsr` by writing 1 to the bit to re-enable reporting of faults
+   and events.
+. If `ipsr.pip` bit is set then an interrupt is pending from the `PQ`. 
+.. Read the `pqcsr` to determine the cause of the error by examining the state
+   of the `pqmf` and `pqof` bits.
+.. Correct the cause of the interrupt and clear the bit corresponding to the
+   cause in `pqcsr` by writing 1 to the bit to re-enable reporting of faults
+   and events.
+.. If a `PQ` overflow condition caused the IOMMU to automatically respond to
+   a "Page Request" with the "Last Request in PRG" flag set to 1, then software
+   may observe an incomplete page-request group. Software should ignore the
+   group and not service such groups.
 
 === Guidelines for enabling and disabling ATS and/or PRI
 
