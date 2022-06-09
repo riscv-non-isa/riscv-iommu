@@ -328,17 +328,14 @@ following actions:
    If any of these bits are set then the `CQ` encountered an error and command
    processing is temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the cause in `cqcsr` by writing 1 to the bits. 
+   corresponding to the corrected errors in `cqcsr` by writing 1 to the bits. 
+... Clearing all error indication bits in `cqcsr` re-enables command processing. 
 .. An IOMMU that supports wired-interrupts may be requested to generate an 
    interrupt from the command queue on completion of a `IOFENCE.C` command. 
    This cause is indicated by the `fence_w_ip` bit. Note that command 
    processing does not stop when `fence_w_ip` is set to 1. Software handler
    may re-enable interrupts from `CQ` on `IOFENCE.C` completions by clearing
    this bit by writing 1 to it.
-.. Clearing all error indication bits in `cqcsr` re-enables command processing. 
-.. Software may write the `cqcsr` value read in the initial step of this process
-   to clear the bits to avoid unintentionally clearing any new error bits that 
-   may been set after the `cqcsr` was read in the initial step.
 . If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`. 
 .. Read the `fqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
@@ -346,7 +343,7 @@ following actions:
    are set then the `FQ` encountered an error and fault/event reporting is 
    temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the cause in `fqcsr` by writing 1 to the bits. 
+   corresponding to the corrected errors in `fqcsr` by writing 1 to the bits. 
 ... Clearing all error indication bits in `cqcsr` re-enables fault/event 
    reporting. 
 .. Read the `fqt` and `fqh` registers.
@@ -361,7 +358,7 @@ following actions:
    are set then the `PQ` encountered an error and "Page Request" reporting is 
    temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the cause in `pqcsr` by writing 1 to the bits. 
+   corresponding to the corrected errors in `pqcsr` by writing 1 to the bits. 
 ... Clearing all error indication bits in `pqcsr` re-enables "Page Request" 
    reporting.
 .. Read the `pqt` and `pqh` registers.
@@ -375,8 +372,8 @@ following actions:
    group and not service such groups.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the PMU.
 .. Process the performance monitoring counter overflows.
-. Write the value of `ipsr` read in the first step of this process back to the 
-  `ipsr` register to clear the pending bits.
+. For each source that was serviced in this process, clear the interrupt pending
+  bit for the source by clearing the corresponding bit in `ipsr`.
 
 === Guidelines for enabling and disabling ATS and/or PRI
 
