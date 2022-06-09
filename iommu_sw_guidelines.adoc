@@ -321,35 +321,62 @@ as a MSI or a wire-based-interrupt. The interrupt handler may perform the
 following actions:
 
 . Read the `ipsr` register to determine the source of the pending interrupts
-. Write the value read back to the register to clear the pending bits
 . If `ipsr.cip` bit is set then an interrupt is pending from the `CQ`. 
-.. Read the `cqcsr` to determine the cause of the error by examining the state
-   of the `cmd_to`, `cmd_ill`, and `cqmf` bits that indicate error conditions
-   that were encountered by the IOMMU. An IOMMU that supports wired-interrupts
-   may be requested to generate an interrupt from the command queue on 
-   completion of a `IOFENCE.C` command. This cause is indicated by the 
-   `fence_w_ip` bit. 
-.. Correct the cause of the interrupt and clear the bit corresponding to the 
-   cause in `cqcsr` by writing 1 to the bit to re-enable command processing. 
-   Software may write the value read in the initial step of this process to 
-   clear the bits. Note that command processing does not stop when 
-   `fence_w_ip` is set to 1.
+.. Read the `cqcsr` register.
+.. Determine if an error caused the interrupt and if so, the cause of the 
+   error by examining the state of the `cmd_to`, `cmd_ill`, and `cqmf` bits 
+   If any of these bits are set then the `CQ` encountered an error and command
+   processing is temporarily disabled.
+.. If errors have occurred, correct the cause of the error and clear the bits
+   corresponding to the cause in `cqcsr` by writing 1 to the bits. 
+.. An IOMMU that supports wired-interrupts may be requested to generate an 
+   interrupt from the command queue on completion of a `IOFENCE.C` command. 
+   This cause is indicated by the `fence_w_ip` bit. Note that command 
+   processing does not stop when `fence_w_ip` is set to 1. Software handler
+   may re-enable interrupts from `CQ` on `IOFENCE.C` completions by clearing
+   this bit by writing 1 to it.
+.. Clearing all error indication bits in `cqcsr` re-enables command processing. 
+.. Software may write the `cqcsr` value read in the initial step of this process
+   to clear the bits to avoid unintentionally clearing any new error bits that 
+   may been set after the `cqcsr` was read in the initial step.
 . If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`. 
-.. Read the `fqcsr` to determine the cause of the error by examining the state
-   of the `fqmf` and `fqof` bits.
-.. Correct the cause of the interrupt and clear the bit corresponding to the
-   cause in `fqcsr` by writing 1 to the bit to re-enable reporting of faults
-   and events.
+.. Read the `fqcsr` register.
+.. Determine if an error caused the interrupt and if so, the cause of the error
+   by examining the state of the `fqmf` and `fqof` bits. If either of these bits
+   are set then the `FQ` encountered an error and fault/event reporting is 
+   temporarily disabled.
+.. If errors have occurred, correct the cause of the error and clear the bits
+   corresponding to the cause in `fqcsr` by writing 1 to the bits. 
+... Clearing all error indication bits in `cqcsr` re-enables fault/event 
+   reporting. 
+.. Read the `fqt` and `fqh` registers.
+.. If value of `fqt` is not equal to value of `fqh` then the `FQ` is not empty
+   and contains fault/event reports that need processing.
+.. Process pending fault/event reports that need processing and remove them from
+   the `FQ` by advancing the `fqh` by the number of records processed.
 . If `ipsr.pip` bit is set then an interrupt is pending from the `PQ`. 
-.. Read the `pqcsr` to determine the cause of the error by examining the state
-   of the `pqmf` and `pqof` bits.
-.. Correct the cause of the interrupt and clear the bit corresponding to the
-   cause in `pqcsr` by writing 1 to the bit to re-enable reporting of faults
-   and events.
-.. If a `PQ` overflow condition caused the IOMMU to automatically respond to
+.. Read the `pqcsr`register.
+.. Determine if an error caused the interrupt and if so, the cause of the error
+   by examining the state of the `pqmf` and `pqof` bits. If either of these bits
+   are set then the `PQ` encountered an error and "Page Request" reporting is 
+   temporarily disabled.
+.. If errors have occurred, correct the cause of the error and clear the bits
+   corresponding to the cause in `pqcsr` by writing 1 to the bits. 
+... Clearing all error indication bits in `pqcsr` re-enables "Page Request" 
+   reporting.
+.. Read the `pqt` and `pqh` registers.
+.. If value of `pqt` is not equal to value of `pqh` then the `PQ` is not empty
+   and contains "Page Request" messages that need processing.
+.. Process pending "Page Request" messages that need processing and remove them
+   from the `PQ` by advancing the `pqh` by the number of records processed.
+... If a `PQ` overflow condition caused the IOMMU to automatically respond to
    a "Page Request" with the "Last Request in PRG" flag set to 1, then software
    may observe an incomplete page-request group. Software should ignore the
    group and not service such groups.
+. If `ipsr.pmip` bit is set then an interrupt is pending from the PMU.
+.. Process the performance monitoring counter overflows.
+. Write the value of `ipsr` read in the first step of this process back to the 
+  `ipsr` register to clear the pending bits.
 
 === Guidelines for enabling and disabling ATS and/or PRI
 
