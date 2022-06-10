@@ -607,7 +607,7 @@ status of the command-queue.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits |Field   |Attribute | Description
-|0    |`cqen`  |RO        | The command-queue-enable bit enables the command-
+|0    |`cqen`  |RW        | The command-queue-enable bit enables the command-
                             queue when set to 1. Changing `cqen` from 0 to 1
                             sets the `cqh` and `cqt` to 0. The command-queue 
                             may take some time to be active following setting 
@@ -734,7 +734,7 @@ status of the fault-queue.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits  |Field |Attribute | Description
-|0     |`fqen`|RO        | The fault-queue enable bit enables the fault-queue 
+|0     |`fqen`|RW        | The fault-queue enable bit enables the fault-queue 
                            when set to 1. 
                            Changing `fqen`  from 0 to 1, resets the `fqh` and 
                            `fqt` to 0 and clears `fqcsr` bits `fqmf` and `fqof`.
@@ -825,7 +825,7 @@ status of the page-request-queue.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field   |Attribute | Description
-|16     |`pqon`  |RO        | The page-request-enable bit enables the
+|16     |`pqon`  |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. 
 
                               Changing `pqen` from 0 to 1, resets the `pqh` 
