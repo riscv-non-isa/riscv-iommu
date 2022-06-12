@@ -7,9 +7,6 @@ registers of each IOMMU are located within a naturally aligned 4-KiB region
 The IOMMU behavior for register accesses where the address is not aligned to 
 the size of the access or if the access spans multiple registers is undefined.
 
-The reset default value of register fields is 0 unless explicitly noted 
-otherwise in the register definition.
-
 Register fields are assigned one of the attributes described in following 
 table.
 
@@ -83,6 +80,15 @@ table.
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration Table>>
 |1024  |Reserved        |3072|Reserved for future use (`WPRI`)
 |===
+
+=== Reset behavior
+The reset default value is 0 for the following registers. Reset value is 
+implementation-defined for all other registers and/or fields.
+
+* `fctrl`
+* `cqcsr`
+* `fqcsr`
+* `pqcsr`
 
 
 [[CAP]]
@@ -1309,6 +1315,10 @@ by the vector from `icvec` to determine a MSI table entry. Each MSI table
 entry for interrupt vector `x` has three registers `msi_addr_x`, `msi_data_x`, 
 and `msi_vec_ctrl_x`. These registers are hard wired to 0 if the IOMMU does 
 not support MSI.
+
+If an access fault is detected on a MSI write using `msi_addr_x`, then the IOMMU
+reports a "IOMMU MSI write access fault" (cause 273) fault, with `TTYP` set to 0
+and `iotval` set to the value of `msi_addr_x`.
 
 .MSI configuration table structure
 [width=100%]

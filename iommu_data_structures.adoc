@@ -830,7 +830,7 @@ translating the write using the MSI page table is as follows:
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
 .. Perform the process as outlined in Section 9.5.2 of the Advanced Interrupt
    Architecture specification. If accessing MRIF violates a PMA or PMP check,
-   then stop and report "MRIF access fault" (cause = 264). If MRIF access
+   then stop and report "MRIF access fault" (cause = 264). If the MRIF access
    detects a data corruption (a.k.a poisoned data), then stop and report 
    "MSI MRIF data corruption" (cause = 271).
 . MSI address translation process is complete.
