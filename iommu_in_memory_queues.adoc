@@ -562,7 +562,8 @@ The `TTYP` field reports inbound transaction type.
 
 If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If 
 the `TTYP` is a message request then the message code is reported in `iotval`.
-If `TTYP` is 0, then the value reported in `iotval` is defined by the `CAUSE`.
+If `TTYP` is 0, then the value reported in `iotval` and `iotval2` fields is 
+as defined by the `CAUSE`.
 
 `DID` holds the `device_id` of the transaction. If `PV` is 0, then `PID` and 
 `PRIV` are 0. If `PV` is 1, the `PID` holds a `process_id` of the transaction 
