@@ -935,11 +935,20 @@ of the Priv, N, CXL.io, and AMA fields is as follows:
   translated requests.
 * If requesting device is not a CXL device then CXL.io is set to 0. 
 * If requesting device is a CXL type 1 or type 2 device and the memory
-  attribute, as determined by the Svpbmt extension, is NC or IO then the CXL.io
-  bit is set to 1. If the Svpbmt extension is not supported then the setting of
-  this bit is unspecified.
+  type, as determined by the Svpbmt extension, is NC or IO then the CXL.io
+  bit is set to 1. If the memory type is PMA then the determination of the 
+  setting of this bit is implementation-defined. If the Svpbmt extension is not
+   supported then the setting of this bit is implementation-defined.
 * The AMA field is by default set to 000b. The IOMMU may support an 
   implementation specific method to provide other encodings.
+
+[NOTE]
+====
+The IO bridge may override the CXL.io bit in the ATS translation completion
+based on the PMA of the translated address. Other implementations may provide
+an implementation-defined method for detemining PMA for the translated address
+to set the CXL.io bit.
+====
 
 === PCIe ATS Page Request handling
 To process a "Page Request" or "Stop Marker" message, the IOMMU first locates 
