@@ -94,6 +94,7 @@ MSI address translation table configured by software in the device context.
 [%header, cols="5,20"]
 |===
 | Term            | Definition
+| AIA             | Advanced Interrupt Architecture
 | ATS             | Address Translation Services - a PCIe protocol to support
                     DevATC.
 | DC              | Device Context
@@ -120,6 +121,7 @@ MSI address translation table configured by software in the device context.
                     page tables.
 | Guest           | Software in a virtual machine.
 | Hypervisor      | Software entity that controls virtualization.
+| IMSIC           | Incoming Message-signaled Interrupt Controller.
 | IOATC           | IOMMU Address Translation Cache: cache in IOMMU that caches
                     data structures used for address translations.
 | IOVA            | I/O Virtual Address: Virtual address for DMA by devices
@@ -181,7 +183,8 @@ functionalities:
 
 . Protect the operating system from bad memory accesses from errant devices
 . Support 32-bit devices in 64-bit environment (avoidance of bounce buffers)
-. Support mapping of contiguous virtual addresses to an underlying fragmented physical addresses (avoidance of scatter/gather lists)
+. Support mapping of contiguous virtual addresses to an underlying fragmented
+  physical addresses (avoidance of scatter/gather lists)
 . Dynamic redirection of interrupts
 . Support shared virtual addressing
 
@@ -252,12 +255,6 @@ performs memory accesses using those addresses, an IOMMU is responsible for
 translating those guest physical addresses into supervisor physical addresses, 
 referencing address-translation data structures supplied by the hypervisor.
 
-To handle MSIs from a device controlled by a guest OS, the hypervisor configures
-an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC or to a 
-memory-resident interrupt file. The IOMMU is responsible to use the MSI 
-address-translation data structures supplied by the hypervisor to perform the
-MSI redirection.
-
 The following diagram illustrates the concept. The device D1 is directly
 assigned to VM-1 and device D2 is directly assigned to VM-2. The VMM configures
 the G-stage page table to be used by each device and restricts the memory
@@ -285,6 +282,43 @@ associated memory.
   +-----------+      +-----------+ 
   | Device D1 |      | Device D2 |
   +-----------+      +-----------+
+....
+
+To handle MSIs from a device controlled by a guest OS, the hypervisor configures
+an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC or to a 
+memory-resident interrupt file. The IOMMU is responsible to use the MSI 
+address-translation data structures supplied by the hypervisor to perform the
+MSI redirection. Because every interrupt file, real or virtual, occupies a 
+naturally aligned 4-KiB page of address space, the required address translation
+is from a virtual (guest) page address to a physical page address, the same as 
+supported by regular RISC-V pagebased address translation.
+
+[[MSI_REDIR]]
+.MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
+["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+....
+                                                                +----------------------+
+                                                                |IMSIC                 |
+                                                                | +------------------+ |
+                                                                | | M-level int. file| |
+                                                                | +------------------+ |
+                                                                |                      |
+                                                                | +------------------+ |
+                                                                | | S-level int. file| |
+                                                                | +------------------+ |
+                                                                |                      |
+                                                                | +------------------+ |
+                    +----------+                                | |Guest int. file 1 | |
+                    |   IOMMU  |           +---------------+    | +------------------+ |
+                    |          |           |               |    |                      |
+  +-------+   MSI   | +------+ | MSI       |  IO Bridge    |    | +------------------+ | 
+  |Device +-----------|MSI PT|----------------------------------->|Guest int. file 2 | |
+  +-------+  Write  | +------+ | Write     |               |    | +------------------+ |
+             (GPA)  |          | (SPA)     +---------------+    |         ,,,          |
+                    +----------+                                | +------------------+ |
+                                                                | |Guest int. file N | |
+                                                                | +------------------+ |
+                                                                +----------------------+
 ....
 
 ==== Guest OS
@@ -500,10 +534,9 @@ features:
 * Support for hardware management of page-table entry Accessed and Dirty bits
   is optional for the IOMMU.
 
-* Support for MSI address translation as specified by RISC-V Advanced Interrupt
-  Architecture (AIA) is optional. When MSI address translation is supported 
-  using flat MSI page tables then supporting memory-resident-interrupt-files is
-  optional.
+* Support for MSI address translation to redirect MSIs to interrupt files in
+  an IMSIC is optional. When MSI address translation is supported using flat 
+  MSI page tables then supporting memory-resident-interrupt-files is optional.
 
 * Supporting Svnapot extension is optional.
 
