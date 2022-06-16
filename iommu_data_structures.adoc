@@ -737,19 +737,19 @@ PTE’s complete format is:
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 1, name: 'V = 1'},
-  {bits: 1, name: 'rsvd'},
-  {bits: 1,  name: 'W = 1'},
-  {bits: 7,  name: 'rsvd'},
+  {bits: 1, name: 'V', attr: ['1']},
+  {bits: 1, name: '0'},
+  {bits: 1,  name: 'W', attr:['1']},
+  {bits: 7,  name: '0'},
   {bits: 44,  name: 'PPN'},
-  {bits: 9,  name: 'rsvd'},
-  {bits: 1,  name: 'C = 0'},
+  {bits: 9,  name: '0'},
+  {bits: 1,  name: 'C', attr:['0']},
   {bits: 64,  name: 'ignored'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
-Reserved bits, `rsvd`, of the first doubleword must be set to zeros by software.
-The second doubleword is ignored by an IOMMU so is free for software to use.
+Reserved bits of the first doubleword must be set to zeros by software. The second 
+doubleword is ignored by an IOMMU so is free for software to use.
 
 An incoming MSI write is translated by replacing the write’s original 
 address bits 12 and above (the guest physical page number) with field `PPN` 
@@ -797,22 +797,22 @@ If memory-resident interrupt files are supported and an MSI PTE has fields
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 1, name: 'V = 1'},
-  {bits: 1, name: 'rsvd'},
-  {bits: 1,  name: 'W = 0'},
-  {bits: 4,  name: 'rsvd'},
-  {bits: 47,  name: 'MRIF_ADDR[55:9]'},
-  {bits: 9,  name: 'rsvd'},
-  {bits: 1,  name: 'C = 0'},
-  {bits: 10,  name: 'NID[9:0]'},
+  {bits: 1, name: 'V', attr: ['1']},
+  {bits: 1, name: '0'},
+  {bits: 1,  name: 'W', attr: ['0']},
+  {bits: 4,  name: '0'},
+  {bits: 47,  name: 'MRIF_ADDR'},
+  {bits: 9,  name: '0'},
+  {bits: 1,  name: 'C', attr: ['0']},
+  {bits: 10,  name: 'N90'},
   {bits: 44,  name: 'NPPN'},
-  {bits: 6,  name: 'rsvd'},
-  {bits: 1,  name: 'NID[10]'},
-  {bits: 3,  name: 'rsvd'},
-], config:{lanes: 8, hspace: 1024, fontsize: 16}}
+  {bits: 6,  name: '0'},
+  {bits: 1,  name: 'N10'},
+  {bits: 3,  name: '0'},
+], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
-Reserved bits, `rsvd`, of the PTE must be set to zeros by software.
+Reserved bits of the PTE must be set to zeros by software.
 
 The PTE’s `MRIF_ADDR` field provides bits 55:9 of the physical address of a
 memory-resident interrupt file in which to store incoming MSIs, referred
@@ -820,10 +820,11 @@ to as the destination MRIF. As every memory-resident interrupt file is
 naturally aligned to a 512-byte address boundary, bits 8:0 of the 
 destination MRIF’s address must be zero and are not specified in the PTE.
 
-Field `NPPN` (Notice Physical Page Number) and the two `NID` (Notice Identifier)
-fields together specify a destination and value for a notice MSI that is sent
+The `N10` field provides the bit 10 and the `N90` field provides the bits 9:0 of
+a Notice Identifier (`NID`). Field `NPPN` (Notice Physical Page Number) and 
+the `NID` together specify a destination and value for a notice MSI that is sent
 after each time the destination MRIF is updated as a result of consulting this
-PTE to store an incoming MSI
+PTE to store an incoming MSI.
 
 [NOTE]
 ====
@@ -925,17 +926,20 @@ Not all systems need to accommodate large numbers of idle virtual harts. Many
 batch-processing servers, for example, strive to keep all virtual worker 
 threads as busy as possible from start to finish, throttled only by I/O delays
 and limits on processing resources. In such environments, support for MRIFs 
-may not be useful, so long as parameter GEILEN is not too small.
+may not be useful, so long as parameter `GEILEN` is not too small.
 ====
 
 An IOMMU can have one of these three levels of support for memory-resident 
 interrupt files:
 
-• no memory-resident interrupt files (`capabilities.MSI_MRIF = 0`);
-• memory-resident interrupt files without atomic update 
-  (`capabilities.MSI_MRIF=1` and `capabilities.AMO=0`); or
-• memory-resident interrupt files with atomic update.
-  (`capabilities.MSI_MRIF=1` and `capabilities.AMO=1`); or
+[width=100%]
+[%header, cols="^12,^12,20"]
+|===
+|`capabilities.MSI_MRIF` | `capabilities.AMO` | MRIF support level
+|           0            |       0/1          | No MRIF 
+|           1            |       0            | MRIF without atomic update.
+|           1            |       1            | MRIF with atomic update.
+|===
 
 Memory-resident interrupt files are most efficient when the memory system 
 supports logical atomic memory operations (AMOs) corresponding to RISC-V 
@@ -1269,19 +1273,20 @@ and translating the write using the MSI page table is as follows:
    the IO bridge to discard the write as an unsupported request.
 .. If the IOMMU supports atomic memory operations 
    (`capabilities.AMO` is 1, <<CAP>>), then, in the destination MRIF 
-   (at address `msipte.MRIF_ADDR[55:9] << 9`), set the interrupt-pending bit 
+   (at address `msipte.MRIF_ADDR * 512`), set the interrupt-pending bit 
    for interrupt identity `D` to 1 using an `AMOOR` operation for atomic update.
 .. If the IOMMU does not support atomic memory operations then, in the 
-   destination MRIF (at address `msipte.MRIF_ADDR[55:9] << 9`), set the 
+   destination MRIF (at address `msipte.MRIF_ADDR * 512`), set the 
    interrupt-pending bit for interrupt identity `D` to 1 using a non-atomic 
    read-modify-write sequence.
 .. If accessing MRIF violates a PMA or PMP check, then stop and report 
    "MRIF access fault" (cause = 264). 
 .. If the MRIF access detects a data corruption (a.k.a poisoned data), then 
    stop and report "MSI MRIF data corruption" (cause = 271).
-.. Zero-extend the 11-bit `msipte.NID` value to 32 bits, and do a 32-bit write
-   of this value in little-endian byte order to the address `msipte.NPPN << 12`
-   (i.e., physical page number `NPPN`, page offset zero).
+.. Zero-extend the 11-bit `(msipte.N10 << 10) | msipte.N90` value to 32 bits, 
+   and do a 32-bit write of this value in little-endian byte order to the 
+   address `msipte.NPPN << 12` (i.e., physical page number `NPPN`, page 
+   offset zero).
 .. The following rules must be followed to order the write to the destination 
    MRIF and the write to the notice physical page number (`NPPN`):
 ... All DMA writes older than the incoming MSI that was transformed by this 
