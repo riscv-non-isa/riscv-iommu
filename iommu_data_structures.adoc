@@ -335,8 +335,8 @@ with a "Page Request Group Response" message. Normally, a software handler
 generates this response message. However, under some conditions the IOMMU itself 
 may generate a response. For IOMMU generated "Page Request Group Response" 
 messages the PRG-response-PASID-required (`PRPR`) bit when set to 1 indicates 
-that the IOMMU response message should include a PASID prefix if the associated
-"Page Request" had a PASID prefix.
+that the IOMMU response message should include a PASID if the associated
+"Page Request" had a PASID.
 
 [NOTE]
 ====
@@ -345,7 +345,7 @@ capability bit set to 1, expect that "Page Request Group Response" messages will
 contain a PASID if the associated "Page Request" message had a PASID. If the 
 capability bit is 0, the function does not expect PASID on any "Page Request 
 Group Response" message and the behavior of the function if it receives the 
-response with a PASID prefix is undefined. The `PRPR` bit should be configured
+response with a PASID is undefined. The `PRPR` bit should be configured
 with the value held in the "PRG Response PASID Required" capability bit.
 ====
 
@@ -373,9 +373,8 @@ the PPN of the root page of a VS-stage page table (i.e. `iovsatp`).
 
 The `PDTV` is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
-with its memory accesses. For PCIe, for example, PASID capable devices that 
-have the PASID capability enabled, signal the `process_id` in the PASID TLP
-prefix of the TLP.
+with its memory accesses. For PCIe, for example, if the request has a PASID 
+then the PASID is used as the `process_id`.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
@@ -1218,7 +1217,7 @@ and translating the write using the MSI page table is as follows:
 . If `dc.msiptp.MODE == Bare`, then MSI address translation using MSI page
   tables is not enabled. Stop this process and instead use the regular
   translation data structures to do the address translation.
-. If the write has a valid `process_id` (e.g., PASID prefix present), then
+. If the write has a valid `process_id` (e.g., PASID present), then
   the write is not determined to be a MSI write. Stop this process and instead
   use the regular translation data structures to do the address translation.
 . Determine if the write to `A` is an MSI as specified in <<MSI_ID>>.
@@ -1289,34 +1288,35 @@ and translating the write using the MSI page table is as follows:
    offset zero).
 .. The following rules must be followed to order the write to the destination 
    MRIF and the write to the notice physical page number (`NPPN`):
-... All DMA writes older than the incoming MSI that was transformed by this 
-    process must be visible to all agents before the write to the destination 
-    MRIF or to the `NPPN` becomes visible to any agent; unless protocol specific 
+... All writes older than the incoming MSI that was transformed by this 
+    process must be globally visible before the write to the destination 
+    MRIF or to the `NPPN` becomes globally visible; unless protocol specific 
     relaxation is allowed (e.g. PCIe relaxed ordering) or is not required.
-...  The write to destination MRIF must be visible to all agents in the system 
-    before the write to `NPPN` becomes visible to any agent
+... The write to destination MRIF must be globally visible before the write to
+    `NPPN` becomes globally visible.
 . MSI address translation process is complete.
 
 === PTE accessed (A) and dirty (D) bit updates
 
 When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
-PTEs atomically. The A and/or D bit updates by the IOMMU must follow the rules
-specified by the Privileged specification for validity, permission checking, and
-atomicity. The PTE update must be visible to all agents i.e., globally visible, 
-before a memory access is made using the translated address provided by the 
-IOMMU. When the translated address if provided to a device in an ATS Translation
-completion, the PTE updates must be globally visible before an explicit memory 
-access from the device using the translated address occurs.
+PTEs atomically. 
 
-If the A bit requires to be set as part of the translation process, the IOMMU
-must not cache the contents of the PTE before the PTE update is globally visible.
+The A and/or D bit updates by the IOMMU must follow the rules specified by the 
+Privileged specification for validity, permission checking, and atomicity. 
+
+The PTE update must be globally visible before a memory access using the 
+translated address provided by the IOMMU becomes globally visible. 
+
+Specifically, When the translated address is provided to a device in an ATS 
+Translation completion, the PTE update must be globally visible before a memory
+access from the device using the translated address becomes globally visible.
 
 [NOTE]
 ====
-The A and D bits are never cleared by the implementation. If the supervisor 
-software does not rely on accessed and/or dirty bits, e.g. if it does not swap 
-memory pages to secondary storage or if the pages are being used to map I/O space, 
-it should always set them to 1 in the PTE to improve performance.
+The A and D bits are never cleared by the IOMMU. If the supervisor software does 
+not rely on accessed and/or dirty bits, e.g. if it does not swap memory pages to 
+secondary storage or if the pages are being used to map I/O space, it should 
+set them to 1 in the PTE to improve performance.
 ====
 
 === Faults from virtual address translation process
@@ -1364,17 +1364,16 @@ following cause codes belong to this category:
 * PDT entry not valid (cause = 266)
 * MSI PTE not valid (cause = 262)
 
-If the translation request has a PASID prefix with "Privilege Mode Requested" 
-field set to 0, or the request does not have a PASID prefix then the request 
-does not target privileged memory. If the U-bit that indicates if the memory is
-accessible to user mode is 0 then a Success response with R and W bits set to 0
-is generated.
+If the translation request has a PASID with "Privilege Mode Requested" field set
+to 0, or the request does not have a PASID then the request does not target 
+privileged memory. If the U-bit that indicates if the memory is accessible to 
+user mode is 0 then a Success response with R and W bits set to 0 is generated.
 
-If the translation request has a PASID prefix with "Privilege Mode Requested"
-field set to 1, then the request targets privileged memory. If the U-bit that
-indicates if the page is accessible to user mode is 1 and the `SUM` bit in `ta`
-field of the process-context is 0 then a Success response with R and W bits set
-to 0 is generated.
+If the translation request has a PASID with "Privilege Mode Requested" field set 
+to 1, then the request targets privileged memory. If the U-bit that indicates if
+the page is accessible to user mode is 1 and the `SUM` bit in `ta` field of the 
+process-context is 0 then a Success response with R and W bits set to 0 is 
+generated.
 
 If the translation could be successfully completed but the requested 
 permissions are not present (Execute requested but no execute permission; 
@@ -1410,10 +1409,9 @@ When a Success response is generated for a ATS translation request, the setting
 of the Priv, N, CXL.io, and AMA fields is as follows:
 
 * Priv field of the ATS translation completion is always set to 0 if the request
-  does not have a PASID prefix. When a PASID prefix is present then the Priv 
-  field is set to the value in "Privilege Mode Requested" field as the 
-  permissions provided correspond to those the privilege mode indicate in the 
-  request.
+  does not have a PASID. When a PASID is present then the Priv field is set to 
+  the value in "Privilege Mode Requested" field as the permissions provided 
+  correspond to those the privilege mode indicate in the request.
 * N field of the ATS translation completion is always set to 0. The device may
   use other means to determine if the No-snoop flag should be set in the 
   translated requests.
@@ -1487,18 +1485,18 @@ device being disabled for all PFs/VFs.
 
 [NOTE]
 ====
-A "Stop Marker" is encoded as a "Page Request" with a PASID prefix but with
-the L, W, and R fields set to 1, 0, and 0 respectively.
+A "Stop Marker" is encoded as a "Page Request" with a PASID but with the L, W, 
+and R fields set to 1, 0, and 0 respectively.
 ====
 
 For IOMMU generated "Page Request Group Response" messages that have status 
 Invalid Request, the PRG-response-PASID-required (`PRPR`) bit when set to 1 
-indicates that the IOMMU response message should include a PASID prefix if 
-the associated "Page Request" had a PASID prefix. 
+indicates that the IOMMU response message should include a PASID if the 
+associated "Page Request" had a PASID. 
 
 For IOMMU generated "Page Request Group Response" with response code set to 
-Response Failure, if the "Page Request" had a PASID prefix then response is 
-generated with a PASID prefix.
+Response Failure, if the "Page Request" had a PASID then response is generated
+with a PASID.
 
 === Caching in-memory data structures
 
