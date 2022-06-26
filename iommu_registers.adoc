@@ -676,10 +676,10 @@ status of the command-queue.
                             This bit is reserved if the IOMMU uses MSI. 
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
-                            IOMMU behavior on changing cqb when busy is 1 or 
+                            IOMMU behavior on changing `cqb` when `busy` is 1 or 
                             `cqon` is 1 is implementation defined. The software 
                             recommended sequence to change `cqb` is to first 
-                            disable the command-queue by clearing cqen and 
+                            disable the command-queue by clearing `cqen` and 
                             waiting for both `busy` and `cqon` to be 0 before 
                             changing the `cqb`.
 |17   |`busy`   |RO       | A write to `cqcsr` may require the IOMMU to perform
