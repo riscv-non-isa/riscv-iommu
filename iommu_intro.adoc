@@ -97,6 +97,7 @@ MSI address translation table configured by software in the device context.
 | AIA             | Advanced Interrupt Architecture.
 | ATS / PCIe ATS  | Address Translation Services: A PCIe protocol to support
                     DevATC.
+| CXL             | Compute Express Link bus standard.
 | DC /
   Device Context  | A hardware representation of state that identifies a
                     device and the VM to which the device is assigned.
@@ -132,31 +133,36 @@ MSI address translation table configured by software in the device context.
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
-| PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables
-                    devices to request OS memory manager services to make pages
-                    resident.
-| PT              | Page Table.
-| PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard.
 | PDI             | Process-directory-index: a sub field of the unique process
                     identifier used to index into a leaf or non-leaf PDT
                     structure.
+| PDT             | Process-directory-table: A radix tree data structure
+                    traversed using the unique Process identifier to locate the
+                    process context structure.
+| PMA             | Physical Memory Attributes.
+| PMP             | Physical Memory Protection.
+| PMU             | Performance monitoring unit.
+| PPN             | Physical Page Number.
+| PRI             | Page Request Interface - a PCIe protocol that enables
+                    devices to request OS memory manager services to make pages
+                    resident.
 | Process ID      | An identification number that is up to 20-bits to identify
                     a process context. For PCIe devices this is the PASID.
 | PSCID           | Process soft-context identifier: An identification number
                     used by software to identify a unique address space. The
                     IOMMU may tag IOATC entries with PSCID.
-| PDT             | Process-directory-table: A radix tree data structure
-                    traversed using the unique Process identifier to locate the
-                    process context structure.
+| PT              | Page Table.
+| PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
 | Reserved        | A register or data structure field reserved for future use.
                     Reserved fields in data structures must be set to 0 by
                     software. Software must ignore reserved fields in registers
                     and preserve the value held in these fields when writing
                     values to other fields in the same register.
 | RID / PCIe RID  | PCIe routing identifier.
+| SOC             | System on a chip, also referred as system-on-a-chip and
+                    system-on-chip.
 | SPA             | Supervisor Physical Address: Physical address used to
                     to access memory and memory-mapped resources.
 | TLP             | Transaction Layer Packet.
