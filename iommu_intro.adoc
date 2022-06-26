@@ -1,38 +1,38 @@
 [[intro]]
 
 == Introduction
-The IOMMU (sometimes referred to as a system MMU) is a system-level
-memory management unit (MMU) that connects direct-memory-access-capable I/O
-devices to system memory.
+The Input-Output Memory Management Unit (IOMMU), sometimes referred to as a
+System MMU (SMMU), is a system-level Memory Management Unit (MMU) that connects
+direct-memory-access-capable Input/Output (I/O) devices to system memory.
 
 For each I/O device connected to the system through an IOMMU, software can
 configure at the IOMMU a device context, which associates with the device a
 specific virtual address space and other per-device parameters. By giving
-devices each their own separate device context at an IOMMU, each device can be
+each device its own separate device context at an IOMMU, each device can be
 individually configured for a different software master, usually a guest OS or
 the main (host) OS. On every memory access made from a device, hardware
 indicates to the IOMMU the originating device by some form of unique device
 identifier, which the IOMMU uses to locate the appropriate device context
 within data structures supplied by software. For PCIe, for example, the
-originating device may be identified by the unique 16-bit triple of PCI bus
+originating device may be identified by the unique 16-bit triplet of PCI bus
 number (8-bit), device number (5-bit), and function number (3-bit)
-(collectively known as routing ID (RID) and optionally up to 8-bit segment
+(collectively known as routing identifier or RID) and optionally up to 8-bit segment
 number when the IOMMU supports multiple segments. This specification refers to
-such unique device identifier as `device_id` and supports up to 24-bit wide IDs.
+such unique device identifier as `device_id` and supports up to 24-bit wide identifiers.
 
 Some devices may support shared virtual addressing which is the ability to
-share process address space with devices. Sharing process address spaces with
+share process address spaces with devices. Sharing process address spaces with
 devices allows to rely on core kernel memory management for DMA, removing some
 complexity from application and device drivers. After binding to a device,
-applications can instruct it to perform DMA on buffers obtained with malloc. To
-support such addressing, software can configure one or more process context
+applications can instruct it to perform DMA on application statically or dinamically allocated buffers. To
+support such addressing, software can configure one or more process contexts
 into the device context. On every memory access made from a device, the hardware
-indicates to the the IOMMU a unique process identifier, which the IOMMU uses
+indicates to the IOMMU a unique process identifier, which the IOMMU uses
 in conjunction with the unique device identifier to locate the appropriate
 process context configured by software in the device context. For PCIe, for
 example, the process context may be identified by the unique 20-bit process
-address space ID (PASID). This specification refers to such unique process
-identifiers as `process_id` and supports up to 20-bit wide IDs.
+address space identifier (PASID). This specification refers to such unique process
+identifiers as `process_id` and supports up to 20-bit wide identifiers.
 
 Using the same S/VS-stage and G-stage page table formats in IOMMU for address
 translation and protections as the CPU’s MMU removes some complexity from the
@@ -45,15 +45,15 @@ resolve the supervisor physical address using software provided data structures.
 Similar overheads in the CPU MMU are mitigated typically through the use of a
 translation look-aside buffer (TLB) to cache these address translations such
 that they may be re-used to reduce the translation overhead on subsequent
-accesses. The IOMMU may employ similar address translation caches (IOATC). The
+accesses. The IOMMU may employ similar address translation caches, referred as IOMMU Address Translation Cache (IOATC). The
 IOMMU provides mechanisms for software to synchronize the IOATC with the
 memory resident data structures used for address translation when they are
 modified. Software may configure the device context with a software defined
-context ID called Guest-soft-context-ID (`GSCID`) to indicate that a
+context identifier called guest soft-context identifier (`GSCID`) to indicate that a
 collection of devices are assigned to the same VM and thus access a common
 virtual address space. Software may configure the process context with a
-software defined context ID called Process-soft-context-ID (`PSCID`) to
-identify a collection of process ID that share a common virtual address space.
+software defined context identifier called process soft-context identifier (`PSCID`) to
+identify a collection of process identifier that share a common virtual address space.
 The IOMMU may use the `GSCID` and `PSCID` to tag entries in the IOATC to avoid
 duplication and simplify invalidation operations.
 
@@ -72,8 +72,8 @@ of I/O page faults to avoid the core kernel memory manager from having to make
 all physical memory that may be accessed by the device resident at all times.
 For PCIe, for example, the device may implement the Page Request Interface (PRI)
 to dynamically request the memory manager to make a page resident if it
-discovers the page for which it request a translation was not available. An
-IOMMU may support the interfaces to software and the protocols with the device
+discovers the page for which it requested a translation was not available. An
+IOMMU may support specialized software interfaces and protocols with the device
 to enable services such as PCIe ATS and PCIe PRI.
 
 In systems built with an Incoming Message-Signaled Interrupt Controller (IMSIC),
