@@ -286,7 +286,7 @@ If software enables or disables a feature when the IOMMU is not OFF
 
                                 An IOMMU that can complete these operations 
                                 synchronously may hard-wire this bit to 0.
-|59    |`iommu_mode` |RW     a| The IOMMU may be configured to be in following
+|63:60 |`iommu_mode` |RW     a| The IOMMU may be configured to be in following
                                 modes:
 
 [%header, cols="^1,1,3"]
