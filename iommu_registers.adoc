@@ -89,7 +89,7 @@ implementation-defined for all other registers and/or fields.
 * `cqcsr`
 * `fqcsr`
 * `pqcsr`
-
+* `ddtp.busy`
 
 [[CAP]]
 === IOMMU capabilities (`capabilities`)
@@ -123,7 +123,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'END'},
   {bits: 2, name: 'IGS'},
   {bits: 1, name: 'PMON'},
-  {bits: 1, name: 'reserved'},
+  {bits: 1, name: 'RAS'},
   {bits: 6, name: 'PAS'},
   {bits: 10, name: 'reserved'},
   {bits: 16, name: 'custom'},
@@ -244,8 +244,8 @@ If software enables or disables a feature when the IOMMU is not OFF
                                 big-endian accesses.
 |1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wired-interrupts.
-|15:2  |`WPRI`     |WPRI      | Reserved for standard use
-|31:16 |_custom_   |          | _These bits are reserved for custom use._
+|15:2  |`reserved` |WPRI      | Reserved for standard use.
+|31:16 |_custom_   |          | _Reserved for custom use._
 |===
 
 [[DDTP]]
@@ -267,7 +267,7 @@ If software enables or disables a feature when the IOMMU is not OFF
 |Bits  |Field      |Attribute | Description
 |43:0  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 device-directory-table.
-|58:44 |`WPRI`     |WPRI      | Reserved for standard use
+|58:44 |`reserved` |WPRI      | Reserved for standard use
 |59    |`busy`     |RW        | A write to `ddtp` may require the IOMMU to 
                                 perform many operations that may not occur 
                                 synchronously to the write. When a write is 
@@ -343,7 +343,7 @@ and number of entries in the queue. Each command is 16 bytes.
 {reg: [
   {bits:  5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -365,7 +365,7 @@ and number of entries in the queue. Each command is 16 bytes.
 |48:5  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 in-memory command-queue used by software to 
                                 queue commands to the IOMMU. 
-|63:49 |`WPRI`     |WPRI      | Reserved for standard use
+|63:49 |`reserved` |WPRI      | Reserved for standard use
 |===
 
 [[CQH]]
@@ -427,7 +427,7 @@ and number of entries in the queue. Each fault record is 32 bytes.
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -447,7 +447,7 @@ and number of entries in the queue. Each fault record is 32 bytes.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory fault-queue used by IOMMU to queue 
                                fault record.
-|63:49 |`WPRI`   |WPRI       | Reserved for standard use
+|63:49 |`reserved`|WPRI       | Reserved for standard use
 |===
 
 [[FQH]]
@@ -512,7 +512,7 @@ message is 16 bytes.
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -533,7 +533,7 @@ message is 16 bytes.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory page-request-queue used by IOMMU to 
                                queue "Page Request" messages.
-|63:49 |`WPRI`    |WPRI      | Reserved for standard use
+|63:49 |`reserved`|WPRI      | Reserved for standard use
 |===
 
 [[PQH]]
@@ -596,16 +596,16 @@ status of the command-queue.
 {reg: [
   {bits: 1, name: 'cqen'},
   {bits: 1, name: 'cie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'cqmf'},
   {bits: 1, name: 'cmd_to'},
   {bits: 1, name: 'cmd_ill'},
   {bits: 1, name: 'fence_w_ip'},
-  {bits: 4, name: 'WPRI'},
+  {bits: 4, name: 'reserved'},
   {bits: 1, name: 'cqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
-  {bits: 4, name: 'Custom use'},
+  {bits: 10, name: 'reserved'},
+  {bits: 4, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -636,7 +636,7 @@ status of the command-queue.
 |1    |`cie`   |RW        | Command-queue-interrupt-enable bit enables 
                             generation of interrupts from command-queue when 
                             set to 1.
-|7:2  |`WPRI`  |WPRI      | Reserved for standard use
+|7:2  |`reserved`|WPRI    | Reserved for standard use
 |8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
                             the command-queue-memory-fault bit is set to 1 and 
                             the command-queue stalls until this bit is cleared. 
@@ -674,7 +674,7 @@ status of the command-queue.
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
                             This bit is reserved if the IOMMU uses MSI. 
-|15:12|`WPRI`   |WPRI     | Reserved for standard use
+|15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
                             IOMMU behavior on changing cqb when busy is 1 or 
                             `cqon` is 1 is implementation defined. The software 
@@ -699,8 +699,8 @@ status of the command-queue.
 
                             An IOMMU that can complete these operations 
                             synchronously may hard-wire this bit to 0.
-|27:18 |`WPRI`|WPRI      | Reserved for standard use
-|31:28 |_custom_|        | _These bits are reserved for custom use._
+|27:18 |`reserved`|WPRI  | Reserved for standard use
+|31:28 |_custom_|        | _Reserved for custom use._
 |===
 [NOTE]
 ====
@@ -725,14 +725,14 @@ status of the fault-queue.
 {reg: [
   {bits: 1, name: 'fqen'},
   {bits: 1, name: 'fie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'fqmf'},
   {bits: 1, name: 'fqof'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'fqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
-  {bits: 4, name: 'Custom use'},
+  {bits: 10, name: 'reserved'},
+  {bits: 4, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -757,7 +757,7 @@ status of the fault-queue.
                            records will be written to the fault-queue. 
 |1     |`fie` |RW        | Fault queue interrupt enable bit enables generation 
                            of interrupts from fault-queue when set to 1.
-|7:2   |`WPRI`|WPRI      | Reserved for standard use
+|7:2   |`reserved`|WPRI  | Reserved for standard use
 |8     |`fqmf`|RW1C      | The `fqmf` bit is set to 1 if the IOMMU encounters 
                            an access fault when storing a fault record to the 
                            fault queue. The fault-record that was attempted to 
@@ -776,10 +776,10 @@ status of the fault-queue.
                             by writing 1 to the bit. An interrupt is generated 
                             if not already pending (i.e. `ipsr.fip == 1`) and 
                             not masked (i.e. `fqsr.fie == 0`).
-|10:15 |`WPRI`|WPRI      | Reserved for standard use
+|10:15 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
                            IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `pqon` is 1 implementation defined. The 
+                           or `fqon` is 1 implementation defined. The 
                            recommended sequence to change `fqb` is to first 
                            disable the fault-queue by clearing `fqen` and 
                            waiting for both `busy` and `fqon` to be 0 before 
@@ -799,8 +799,8 @@ status of the fault-queue.
 
                            An IOMMU that can complete controls synchronously 
                            may hard-wire this bit to 0. 
-|27:18 |`WPRI`|WPRI      | Reserved for standard use
-|31:28 |_custom_|        | _These bits are reserved for custom use._
+|27:18 |`reserved`|WPRI  | Reserved for standard use
+|31:28 |_custom_|        | _Reserved for custom use._
 |===
 
 [[PQCSR]]
@@ -816,13 +816,13 @@ status of the page-request-queue.
 {reg: [
   {bits: 1, name: 'pqen'},
   {bits: 1, name: 'pie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'pqmf'},
   {bits: 1, name: 'pqof'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'pqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
+  {bits: 10, name: 'reserved'},
   {bits: 4, name: 'Custom use'},
 ], config:{lanes: 4, hspace:1024}}
 ....
@@ -831,7 +831,7 @@ status of the page-request-queue.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field   |Attribute | Description
-|16     |`pqon`  |RW        | The page-request-enable bit enables the
+|0      |`pqen`  |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. 
 
                               Changing `pqen` from 0 to 1, resets the `pqh` 
@@ -860,7 +860,7 @@ status of the page-request-queue.
 |1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
-|7:2    |`WPRI`  |WPRI      | Reserved for standard use
+|7:2    |`reserved`  |WPRI  | Reserved for standard use
 |8      |`pqmf`  |RW1C      | The `pqmf` bit is set to 1 if the IOMMU 
                               encounters an access fault when storing a 
                               page-request message to the page-request-queue.
@@ -903,7 +903,7 @@ status of the page-request-queue.
                               received while these bits are 1 as having 
                               encountered a catastrophic error as defined by 
                               the PCIe ATS specifications
-|15:10  |`WPRI`   |WPRI     | Reserved for standard use
+|15:10  |`reserved`   |WPRI | Reserved for standard use
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 
                               IOMMU behavior on changing `pqb` when `busy` is 1
@@ -927,8 +927,8 @@ status of the page-request-queue.
 
                               An IOMMU that can complete controls synchronously
                               may hard-wire this bit to 0
-|27:18 |`WPRI`   |WPRI      | Reserved for standard use
-|31:28 |_custom_ |          | _These bits are designated for custom use._
+|27:18 |`reserved`   |WPRI  | Reserved for standard use
+|31:28 |_custom_ |          | _Reserved for custom use._
 |===
 
 [[IPSR]]
@@ -948,9 +948,9 @@ software clears that interrupt-pending bit by writing 1 to clear it.
   {bits: 1, name: 'fip'},
   {bits: 1, name: 'pmip'},
   {bits: 1, name: 'pip'},
-  {bits: 4, name: 'WPRI'},
-  {bits: 8, name: 'Custom use'},
-  {bits: 16, name: 'WPRI'},
+  {bits: 4, name: 'reserved'},
+  {bits: 8, name: 'custom'},
+  {bits: 16, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -962,9 +962,9 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 |1      |`fip`   |RW1C      | The fault-queue-interrupt-pending
 |2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending
 |3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending
-|7:4    |`WPRI`  |WPRI      | Reserved for standard use
-|15:8   |_custom_|          | _These bits are designated for custom use._
-|31:16  |`WPRI`  |WPRI      | Reserved for standard use
+|7:4    |`reserved`  |WPRI  | Reserved for standard use
+|15:8   |_custom_|          | _Reserved for custom use._
+|31:16  |`reserved`  |WPRI  | Reserved for standard use
 |===
 
 [[OVF]]
@@ -1121,28 +1121,28 @@ a transactions with a range of IDs to be counted by the counter.
                                  custom use and are implementation defined. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
-|15     |`DMASK`    |WARL      | When set to 1, partial matching of the
+|15     |`DMASK`    |RW        | When set to 1, partial matching of the
                                  `DID_GSCID` is performed for the transaction.
                                  The lower bits of the `DID_GSCID` all the way 
                                  to the first low order 0 bit (including
                                  the 0 bit position itself) are masked.
-|35:16  |`PID_PSCID`|WARL      | `process_id` if `IDT` is 0, 
+|35:16  |`PID_PSCID`|RW        | `process_id` if `IDT` is 0, 
                                  `PSCID` if `IDT` is 1
-| 59:36 |`DID_GSCID`|WARL      | `device_id` if `IDT` is 0, 
+| 59:36 |`DID_GSCID`|RW        | `device_id` if `IDT` is 0, 
                                  `GSCID` if `IDT` is 1.
-| 60    |`PV_PSCV`  |WARL      | If set, only transactions with matching
+| 60    |`PV_PSCV`  |RW        | If set, only transactions with matching
                                  `process_id` or `PSCID` (based on the Filter 
                                  ID Type) are counted.
-| 61    |`DV_GSCV`  |WARL      | If set, only transactions with matching
+| 61    |`DV_GSCV`  |RW        | If set, only transactions with matching
                                  `device_id` or `GSCID` (based on the Filter ID
                                  Type) are counted.
-| 62    |`IDT`      |WARL      | Filter ID Type: This field indicates the type 
+| 62    |`IDT`      |RW        | Filter ID Type: This field indicates the type 
                                  of ID to filter on. When 0, the `DID_GSCID`
                                  field holds a `device_id` and the `PID_PSCID` 
                                  field holds a `process_id`. When 1, the
                                  `DID_GSCID` field holds a `GSCID` and
                                  `PID_PSCID` field holds a `PSCID`.
-| 63    |`OF`       |WARL      | Overflow status or Interrupt disable 
+| 63    |`OF`       |RW        | Overflow status or Interrupt disable 
 |===
 
 When `capabilities.HPM` is set, the `iohpmevt1-7` registers must be present.
@@ -1214,14 +1214,12 @@ The following table lists the standard events that can be counted:
 | 1          | Untranslated requests        | 0
 | 2          | Translated requests          | 0
 | 3          | ATS Translation requests     | 0
-| 4          | Device-context cache miss    | 0 
-| 5          | Process-context cache miss   | 0
-| 6          | TLB miss                     | 0/1
-| 7          | Device Directory Walks       | 0 
-| 8          | Process Directory Walks      | 0
-| 9          | S/VS-stage Page Table Walks  | 0/1
-| 10         | G-stage Page Table Walks     | 0/1
-| 11 - 16383 | reserved for future standard | -
+| 4          | TLB miss                     | 0/1
+| 5          | Device Directory Walks       | 0 
+| 6          | Process Directory Walks      | 0
+| 7          | S/VS-stage Page Table Walks  | 0/1
+| 8          | G-stage Page Table Walks     | 0/1
+| 9 - 16383 | reserved for future standard | -
 |===
 
 Some events types may be filtered by IDs. When a event type that does not 
@@ -1283,8 +1281,8 @@ supported then only bit 0 for each cause could be writable.
   {bits: 4, name: 'fiv'},
   {bits: 4, name: 'pmiv'},
   {bits: 4, name: 'piv'},
-  {bits: 16, name: 'WPRI'},
-  {bits: 32, name: 'Custom'},
+  {bits: 16, name: 'reserved'},
+  {bits: 32, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -1304,7 +1302,7 @@ supported then only bit 0 for each cause could be writable.
 | 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
                                is the vector number assigned to the
                                page-request-queue-interrupt.
-| 31:16 |`WPRI`   |WPRI      | Reserved for standard use
+| 31:16 |`reserved`   |WPRI  | Reserved for standard use
 | 63:32 |_custom_ |WARL      | _Reserved for custom use_
 |===
 
