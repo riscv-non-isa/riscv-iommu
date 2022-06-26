@@ -268,7 +268,7 @@ If software enables or disables a feature when the IOMMU is not OFF
 |43:0  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 device-directory-table.
 |58:44 |`reserved` |WPRI      | Reserved for standard use
-|59    |`busy`     |RW        | A write to `ddtp` may require the IOMMU to 
+|59    |`busy`     |RO        | A write to `ddtp` may require the IOMMU to 
                                 perform many operations that may not occur 
                                 synchronously to the write. When a write is 
                                 observed by the `ddtp`, the `busy` bit is set 
@@ -286,7 +286,7 @@ If software enables or disables a feature when the IOMMU is not OFF
 
                                 An IOMMU that can complete these operations 
                                 synchronously may hard-wire this bit to 0.
-|63:60 |`iommu_mode` |RW     a| The IOMMU may be configured to be in following
+|63:60 |`iommu_mode` |WARL   a| The IOMMU may be configured to be in following
                                 modes:
 
 [%header, cols="^1,1,3"]
