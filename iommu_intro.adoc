@@ -553,7 +553,7 @@ features:
 
 * VS/S-stage and/or G-stage virtual-memory system as specified by the RISC-V
   privileged specification to allow software flexibility to use a common page
-  table for CPU MMU as well as IOMMU or to use a separate page table for the
+  table for the CPU MMU as well as the IOMMU or to use a separate page table for the
   IOMMU.
 
 * Up to 57-bit virtual-address width and 59-bit guest-physical-address width.
@@ -573,7 +573,7 @@ features:
   supported the IOMMU may optionally support the ability to translate to a GPA
   instead of a SPA in response to a translation request.
 
-* IOMMU may optionally support an hardware performance monitoring unit (PMU). If
+* IOMMU may optionally support a hardware performance monitoring unit (PMU). If
   a PMU is supported then the IOMMU must support the cycles counter and at least
   7 hardware performance monitoring counters must be supported.
 
@@ -581,8 +581,8 @@ features:
   software. At least one method of generating interrupts from the IOMMU must be
   supported.
 
-Software may discover the supported features using the <<CAP, `capabilities`>>
-register of the IOMMU.
+Software may discover the supported features using the `capabilities`
+register of the IOMMU described in <<CAP>>.
 
 
 
