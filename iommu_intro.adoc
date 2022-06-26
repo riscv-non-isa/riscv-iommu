@@ -197,11 +197,11 @@ In the absence of an IOMMU, a device driver must program devices with Physical
 Addresses, which implies that DMA from a device could be used to access
 any memory, such as privileged memory, and cause malicious or unintended
 corruptions. This may be caused by hardware bugs, device driver bugs, or
-by malicious software.
+by malicious software/hardware.
 
 The IOMMU offers a mechanism for the OS to defend against such unintended
 corruptions by limiting the memory that can be accessed by devices using DMA.
-Indeed, the Operating System configures the IOMMU to use the S-stage page table
+Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System configures the IOMMU to use the S-stage page table
 to translate IOVA to SPA and thereby limit the addresses that may be accessed.
 
 The OS may also use the MSI address translation capability to dynamically
@@ -212,8 +212,8 @@ Legacy 32-bit devices cannot access the memory above 4 GiB. The integration of
 the IOMMU, through its address remapping capability, offers a simple mechanism
 for the DMA to directly access any address in the system (with appropriate access
  permission). Without an IOMMU, the OS must resort to copying data through
-buffers (also known as bounce buffers) allocated in memory below 4 GiB and
-thereby improves system performance.
+buffers (also known as bounce buffers) allocated in memory below 4 GiB.
+In this scenario the IOMMU improves the system performance.
 
 The IOMMU can be useful as it permits to allocate large regions of memory
 without the need to be contiguous in physical memory. Indeed, a contiguous
@@ -224,24 +224,42 @@ to share process address space with devices. Sharing process address spaces with
 devices allows to rely on core kernel memory management for DMA, removing some
 complexity from application and device drivers.
 
+////
+Please in ditaa figures don't use the minus key '-' in your keyboard when
+typing text (like 'non-privileged' in the figure below).
+'-' is a special character that is used by ditta to draw lines, not text.
+Instead use a different unicode character that looks similar.
+The figure below uses the unicode character with code U+2212 instead of the '-'
+character of your keyboard (which has the unicode code U+002B).
+Note that in your editor both probably look the same, but when rendered by
+ditaa/asciidoc the '-' from your keyboard is used to draw a line, while the
+alternative looks as a minus symbol.
+If you don't know how to type an unicode character in your editor you might
+simply copy the '−' character in the 'non−privileged' word from the drawing
+below.
+Other potential unicode characters might be found in the following links:
+- https://www.compart.com/en/unicode/category/Pd
+- https://www.compart.com/en/unicode/bidiclass/ES
+////
+[[fig:device-isolation]]
 .Device isolation in non-virtualized OS
 ["ditaa",shadows=false, separation=false, fontsize: 16]
 ....
-+-----------------+ +--------------+
-| non -privileged | |  privileged  |
-|      memory     | |    memory    |
-|                 | |              |
-|       ^         | |              |
-+-------|---------+ +--------------+
++----------------+ +--------------+
+| non−privileged | |  privileged  |
+|      memory    | |    memory    |
+|                | |              |
+|       ^        | |              |
++-------|--------+ +--------------+
         |
-+-------|--------------+
-|       |       IOMMU  |
-| +-------------+      |
-| |   device    |      |
-| | S -stage PT |      |
-| +-------------+      |
-|       ^              |
-+-------|--------------+
++-------|-------------+
+|       |       IOMMU |
+| +------------+      |
+| |   device   |      |
+| | S−stage PT |      |
+| +------------+      |
+|       ^             |
++-------|-------------+
         |
    +--------+
    | Device |
@@ -260,17 +278,18 @@ performs memory accesses using those addresses, an IOMMU is responsible for
 translating those guest physical addresses into supervisor physical addresses,
 referencing address-translation data structures supplied by the hypervisor.
 
-The following diagram illustrates the concept. The device D1 is directly
+<<fig:dma-translation-direct-device-assignment>> diagram illustrates the concept. The device D1 is directly
 assigned to VM-1 and device D2 is directly assigned to VM-2. The VMM configures
 the G-stage page table to be used by each device and restricts the memory
 that can be accessed by D1 to VM-1 associated memory and from D2 to VM-2
 associated memory.
 
+[[fig:dma-translation-direct-device-assignment]]
 .DMA translation to enable direct device assignment
 ["ditaa",shadows=false, separation=false, fontsize: 16]
 ....
 +----------------+ +----------------+
-|     VM - 1     | |     VM - 2     |
+|      VM−1      | |      VM−2      |
 |     memory     | |     memory     |
 |      ^         | |       ^        |
 +------|---------+ +-------|--------+
@@ -279,7 +298,7 @@ associated memory.
 |      |       IOMMU       |        |
 | +------------+     +------------+ |
 | |  device D1 |     |  device D2 | |
-| | G -stage PT|     | G -stage PT| |
+| | G−stage PT |     | G−stage PT | |
 | +------------+     +------------+ |
 |      ^                   ^        |
 +------|-------------------|--------+
@@ -290,40 +309,40 @@ associated memory.
 ....
 
 To handle MSIs from a device controlled by a guest OS, the hypervisor configures
-an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC or to a
+an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC (see <<MSI_REDIR>>) or to a
 memory-resident interrupt file. The IOMMU is responsible to use the MSI
 address-translation data structures supplied by the hypervisor to perform the
 MSI redirection. Because every interrupt file, real or virtual, occupies a
 naturally aligned 4-KiB page of address space, the required address translation
 is from a virtual (guest) page address to a physical page address, the same as
-supported by regular RISC-V pagebased address translation.
+supported by regular RISC-V page-based address translation.
 
 [[MSI_REDIR]]
 .MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 ....
-                                                                +----------------------+
-                                                                |IMSIC                 |
-                                                                | +------------------+ |
-                                                                | | M-level int. file| |
-                                                                | +------------------+ |
-                                                                |                      |
-                                                                | +------------------+ |
-                                                                | | S-level int. file| |
-                                                                | +------------------+ |
-                                                                |                      |
-                                                                | +------------------+ |
-                    +----------+                                | |Guest int. file 1 | |
-                    |   IOMMU  |           +---------------+    | +------------------+ |
-                    |          |           |               |    |                      |
-  +-------+   MSI   | +------+ | MSI       |  IO Bridge    |    | +------------------+ |
-  |Device +-----------|MSI PT|----------------------------------->|Guest int. file 2 | |
-  +-------+  Write  | +------+ | Write     |               |    | +------------------+ |
-             (GPA)  |          | (SPA)     +---------------+    |         ,,,          |
-                    +----------+                                | +------------------+ |
-                                                                | |Guest int. file N | |
-                                                                | +------------------+ |
-                                                                +----------------------+
+                                                                +-----------------------+
+                                                                |IMSIC                  |
+                                                                | +-------------------+ |
+                                                                | | M−level int. file | |
+                                                                | +-------------------+ |
+                                                                |                       |
+                                                                | +-------------------+ |
+                                                                | | S−level int. file | |
+                                                                | +-------------------+ |
+                                                                |                       |
+                                                                | +-------------------+ |
+                    +----------+                                | | Guest int. file 1 | |
+                    |   IOMMU  |           +---------------+    | +-------------------+ |
+                    |          |           |               |    |                       |
+  +-------+   MSI   | +------+ | MSI       |  IO Bridge    |    | +-------------------+ |
+  |Device +-----------|MSI PT|----------------------------------->| Guest int. file 2 | |
+  +-------+  Write  | +------+ | Write     |               |    | +-------------------+ |
+             (GPA)  |          | (SPA)     +---------------+    |          ,,,          |
+                    +----------+                                | +-------------------+ |
+                                                                | | Guest int. file N | |
+                                                                | +-------------------+ |
+                                                                +-----------------------+
 ....
 
 ==== Guest OS
@@ -333,56 +352,57 @@ for a different software master, usually a guest OS or the main (host) OS.
 
 On implementations of the IOMMU that support two stages of translation (VS-stage
 and G-stage), the G-stage translation (or second stage of translation) is
-intended to virtualize device DMA to the Guest OS physical address space. Devices
-can be assigned to Guest OS which can directly program the device to do DMA with
-its Guest Physical Addresses (GPA). The Hypervisor or Host OS will set up and
+intended to virtualize device DMA to the guest OS physical address space. Devices
+can be assigned to guest OS which can directly program the device to do DMA with
+its Guest Physical Addresses (GPA). The hypervisor or host OS will set up and
 configure the IOMMU to perform GPA to PA translation using G-stage page tables.
 The use of the G-stage page tables limits the physical memory accessible by a
 device controlled by the guest OS to the memory allocated to its virtual machine.
 
-The Hypervisor may then provide a virtual IOMMU facility, through hardware
-emulation or by enlightening the Guest OS to use a software interface with
-the Hypervisor (also known as para-virtualization). The Guest OS may then
+The hypervisor may then provide a virtual IOMMU facility, through hardware
+emulation or by enlightening the guest OS to use a software interface with
+the Hypervisor (also known as para-virtualization). The guest OS may then
 use the facilities provided by the virtual IOMMU to avail the same benefits
-as those discussed for a Non-virtualized OS. The Guest OS employs a page table,
-really a VS-stage page table, to perform similar configurations for the device a
-Non-virtualized OS.
+as those discussed for a non-virtualized OS. The guest OS employs a page table,
+really a VS-stage page table, to perform similar configurations for the device in a
+non-virtualized OS.
 
 With two-stage address translations enabled, the IOVA may be first translated to
 a GPA using the VS-stage page tables managed by the guest OS and the GPA
 translated to a SPA using the G-stage page tables managed by the hypervisor.
 
-The following diagram illustrates the concept. The IOMMU is configured to
-perform two-stage address translation translation (VS-stage and G-stage ) for the
-device (D1), is configured to to perform G-stage only translation for another
-device (D2). The host OS or hypervisor may also retain a device, such as D3, for
-its own use and for configure the IOMMU to perform a single-stage (S-stage)
+<<fig:iommu-for-guest-os>> diagram illustrates the concept. The IOMMU is configured to
+perform two-stage address translation (VS-stage and G-stage) for
+device D1 and to perform G-stage only translation for
+device D2. The host OS or hypervisor may also retain a device, such as D3, for
+its own use and configure the IOMMU to perform a single-stage (S-stage)
 translation.
 
+[[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
 ["ditaa",shadows=false, separation=false, fontsize: 16]
 ....
-+----------------------------------------------------+
-|      Main memory                                   |
-|                                                    |
-|                                                    |
-|      ^                  ^                 ^        |
-+------|------------------|-----------------|--------+
++---------------------------------------------------+
+|      Main memory                                  |
+|                                                   |
+|                                                   |
+|      ^                  ^                 ^       |
++------|------------------|-----------------|-------+
        |                  |                 |
-+------|------------------|-----------------|--------+
-|      |       IOMMU      |                 |        |
-| +------------+     +------------+         |        |
-| |  device D1 |     |  device D2 |         |        |
-| | G -stage PT|     | G -stage PT|         |        |
-| +------------+     +------------+         |        |
-|      ^                  ^                 |        |
-|      |                  |                 |        |
-| +------------+          |         +-------------+  |
-| |  device D1 |          |         |  device D3  |  |
-| |VS -stage PT|          |         | S -stage PT |  |
-| +------------+          |         +-------------+  |
-|      ^                  |                 ^        |
-+------|------------------|-----------------|--------+
++------|------------------|-----------------|-------+
+|      |       IOMMU      |                 |       |
+| +------------+     +------------+         |       |
+| |  device D1 |     |  device D2 |         |       |
+| | G−stage PT |     | G−stage PT |         |       |
+| +------------+     +------------+         |       |
+|      ^                  ^                 |       |
+|      |                  |                 |       |
+| +------------+          |         +------------+  |
+| |  device D1 |          |         |  device D3 |  |
+| | VS−stage PT|          |         | S−stage PT |  |
+| +------------+          |         +------------+  |
+|      ^                  |                 ^       |
++------|------------------|-----------------|-------+
        |                  |                 |
   +-----------+     +-----------+     +-----------+
   | Device D1 |     | Device D2 |     | Device D3 |
