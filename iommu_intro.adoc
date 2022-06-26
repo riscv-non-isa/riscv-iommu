@@ -94,24 +94,24 @@ MSI address translation table configured by software in the device context.
 [%header, cols="5,20"]
 |===
 | Term            | Definition
-| AIA             | Advanced Interrupt Architecture
-| ATS             | Address Translation Services - a PCIe protocol to support
+| AIA             | Advanced Interrupt Architecture.
+| ATS / PCIe ATS  | Address Translation Services: A PCIe protocol to support
                     DevATC.
-| DC              | Device Context
+| DC /
+  Device Context  | A hardware representation of state that identifies a
+                    device and the VM to which the device is assigned.
 | DDT             | Device-directory-table: A radix-tree structure traversed
                     using the unique device identifier to locate the Device
                     Context structure.
-| DDI             | Device-directory-index: a sub-field of the unique device
+| DDI             | Device-directory-index: A sub-field of the unique device
                     identifier used as a index into a leaf or non-leaf DDT
                     structure.
-| Device Context  | A hardware representation of state that identifies a
-                    device and the VM to which the device is assigned.
-| Device ID       | A identification number that is up to 24-bits to identify
+| Device ID       | An identification number that is up to 24-bits to identify
                     the source of a DMA or interrupt request. For PCIe devices
-                    this is the routing-ID.
-| DevATC          | A address translation cache at the device.
-| DMA             | Direct Memory Access
-| GPA             | Guest Physical Address: an address in the virtualized
+                    this is the routing identifier (RID).
+| DevATC          | An address translation cache at the device.
+| DMA             | Direct Memory Acces.
+| GPA             | Guest Physical Address: An address in the virtualized
                     physical memory space of a virtual machine.
 | GSCID           | Guest soft-context identifier: An identification number used
                     by software to uniquely identify a collection of devices
@@ -121,26 +121,29 @@ MSI address translation table configured by software in the device context.
                     page tables.
 | Guest           | Software in a virtual machine.
 | Hypervisor      | Software entity that controls virtualization.
+| ID              | Identifier.
 | IMSIC           | Incoming Message-signaled Interrupt Controller.
 | IOATC           | IOMMU Address Translation Cache: cache in IOMMU that caches
                     data structures used for address translations.
-| IOVA            | I/O Virtual Address: Virtual address for DMA by devices
+| IOVA            | I/O Virtual Address: Virtual address for DMA by devices.
 | MSI             | Message Signaled Interrupts.
-| PASID           | Process Address Space Identifier that identifies the
+| OS              | Operating System.
+| PASID           | Process Address Space Identifier: It identifies the
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
-| PBMT            | Page-Based Memory Types
-| PPN             | Physical Page Number
+| PBMT            | Page-Based Memory Types.
+| PPN             | Physical Page Number.
 | PRI             | Page Request Interface - a PCIe protocol that enables
                     devices to request OS memory manager services to make pages
                     resident.
-| PT              | Page Table
+| PT              | Page Table.
 | PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
-| PC              | Process Context
+| PC              | Process Context.
+| PCIe            | Peripheral Component Interconnect Express bus standard.
 | PDI             | Process-directory-index: a sub field of the unique process
                     identifier used to index into a leaf or non-leaf PDT
                     structure.
-| Process ID      | A identification number that is up to 20-bits to identify
+| Process ID      | An identification number that is up to 20-bits to identify
                     a process context. For PCIe devices this is the PASID.
 | PSCID           | Process soft-context identifier: An identification number
                     used by software to identify a unique address space. The
@@ -153,22 +156,24 @@ MSI address translation table configured by software in the device context.
                     software. Software must ignore reserved fields in registers
                     and preserve the value held in these fields when writing
                     values to other fields in the same register.
+| RID / PCIe RID  | PCIe routing identifier.
 | SPA             | Supervisor Physical Address: Physical address used to
                     to access memory and memory-mapped resources.
-| VA              | Virtual Address
+| TLP             | Transaction Layer Packet.
+| VA              | Virtual Address.
 | VM              | Virtual Machine: An efficient, isolated duplicate of a real
                     computer system. In this specification it refers to the
                     collection of resources and state that is accessible when
-                    a RISC-V hart executes with V=1.
+                    a RISC-V hart supporting the hypervisor extension executes with the virtualization mode set to 1.
 | VMM             | Virtual Machine Monitor. Also referred to as hypervisor.
-| VS              | Virtual Supervisor: supervisor privilege in virtualization
+| VS              | Virtual Supervisor: Supervisor privilege in virtualization
                     mode.
-| WARL            | Write any values, reads legal values: attribute of a
+| WARL            | Write Any values, Reads Legal values: Attribute of a
                     register field that is only defined for a subset of bit
                     encodings, but allow any value to be written while
                     guaranteeing to return a legal value whenever read.
-| WPRI            | Reserved Writes Preserve Values, Reads ignore Values:
-                    attribute of a register field that is reserved for future
+| WPRI            | Writes Preserve values, Reads Ignore values:
+                    Attribute of a register field that is reserved for future
                     use.
 |===
 
