@@ -82,14 +82,22 @@ table.
 |===
 
 === Reset behavior
-The reset default value is 0 for the following registers. Reset value is 
-implementation-defined for all other registers and/or fields.
+The reset value is 0 for the following registers/fields.
 
 * `fctrl`
 * `cqcsr`
 * `fqcsr`
 * `pqcsr`
-* `ddtp.busy`
+
+Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`. The 
+reset value for `ddtp.busy` field must be 0.
+
+[NOTE]
+====
+The reset value for the `iommu_mode` is recommended to be `Off`.
+====
+
+Reset value is implementation-defined for all other registers and/or fields.
 
 [[CAP]]
 === IOMMU capabilities (`capabilities`)
@@ -326,10 +334,6 @@ and that all transactions and previous requests from devices that have already
 been processed by the IOMMU be committed to a global ordering point such that 
 they can be observed by all RISC-V hart, devices, and IOMMUs in the platform.
 
-[NOTE]
-====
-The reset default for the `iommu_mode` is recommended to be `Off`.
-====
 
 [[CQB]]
 === Command-queue base (`cqb`)
@@ -410,8 +414,7 @@ the software queues the next command for the IOMMU.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the command-queue where 
                             software queues the next command for IOMMU.  Only 
-                            `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `cqsr.cqon == 1`).
+                            `LOG2SZ:0` bits are writable.
 |===
 
 [[FQB]]
@@ -471,8 +474,7 @@ software will fetch the next fault record.
 |Bits |Field   |Attribute |Description
 |31:0 |`index` |WARL      | Holds the `index` into the fault-queue from which 
                             software reads the next fault record.  Only 
-                            `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `fqsr.fqon == 1`).
+                            `LOG2SZ:0` bits are writable.
 |===
 
 [[FQT]]
@@ -557,8 +559,7 @@ software will fetch the next page-request.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the page-request-queue from 
                             which software reads the next "Page Request" message.
-                            Only `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `pqsr.pqon == 1`).
+                            Only `LOG2SZ:0` bits are writable.
 |===
 
 [[PQT]]

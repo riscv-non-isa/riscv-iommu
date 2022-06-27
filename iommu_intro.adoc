@@ -126,9 +126,10 @@ MSI address translation table configured by software in the device context.
                     data structures used for address translations.
 | IOVA            | I/O Virtual Address: Virtual address for DMA by devices
 | MSI             | Message Signaled Interrupts.
-| PASID           | Process Address Space Identifier that identifies the 
-                    address space of a process. The PASID value is provided in 
-                    the PASID TLP prefix of the request.
+| PASID           | Process Address Space Identifier, in conjunction with the 
+                    Device ID, uniquely identifies the address space associated 
+                    with a transaction.
+                    the PASID field of the request made by a PCIe device.
 | PBMT            | Page-Based Memory Types
 | PPN             | Physical Page Number
 | PRI             | Page Request Interface - a PCIe protocol that enables 
