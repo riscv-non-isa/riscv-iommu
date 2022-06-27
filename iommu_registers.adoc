@@ -97,7 +97,7 @@ reset value for `ddtp.busy` field must be 0.
 The reset value for the `iommu_mode` is recommended to be `Off`.
 ====
 
-Reset value is implementation-defined for all other registers and/or fields.
+Reset value is `UNSPECIFIED` for all other registers and/or fields.
 
 [[CAP]]
 === IOMMU capabilities (`capabilities`)
@@ -282,7 +282,7 @@ If software enables or disables a feature when the IOMMU is not OFF
                                 observed by the `ddtp`, the `busy` bit is set 
                                 to 1. When the `busy` bit is 1, behavior of 
                                 additional writes to the `ddtp` is 
-                                implementation defined. Some implementations 
+                                `UNSPECIFIED`. Some implementations 
                                 may ignore the second write and others may 
                                 perform the actions determined by the second 
                                 write. Software must verify that the `busy` 
@@ -678,7 +678,7 @@ status of the command-queue.
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
                             IOMMU behavior on changing `cqb` when `busy` is 1 or 
-                            `cqon` is 1 is implementation defined. The software 
+                            `cqon` is 1 is `UNSPECIFIED`. The software 
                             recommended sequence to change `cqb` is to first 
                             disable the command-queue by clearing `cqen` and 
                             waiting for both `busy` and `cqon` to be 0 before 
@@ -689,7 +689,7 @@ status of the command-queue.
                             `cqcsr`, the `busy` bit is set to 1.
 
                             When the `busy` bit is 1, behavior of additional 
-                            writes to the `cqcsr` is implementation defined. 
+                            writes to the `cqcsr` is `UNSPECIFIED`. 
                             Some implementations may ignore the second write and
                             others may perform the actions determined by the 
                             second write.
@@ -784,7 +784,7 @@ status of the fault-queue.
 |10:15 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
                            IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `fqon` is 1 implementation defined. The 
+                           or `fqon` is 1 `UNSPECIFIED`. The 
                            recommended sequence to change `fqb` is to first 
                            disable the fault-queue by clearing `fqen` and 
                            waiting for both `busy` and `fqon` to be 0 before 
@@ -795,7 +795,7 @@ status of the fault-queue.
                            When a write is observed by the fqcsr, the `busy` 
                            bit is set to 1. When the `busy` bit is 1, behavior 
                            of additional writes to the `fqcsr` are 
-                           implementation defined. Some implementations may 
+                           `UNSPECIFIED`. Some implementations may 
                            ignore the second write and others may perform the 
                            actions determined by the second write.
 
@@ -913,7 +913,7 @@ status of the page-request-queue.
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 
                               IOMMU behavior on changing `pqb` when `busy` is 1
-                              or `pqon` is 1 implementation defined. The 
+                              or `pqon` is 1 `UNSPECIFIED`. The 
                               recommended sequence to change `pqb` is to first 
                               disable the page-request queue by clearing `pqen`
                               and waiting for both `busy` and `pqon` to be 0 
@@ -925,7 +925,7 @@ status of the page-request-queue.
                               to 1.
 
                               When the `busy` bit is 1, behavior of additional 
-                              writes to the `pqcsr` are implementation defined.
+                              writes to the `pqcsr` are `UNSPECIFIED`.
                               Some implementations may ignore the second write 
                               and others may perform the actions determined by 
                               the second write. Software should ensure that the
@@ -1124,7 +1124,7 @@ a transactions with a range of IDs to be counted by the counter.
                                  Encodings 1 to 16383 are reserved for standard
                                  events defined in the <<Event_list>>. +
                                  Encodings 16384 to 32767 are for reserved for 
-                                 custom use and are implementation defined. +
+                                 custom use. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
 |15     |`DMASK`    |RW        | When set to 1, partial matching of the

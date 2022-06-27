@@ -720,7 +720,7 @@ IOMMU, making them free for software to use.
 
 If `V = 1`, bit 63 of the first doubleword is field `C` (Custom), designated for 
 custom use. If an MSI PTE has `V = 1` and `C = 1`, interpretation of the rest of
-the PTE is implementation-defined.
+the PTE is `UNSPECIFIED`.
 
 If `V = 1` and the custom-use bit `C = 0`, then bit 2 of the first doubleword 
 is field `W` (Write-through).  If `W = 1`, the MSI PTE specifies write-through 
@@ -1419,8 +1419,8 @@ of the Priv, N, CXL.io, and AMA fields is as follows:
 * If requesting device is a CXL type 1 or type 2 device and the memory
   type, as determined by the Svpbmt extension, is NC or IO then the CXL.io
   bit is set to 1. If the memory type is PMA then the determination of the 
-  setting of this bit is implementation-defined. If the Svpbmt extension is not
-   supported then the setting of this bit is implementation-defined.
+  setting of this bit is `UNSPECIFIED`. If the Svpbmt extension is not
+   supported then the setting of this bit is `UNSPECIFIED`.
 * The AMA field is by default set to 000b. The IOMMU may support an 
   implementation specific method to provide other encodings.
 
