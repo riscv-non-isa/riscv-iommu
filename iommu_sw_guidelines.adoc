@@ -8,7 +8,7 @@ if these guidelines are not followed is implementation defined.
 
 === Guidelines for initialization
 
-This guidelines initializing the IOMMU are as follows:
+The guidelines for initializing the IOMMU are as follows:
 
 . Read the `capabilities` register to discover the capabilities of the IOMMU.
 . Stop and report failure if `capabilities.version` is not supported.
@@ -49,7 +49,7 @@ This guidelines initializing the IOMMU are as follows:
   buffer that is aligned to a 4-KiB page address and is of size `N` x 16-bytes. 
   If `N` is greater than 256 then allocate a memory buffer that is naturally 
   aligned to a `N` x 16-byte address boundary. Let the physical page number of 
-  the buffer be `B`. Program the command queue registers as follows.
+  the buffer be `B`. Program the command queue registers as follows:
 
 **  Poll on `cqcsr.busy` till it reads 0
 **  `temp_cqb_var.PPN = B`
