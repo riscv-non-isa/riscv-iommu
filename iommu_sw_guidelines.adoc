@@ -91,16 +91,16 @@ This guidelines initializing the IOMMU are as follows:
 
 . To program the DDT pointer, first determine the supported `device_id` width `Dw` 
   and the format of the device-context data structure. If `capabilities.MSI` is
-  0, then the IOMMU uses base format device-context else extended format 
-  device-context are used. Allocate a page (4 KiB) of memory to use as the root
+  0, then the IOMMU uses base-format device-contexts else extended-format 
+  device-contexts are used. Allocate a page (4 KiB) of memory to use as the root
   table of the DDT. Let `B` be the PPN of the allocated memory. Initialize the 
   allocated memory to all 0. Determine the mode `M` of the DDT based on `Dw` and 
-  if the IOMMU requires base or extended format device-contexts.
-. If extended format device-context are used then
+  if the IOMMU requires base- or extended-format device-contexts.
+. If extended-format device-contexts are used then
 .. If `Dw` is less than or equal to  6-bits then `M = 1LVL`
 .. If `Dw` is less than or equal to 15-bits then `M = 2LVL`
 .. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
-. If base format device-context are used then
+. If base-format device-contexts are used then
 .. If `Dw` is less than or equal to  7-bits then `M = 1LVL`
 .. If `Dw` is less than or equal to 16-bits then `M = 2LVL`
 .. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
@@ -111,7 +111,7 @@ This guidelines initializing the IOMMU are as follows:
 ** `temp_ddtp_var.PPN = B`
 ** `ddtp = temp_ddtp_var`
 
-The IOMMU is initialized and may be now be configured with device-context
+The IOMMU is initialized and may be now be configured with device-contexts
 for devices in scope of the IOMMU.
 
 === Guidelines for invalidation's
