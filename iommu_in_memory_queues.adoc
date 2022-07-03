@@ -568,7 +568,7 @@ as defined by the `CAUSE`.
 `DID` holds the `device_id` of the transaction. If `PV` is 0, then `PID` and 
 `PRIV` are 0. If `PV` is 1, the `PID` holds a `process_id` of the transaction 
 and if the privilege of the transaction was Supervisor then `PRIV` bit is 1 
-else its 0. The `DID`, `PV, `PID`, and `PRIV` fields are 0 if `TTYP` is 0.
+else its 0. The `DID`, `PV`, `PID`, and `PRIV` fields are 0 if `TTYP` is 0.
 
 If the `CAUSE` is a guest-page fault then the guest-physical-address right 
 shifted by 2 is reported in `iotval2[63:2]`. If bit 0 of `iotval2` 1, then 
