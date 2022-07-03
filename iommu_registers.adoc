@@ -72,8 +72,6 @@ table.
 |96    |`iohpmcycles`   |8   |<<CYC, Performance-monitoring cycles counter>>
 |104   |`iohpmctr1 - 31`|248 |<<CTR, Performance-monitoring event counters>>
 |352   |`iohpmevt1 - 31`|248 |<<EVT, Performance-monitoring event selector>>
-//|600   |`iocntconf`     |4   |<<CONF, Counters reserved for confidential mode usage>>
-//|604   |Reserved        |78  |Reserved for future use (`WPRI`)
 |600   |Reserved        |82  |Reserved for future use (`WPRI`)
 |682   |_custom_        |78  |_Reserved for custom use (`WARL`)_
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause to vector register>>
@@ -769,9 +767,8 @@ status of the fault-queue.
                            be written is discarded and no more fault records 
                            are generated until software clears `fqmf` bit by 
                            writing 1 to the bit. An interrupt is generated if 
-                           enabled and not already pending 
-                           (i.e. `ipsr.fip == 1`) and not masked 
-                           (i.e. `fqsr.fie == 0`).
+                           not already pending (i.e. `ipsr.fip == 1`) and not 
+                           masked (i.e. `fqsr.fie == 0`).
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the 
                             IOMMU needs to queue a fault record but the 
                             fault-queue is full (i.e., `fqh == fqt - 1`) 
@@ -784,7 +781,7 @@ status of the fault-queue.
 |10:15 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
                            IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `fqon` is 1 `UNSPECIFIED`. The 
+                           or `fqon` is 1 is `UNSPECIFIED`. The 
                            recommended sequence to change `fqb` is to first 
                            disable the fault-queue by clearing `fqen` and 
                            waiting for both `busy` and `fqon` to be 0 before 
@@ -913,7 +910,7 @@ status of the page-request-queue.
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 
                               IOMMU behavior on changing `pqb` when `busy` is 1
-                              or `pqon` is 1 `UNSPECIFIED`. The 
+                              or `pqon` is 1 is `UNSPECIFIED`. The 
                               recommended sequence to change `pqb` is to first 
                               disable the page-request queue by clearing `pqen`
                               and waiting for both `busy` and `pqon` to be 0 
@@ -1255,11 +1252,6 @@ counter has overflowed, it and the `OF` bit must be reinitialized before
 another overflow interrupt can be generated.
 ====
 
-//[[CONF]]
-//=== Counters reserved for confidential mode usage (`iocntconf`)
-
-//Reserved for future standard use.
-
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
 
@@ -1268,11 +1260,16 @@ be mapped to same vector or a cause can be given a unique vector.
 
 The vector is used:
 
-. By a MSI capable IOMMU to index into MSI configuration table (`msi_cfg_tbl`)
-  to determine the MSI to generate. A IOMMU is capable of generating IOMMU
-  generated interrupt as a MSI if `capabilities.IGS==MSI` or if 
-  `capabilities.IGS==BOTH` and `fctrl.WIS` is set to 1.
-. By a non-MSI capable IOMMU determine the wire to use to signal the interrupt
+. By an IOMMU that generates interrupts as MSI, to index into MSI 
+  configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An 
+  IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
+  or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
+  configured to generate interrupts as MSI by setting `fctrl.WIS` to 0.
+. By an IOMMU that generates wire based interrupts, to determine the wire 
+  to signal the interrupt. An IOMMU is capable of generating wire based 
+  interrupts if `capabilities.IGS==WIS` or if `capabilities.IGS==BOTH`. When 
+  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire based 
+  interrupts by setting `fctrl.WIS` to 1.
 
 If an implementation only supports a single vector then all bits of this
 register may be hardwired to 0 (WARL). Likewise if only two vectors are 
