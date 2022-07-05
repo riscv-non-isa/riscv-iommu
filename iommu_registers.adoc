@@ -366,7 +366,12 @@ and number of entries in the queue. Each command is 16 bytes.
                                 `2^LOG2SZ^ x 16`.
 |48:5  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 in-memory command-queue used by software to 
-                                queue commands to the IOMMU. 
+                                queue commands to the IOMMU. If the base 
+                                address as determined by `PPN` is not aligned
+                                as required, all entries in the queue appear
+                                to an IOMMU as `UNSPECIFIED` and any address
+                                an IOMMU may compute and use for accessing an
+                                entry in the queue is also `UNSPECIFIED`.
 |63:49 |`reserved` |WPRI      | Reserved for standard use
 |===
 
@@ -447,7 +452,12 @@ and number of entries in the queue. Each fault record is 32 bytes.
                                be naturally aligned to `2^LOG2SZ^ x 32`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory fault-queue used by IOMMU to queue 
-                               fault record.
+                               fault record. if the base address as determined 
+                               by `PPN` is not aligned as required, all entries
+                               in the queue appear to an IOMMU as `UNSPECIFIED`
+                               and any address an IOMMU may compute and use for
+                               accessing an entry in the queue is also 
+                               `UNSPECIFIED`.
 |63:49 |`reserved`|WPRI       | Reserved for standard use
 |===
 
@@ -532,7 +542,12 @@ message is 16 bytes.
                                must be naturally aligned to `2^LOG2SZ^ x 16`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory page-request-queue used by IOMMU to 
-                               queue "Page Request" messages.
+                               queue "Page Request" messages. If the base 
+                               address as determined by `PPN` is not aligned as
+                               required, all entries in the queue appear to an
+                               IOMMU as `UNSPECIFIED` and any address an IOMMU
+                               may compute and use for accessing an entry in the
+                               queue is also `UNSPECIFIED`.
 |63:49 |`reserved`|WPRI      | Reserved for standard use
 |===
 
@@ -668,8 +683,7 @@ status of the command-queue.
                             `fence_w_ip` bit is set to indicate completion of a 
                             `IOFENCE.C` command. An interrupt on setting 
                             `fence_w_ip` if not already pending 
-                            (i.e. `ipsr.cip == 1`) and not masked 
-                            (i.e. `cqsr.cie == 0`) and `fence_w_ip` is 0. 
+                            (i.e. `ipsr.cip == 1`) and `fence_w_ip` is 0. 
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
                             This bit is reserved if the IOMMU uses MSI. 
