@@ -447,6 +447,7 @@ tables, allows the PDT to be held in memory allocated by the guest OS and allows
 the guest OS to directly edit the PDT to associate a virtual-address space
 identified by a VS-stage page table with a `process_id`.
 
+[[PDTP_MODE_ENC]]
 .Encoding of `pdtp.MODE` field
 [width=75%]
 [%header, cols="3,3,20"]
@@ -1052,7 +1053,6 @@ The process to translate an `IOVA` is as follows:
     or is a PCIe ATS Translation request.
 ..  Transaction type is a PCIe "Page Request" Message.
 ..  Transaction has a valid `process_id`
-..  Transaction type is not supported by the IOMMU in `Bare` mode.
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
@@ -1082,7 +1082,7 @@ The process to translate an `IOVA` is as follows:
   If the `IOVA` is determined to be not an MSI then the process continues at 
   step 9.
 .. `capabilities.MSI_FLAT` (<<CAP>>) is 1, i.e., IOMMU support MSI address 
-   translation.
+   translation using MSI page tables (<<MSI_TRANS>>).
 .. `IOVA` is a 32-bit aligned address.
 .. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is 
    an ATS translation request.
@@ -1094,32 +1094,35 @@ The process to translate an `IOVA` is as follows:
   process is complete. Go to step 17.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
   GPA. Go to step 15 with following page table information:
-  ** Let `iosatp.MODE` be `Bare`
-  ** Let `PSCID` be 0
-  ** Let `iohgatp` be value in `DC.iohgatp` field
+.. Let `iosatp.MODE` be `Bare`
+.. Let `PSCID` be 0
+.. Let `iohgatp` be value in `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 15 with the following page table 
   information:
-  ** Let `iosatp.MODE` be value in `DC.fsc.MODE` field
-  ** Let `iosatp.PPN` be value in `DC.fsc.PPN` field
-  ** Let `PSCID` be value in `DC.ta.PSCID` field
-  ** Let `iohgatp` be value in `DC.iohgatp` field
-  ** If a G-stage page table is not active in the device-context
+.. Let `iosatp.MODE` be value in `DC.fsc.MODE` field
+.. Let `iosatp.PPN` be value in `DC.fsc.PPN` field
+.. Let `PSCID` be value in `DC.ta.PSCID` field
+.. Let `iohgatp` be value in `DC.iohgatp` field
+.. If a G-stage page table is not active in the device-context
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
 . If there is no `process_id` associated with the transaction then go to step 15
   with the following page table information:
-  ** Let `iosatp.MODE` be `Bare`
-  ** Let `PSCID` be 0
-  ** Let `iohgatp` be value in `DC.iohgatp` field
+.. Let `iosatp.MODE` be `Bare`
+.. Let `PSCID` be 0
+.. Let `iohgatp` be value in `DC.iohgatp` field
 . Locate the process-context (`PC`) as specified in <<GET_PC>>.
+. if any of the following conditions hold then stop and report
+  "Transaction type disallowed" (cause = 260).
+..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
 . Go to step 15 with the following page table information:
-  ** Let `iosatp.MODE` be value in `PC.fsc.MODE` field
-  ** Let `iosatp.PPN` be value in `PC.fsc.PPN` field
-  ** Let `PSCID` be value in `PC.ta.PSCID` field
-  ** Let `iohgatp` be value in `DC.iohgatp` field
-  ** If a G-stage page table is not active in the device-context
-     (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
-     it is a VS-stage page table.
+.. Let `iosatp.MODE` be value in `PC.fsc.MODE` field
+.. Let `iosatp.PPN` be value in `PC.fsc.PPN` field
+.. Let `PSCID` be value in `PC.ta.PSCID` field
+.. Let `iohgatp` be value in `DC.iohgatp` field
+.. If a G-stage page table is not active in the device-context
+   (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
+   it is a VS-stage page table.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
   RISC-V privileged specification. If a fault is detecting by the single stage
@@ -1173,6 +1176,29 @@ is as follows:
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encoding that are reserved for future standard use are set
   within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
+. If any of the following conditions are true then stop and report 
+  "DDT entry misconfigured" (cause = 259).
+.. `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`, 
+   or `DC.tc.PRPR` is 1
+.. `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
+.. `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
+.. `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
+.. `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode 
+    (<<PDTP_MODE_ENC>>)
+.. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the 
+   supported modes
+... `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
+... `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
+... `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
+... `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
+.. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
+.. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` `Sv32x4`
+.. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` `Sv39x4`
+.. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` `Sv48x4`
+.. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` `Sv57x4`
+.. `iohgatp.PPN` is not aligned to 16 KiB
+.. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
+   and not `Flat`
 . The device-context has been successfully located and may be cached.
 
 [[GET_PC]]
@@ -1205,18 +1231,21 @@ The process to locate the Process-context for a transaction using its
 . If if any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
-. Let `pc` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `pc`
+. Let `PC` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access 
-  fault" (cause = 265).If `pc` access detects a data corruption 
+  fault" (cause = 265).If `PC` access detects a data corruption 
   (a.k.a. poisoned data), then stop and report "PDT data corruption" 
   (cause = 269). This fault is detected if the IOMMU supports the RAS capability
   (`capabilities.RAS == 1`).
-. If `pc.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
+. If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If any bits or encoding that are reserved for future standard use are set
-  within `pc`, stop and report "PDT entry misconfigured" (cause = 267).
-. if any of the following conditions hold then stop and report
-  "Transaction type disallowed" (cause = 260).
-..  The transaction requests supervisor privilege but `pc.ta.ENS` is not set.
+  within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
+. If any of the following conditions are true then stop and report 
+  "PDT entry misconfigured" (cause = 267).
+.. `capabilities.Sv32` is 0 and `PC.fsc.iosatp.MODE` is `Sv32`
+.. `capabilities.Sv39` is 0 and `PC.fsc.iosatp.MODE` is `Sv39`
+.. `capabilities.Sv48` is 0 and `PC.fsc.iosatp.MODE` is `Sv48`
+.. `capabilities.Sv57` is 0 and `PC.fsc.iosatp.MODE` is `Sv57`
 . The Process-context has been successfully located.
 
 [[MSI_TRANS]]
