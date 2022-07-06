@@ -1190,10 +1190,10 @@ is as follows:
 ... `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
 ... `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
 .. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
-.. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` `Sv32x4`
-.. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` `Sv39x4`
-.. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` `Sv48x4`
-.. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` `Sv57x4`
+.. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
+.. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
+.. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
+.. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
 .. `iohgatp.PPN` is not aligned to 16 KiB
 .. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
    and not `Flat`
