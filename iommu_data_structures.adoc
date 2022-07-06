@@ -1199,6 +1199,21 @@ is as follows:
    and not `Flat`
 . The device-context has been successfully located and may be cached.
 
+[NOTE]
+====
+Some `DC` fields that hold a system-physical-addresses or 
+guest-physical-addresses. Some implementations may verify the validity
+of the addresses - e.g. the system-physical-address is not wider than 
+that supported as determined by `capabilities.PAS`, etc. at the time
+of locating the `DC`. Such implementations may cause a "DDT entry
+misconfigured" (cause = 259) fault.
+
+Other implementations only detect such addresses to be invalid when the
+data structure referenced by these fields need to be accessed. Such 
+implementations may detect access-violation faults in the process of 
+making the acccess.
+====
+
 [[GET_PC]]
 ==== Process to locate the Process-context
 
@@ -1243,6 +1258,21 @@ The process to locate the Process-context for a transaction using its
 .. `capabilities.Sv48` is 0 and `PC.fsc.iosatp.MODE` is `Sv48`
 .. `capabilities.Sv57` is 0 and `PC.fsc.iosatp.MODE` is `Sv57`
 . The Process-context has been successfully located.
+
+[NOTE]
+====
+Some `PC` fields that hold a system-physical-addresses or 
+guest-physical-addresses. Some implementations may verify the validity
+of the addresses - e.g. the system-physical-address is not wider than 
+that supported as determined by `capabilities.PAS`, etc. at the time
+of locating the `PC`. Such implementations may cause a "PDT entry
+misconfigured" (cause = 267) fault.
+
+Other implementations only detect such addresses to be invalid when the
+data structure referenced by these fields need to be accessed. Such 
+implementations may detect access-violation faults in the process of 
+making the acccess.
+====
 
 [[MSI_TRANS]]
 ==== Process to translate addresses of MSIs
