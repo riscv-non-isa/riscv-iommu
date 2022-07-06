@@ -1052,7 +1052,6 @@ The process to translate an `IOVA` is as follows:
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
 ..  Transaction type is a PCIe "Page Request" Message.
-..  Transaction has a valid `process_id`
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
