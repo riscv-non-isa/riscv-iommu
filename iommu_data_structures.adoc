@@ -1159,8 +1159,7 @@ is as follows:
   `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
   access fault" (cause = 257).
 . If `ddte` access detects a data corruption (a.k.a. poisoned data), then 
-  stop and report "DDT data corruption" (cause = 268). This fault is detected 
-  if the IOMMU supports the RAS capability (`capabilities.RAS == 1`).
+  stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If if any bits or encoding that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
@@ -1171,8 +1170,7 @@ is as follows:
   If accessing `DC` violates a PMA or PMP check, then stop and report 
   "DDT entry load access fault" (cause = 257). If `DC` access detects a data 
   corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
-  (cause = 268). This fault is detected if the IOMMU supports the RAS capability
-  (`capabilities.RAS == 1`).
+  (cause = 268).
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If any bits or encoding that are reserved for future standard use are set
   within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
@@ -1225,8 +1223,7 @@ The process to locate the Process-context for a transaction using its
   accessing `pdte` violates a PMA or PMP check, then stop and report 
   "PDT entry load access fault" (cause = 265).
 . If `pdte` access detects a data corruption (a.k.a. poisoned data), then 
-  stop and report "PDT data corruption" (cause = 269). This fault is detected
-  if the IOMMU supports the RAS capability (`capabilities.RAS == 1`).
+  stop and report "PDT data corruption" (cause = 269).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If if any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
@@ -1235,8 +1232,7 @@ The process to locate the Process-context for a transaction using its
   violates a PMA or PMP check, then stop and report "PDT entry load access 
   fault" (cause = 265).If `PC` access detects a data corruption 
   (a.k.a. poisoned data), then stop and report "PDT data corruption" 
-  (cause = 269). This fault is detected if the IOMMU supports the RAS capability
-  (`capabilities.RAS == 1`).
+  (cause = 269).
 . If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If any bits or encoding that are reserved for future standard use are set
   within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
@@ -1305,9 +1301,7 @@ address and translating the address using the MSI page table is as follows:
   accessing `msipte` violates a PMA or PMP check, then stop and report 
   "MSI PTE load access fault" (cause = 261).
 . If `msipte` access detects a data corruption (a.k.a. poisoned data), then 
-  stop and report "MSI PT data corruption" (cause = 270). This fault 
-  is detected if the IOMMU supports the RAS capability 
-  (`capabilities.RAS == 1`).
+  stop and report "MSI PT data corruption" (cause = 270).
 . If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
 . If `msipte.C == 1`, then further process is to interpret the PTE is
   implementation defined.
@@ -1341,9 +1335,7 @@ address and translating the address using the MSI page table is as follows:
 .. If accessing MRIF violates a PMA or PMP check, then stop and report 
    "MRIF access fault" (cause = 264). 
 .. If the MRIF access detects a data corruption (a.k.a poisoned data), then 
-   stop and report "MSI MRIF data corruption" (cause = 271). This fault 
-   is detected if the IOMMU supports the RAS capability 
-   (`capabilities.RAS == 1`).
+   stop and report "MSI MRIF data corruption" (cause = 271).
 .. Zero-extend the 11-bit `(msipte.N10 << 10) | msipte.N90` value to 32 bits, 
    and do a 32-bit write of this value in little-endian byte order to the 
    address `msipte.NPPN << 12` (i.e., physical page number `NPPN`, page 
