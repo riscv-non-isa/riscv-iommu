@@ -129,9 +129,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'END'},
   {bits: 2, name: 'IGS'},
   {bits: 1, name: 'PMON'},
-  {bits: 1, name: 'RAS'},
   {bits: 6, name: 'PAS'},
-  {bits: 10, name: 'reserved'},
+  {bits: 11, name: 'reserved'},
   {bits: 16, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
@@ -196,9 +195,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 !===
 
 |30    |`PMON`     |RO        | IOMMU implements a performance-monitoring unit
-|31    |`RAS`      |RO        | IOMMU implements the RISC-V RAS Registers
-|37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
-|47:38 | reserved  |RO        | Reserved for standard use
+|36:31 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
+|47:37 | reserved  |RO        | Reserved for standard use
 |63:48 |_custom_   |RO        | _Reserved for custom use_
 |===
 
