@@ -135,14 +135,11 @@ device with `device_id = D` then the following invalidation's must be performed:
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
 ** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
-** If `DC.msiptp.MODE != Bare`, `IOTINVAL.MSI` with `AV=0` and 
-   `GV=1`, and `GSCID=DC.iohgatp.GSCID`
 * else
 ** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare` 
 *** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
 ** else 
 *** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
-** If `DC.msiptp.MODE != Bare`, `IOTINVAL.MSI` with `AV=GV=0`
 
 If software changes a non-leaf-level DDT entry the following invalidation's
 must be performed:
@@ -171,20 +168,22 @@ the new value of the entry.
 
 ==== Changing MSI page table entry
 If software changes a MSI page-table entry identified by by interrupt file
-number `I` then following invalidation's must be performed:
+number `I` that corresponds to an untranslated MSI address `A` then following 
+invalidation's must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
-** `IOTINVAL.MSI` with `GV=0`, `AV=1`, and `INT_FILE_NUM=I`
+** `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, `AV=1`, and `ADDR[63:12]=A[63:12]`
 * else
-** `IOTINVAL.MSI` with `GV=AV=1`, `INT_FILE_NUM=I` and `GSCID=DC.iohgatp.GSCID`
+** `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and 
+    `GSCID=DC.iohgatp.GSCID`
 
 To invalidate all cache entries from a MSI page table the following
 invalidation's must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
-** `IOTINVAL.MSI` with `GV=0`, `AV=0`
+** `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, `AV=0`
 * else
-** `IOTINVAL.MSI` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 
 Between change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value

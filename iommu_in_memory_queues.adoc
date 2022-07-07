@@ -162,8 +162,9 @@ reads from IOMMU to the corresponding first-stage page tables.
                    host address space identified by `PSCID` operand, except for
                    entries containing global mappings.
 |0   |1   |0     | Invalidates all address-translation cache entries that 
-                   contain leaf page table entries corresponding to the IOVA 
-                   in `ADDR` operand, for all host address spaces.
+                   contain leaf page table entries, including those that contain
+                   global mappings, corresponding to the IOVA in `ADDR` operand,
+                   for all host address spaces.
 |0   |1   |1     | Invalidates all address-translation cache entries that 
                    contain leaf page table entries corresponding to the IOVA in 
                    `ADDR` operand and that match the host address space 
@@ -176,9 +177,9 @@ reads from IOMMU to the corresponding first-stage page tables.
                    for the VM address space identified by `PSCID` and `GSCID` 
                    operands, except for entries containing global mappings.
 |1   |1   |0     | Invalidates all address-translation cache entries that 
-                   contain leaf page table entries corresponding to the IOVA in
-                   `ADDR` operand, for all VM address spaces associated with 
-                   the `GSCID` operand.
+                   contain leaf page table entries, including those that contain
+                   global mappings, corresponding to the IOVA in `ADDR` operand,
+                   for all VM address spaces associated with the `GSCID` operand.
 |1   |1   |1     | Invalidates all address-translation cache entries that 
                    contain leaf page table entries corresponding to the IOVA in
                    `ADDR` operand, for the VM address space identified by `PSCID` 
@@ -308,7 +309,7 @@ caches.
   {bits: 18, name: 'rsvd'},
   {bits: 32, name: 'DATA'},
   {bits: 2, name: 'rsvd'},
-  {bits: 62, name: 'ADDR'},
+  {bits: 62, name: 'ADDR[63:2]'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 
@@ -353,68 +354,18 @@ Simpler implementations may unconditionally order all previous memory accesses
 globally.
 ====
 
-The `AV` command operand indicates if `ADDR` operand and `DATA` operands are 
+The `AV` command operand indicates if `ADDR[63:2]` operand and `DATA` operands are 
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address 
-in `ADDR` operand as a 4-byte store. 
+`ADDR[63:2] * 4` as a 4-byte store. 
 
 [NOTE]
 ====
-Software may configure the `ADDR` command operand to specify the address of the 
-`seteipnum_le`/`seteipnum_be` register in an IMSIC to cause an external 
+Software may configure the `ADDR[63:2]` command operand to specify the address 
+of the `seteipnum_le`/`seteipnum_be` register in an IMSIC to cause an external 
 interrupt notification on `IOFENCE.C` completion. Alternatively, software may 
-program `ADDR` to a memory location and use `IOFENCE.C` to set a flag in memory
-indicating command completion.
+program `ADDR[63:2]` to a memory location and use `IOFENCE.C` to set a flag in
+memory indicating command completion.
 ====
-
-==== IOMMU MSI table cache invalidation  commands
-
-This command is supported if `capabilities.MSI_FLAT` is set to 1.
-
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 7, name: 'opcode', attr: 'IOTINVAL(0x1)'},
-  {bits: 3, name: 'func3',  attr: ['MSI-0x2']},
-  {bits: 1, name: 'PSCV'},
-  {bits: 1, name: 'AV'},
-  {bits: 1, name: 'GV'},
-  {bits: 3, name: 'rsvd'},
-  {bits: 20, name: 'PSCID'},
-  {bits: 4, name: 'rsvd'},
-  {bits: 16, name: 'GSCID'},
-  {bits: 8, name: 'rsvd'},
-  {bits: 52, name: 'ADDR[63:12]'},
-  {bits: 12, name: 'rsvd'},
-], config:{lanes: 4, hspace:1024, fontsize:12}}
-....
-
-IOMMU operations cause implicit reads to MSI page tables. To reduce latency of 
-such reads, the IOMMU may cache entries from the MSI page tables.  These caches
-may not observe modifications performed by software to these data structures in
-memory.
-
-`IOTINVAL.MSI` synchronizes updates to the MSI page table with the operation of 
-the IOMMU and invalidates the matching cache entries.
-
-The `PSCV` operand is reserved and must be 0 for `IOTINVAL.MSI`.
-
-[[IMSI]]
-
-.`IOTINVAL.MSI` operands and operations
-[width=75%]
-[%header, cols="2,2,20"]
-|===
-| `AV` | `GV`   | Operation
-| 0    | 0      | Invalidates all cached MSI page table entries for host 
-                  associated devices.
-| 0    | 1      | Invalidates MSI page table entry identified by 
-                  `INT_FILE_NUM` for host associated devices.
-| 1    | 0      | Invalidates all cached MSI page table entries of VM 
-                  identified by `GSCID` operand.
-| 1    | 1      | Invalidates MSI page table entry identified by `INT_FILE_NUM` 
-                  of VM identified by `GSCID` operand. 
-|===
-
 ==== IOMMU ATS commands
 
 This command is supported if `capabilities.ATS` is set to 1.
