@@ -1061,7 +1061,7 @@ The process to translate an `IOVA` is as follows:
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
-. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses extended-format device 
+. If `capabilities.MSI_FLAT` is 1 then the IOMMU uses extended-format device 
   context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
   `DDI[2]` be `device_id[23:15]`.
 . The `device_id` is wider than that supported by the IOMMU mode if any of the 
@@ -1096,13 +1096,13 @@ The process to translate an `IOVA` is as follows:
 .. `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
    is enabled.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
-  process is complete. Go to step 17.
+  process is complete. Go to step 18.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
-  GPA. Go to step 15 with following page table information:
+  GPA. Go to step 16 with following page table information:
 .. Let `iosatp.MODE` be `Bare`
 .. Let `PSCID` be 0
 .. Let `iohgatp` be value in `DC.iohgatp` field
-. If `DC.tc.PDTV` is set to 0 then go to step 15 with the following page table 
+. If `DC.tc.PDTV` is set to 0 then go to step 16 with the following page table 
   information:
 .. Let `iosatp.MODE` be value in `DC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `DC.fsc.PPN` field
@@ -1111,7 +1111,7 @@ The process to translate an `IOVA` is as follows:
 .. If a G-stage page table is not active in the device-context
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
-. If there is no `process_id` associated with the transaction then go to step 15
+. If there is no `process_id` associated with the transaction then go to step 16
   with the following page table information:
 .. Let `iosatp.MODE` be `Bare`
 .. Let `PSCID` be 0
@@ -1120,7 +1120,7 @@ The process to translate an `IOVA` is as follows:
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
-. Go to step 15 with the following page table information:
+. Go to step 16 with the following page table information:
 .. Let `iosatp.MODE` be value in `PC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `PC.fsc.PPN` field
 .. Let `PSCID` be value in `PC.ta.PSCID` field
