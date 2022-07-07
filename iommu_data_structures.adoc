@@ -391,6 +391,12 @@ Implementations are not required to support all defined mode settings for
 `iohgatp`. The IOMMU only needs to support the modes also supported by the MMU
 in the harts integrated into the system or a subset thereof.
 
+The root page table as determined by `iohgatp.PPN` is 16 KiB and must be aligned
+to a 16-KiB boundary.  If the root page table is not aligned to 16 KiB as 
+required, then all entries in that G-stage root page table appear to an IOMMU as
+`UNSPECIFIED` and any address an IOMMU may compute and use for accessing an
+entry in the root page table is also `UNSPECIFIED`.
+
 .IO hypervisor guest address translation and protection (`iohgatp`) field
 [wavedrom, , ]
 ....
@@ -1180,6 +1186,7 @@ is as follows:
 .. `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
 .. `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
 .. `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
+.. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
 .. `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode 
     (<<PDTP_MODE_ENC>>)
 .. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the 
@@ -1188,12 +1195,10 @@ is as follows:
 ... `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
 ... `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
 ... `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
-.. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
 .. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
 .. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
 .. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
 .. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
-.. `iohgatp.PPN` is not aligned to 16 KiB
 .. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
    and not `Flat`
 . The device-context has been successfully located and may be cached.
@@ -1622,8 +1627,8 @@ group of entries.
 |Data Structure cached  |IDs used to tag entries    | Invalidation command
 |Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
-|S/VS-stage page tables |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+|VS-stage page tables   |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+|S-stage page tables    |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
-|MSI page table         |`device_id`,
-                         MSI-interrupt-file-number  | <<IMSI, IOTINVAL.MSI>>
+|MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===
