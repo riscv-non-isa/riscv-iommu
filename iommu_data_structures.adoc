@@ -1222,9 +1222,9 @@ making the acccess.
 ==== Process to locate the Process-context
 
 The device-context provides the PDT root page PPN (`pdtp.ppn`).  When 
-`DC.iohgatp.mode` is not bare, `pdtp.PPN` as well as `pdte.PPN` are Guest 
-Physical Addresses (GPA) which must be translated into Supervisor Physical
-Addresses (SPA) using the G-stage page table pointed by `DC.iohgatp`.
+`DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
+Physical Addresses (GPA) which must be translated into System Physical
+Addresses (SPA) using the G-stage page table pointed to by `DC.iohgatp`.
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
@@ -1257,10 +1257,10 @@ The process to locate the Process-context for a transaction using its
   within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
 . If any of the following conditions are true then stop and report 
   "PDT entry misconfigured" (cause = 267).
-.. `capabilities.Sv32` is 0 and `PC.fsc.iosatp.MODE` is `Sv32`
-.. `capabilities.Sv39` is 0 and `PC.fsc.iosatp.MODE` is `Sv39`
-.. `capabilities.Sv48` is 0 and `PC.fsc.iosatp.MODE` is `Sv48`
-.. `capabilities.Sv57` is 0 and `PC.fsc.iosatp.MODE` is `Sv57`
+.. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
+.. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
+.. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
+.. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
 . The Process-context has been successfully located.
 
 [NOTE]
