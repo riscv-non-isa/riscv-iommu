@@ -869,9 +869,8 @@ status of the page-request-queue.
 
                               The IOMMU may respond to “Page Request” messages 
                               received when page-request-queue is off or in 
-                              the process of being turned off, as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              the process of being turned off, as specified in
+                              <<ATS_PRI>>.
 |1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
@@ -893,9 +892,8 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
 |9      |`pqof`   |RW1C     | The page-request-queue-overflow bit is set to 1 
                               if the page-request queue overflows i.e. IOMMU 
                               needs to queue a page-request message but the 
@@ -915,9 +913,8 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
 |15:10  |`reserved`   |WPRI | Reserved for standard use
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 

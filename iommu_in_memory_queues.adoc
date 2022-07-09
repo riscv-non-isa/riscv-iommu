@@ -594,8 +594,7 @@ do not require a response, i.e. those with the "Last Request in PRG" field is 0,
 are silently discarded. "Page request" messages that require a response, i.e. 
 those with "Last Request in PRG" field set to 1 and are not Stop Marker 
 messages, may be auto-completed by an IOMMU generated “Page Request Group 
-Response” message as specified by PCIe ATS specifications. Such responses 
-shall have the status set to Invalid Request.
+Response” message as specified in <<ATS_PRI>>.
 
 When an error bit is in the `pqcsr` changes state from 0 to 1 or when a new 
 message is produced in the queue, page-request-queue interrupt pending (`pip`) 
