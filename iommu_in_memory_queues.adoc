@@ -328,8 +328,10 @@ IOMMU be committed to a global ordering point such that they can be observed by
 all RISC-V harts and IOMMUs in the machine. 
 
 The wired-interrupt-signaling (`WIS`) bit when set to 1 causes a wired-interrupt
-from the command queue to be generated on completion of `IOFENCE.C`. This bit is
-reserved if the IOMMU supports MSI.
+from the command queue to be generated (by setting `cqcsr.fence_w_ip` - <<CSR>>)
+on completion of `IOFENCE.C`. This bit is reserved if the IOMMU does not support
+wired-interrupts or wired-interrupts have not been enabled 
+(i.e., `fctrl.WIS == 0`).
 
 [NOTE]
 ====
