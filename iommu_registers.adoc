@@ -105,7 +105,7 @@ The `capabilities` register is a read-only register reporting features supported
 by the IOMMU. Each field if not clear indicates presence of that feature in 
 the IOMMU. At reset, the register shall contain the IOMMU supported features.
 
-.capabilities register fields
+.IOMMU capabilities register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -231,7 +231,7 @@ If software enables or disables a feature when the IOMMU in-memory queues
 are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or 
 `pqcsr.pqon/pqen == 1`) then the IOMMU behavior is `UNSPECIFIED`.
 
-.Features-control register fields
+.Feature-control register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -328,13 +328,27 @@ All IOMMU must support `Off` and `Bare` mode. An IOMMU is allowed to support a
 subset of directory-table levels and device-context widths. At a minimum one 
 of the modes must be supported.
 
-When the `iommu_mode` field value is changed the IOMMU guarantees that 
+When the `iommu_mode` field value is changed `Off` the IOMMU guarantees that 
 in-flight transactions from devices connected to the IOMMU will be processed 
 with the configurations applicable to the old value of the `iommu_mode` field 
 and that all transactions and previous requests from devices that have already 
 been processed by the IOMMU be committed to a global ordering point such that 
 they can be observed by all RISC-V hart, devices, and IOMMUs in the platform.
 
+The IOMMU behavior of writing `iommu_mode` to `1LVL`, `2LVL`, or `3LVL`, when
+the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
+To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off` 
+state.
+
+[NOTE]
+====
+In RV32, memory-mapped writes to `ddtp` modify only one 32-bit part of the
+register. The following sequence may be used to update the register using two
+32-bit writes.
+
+* Write the low order 32-bits to update the `PPN`
+* Write the high order 32-bits to update the `iommu_mode` if required.
+====
 
 [[CQB]]
 === Command-queue base (`cqb`)
@@ -377,6 +391,12 @@ and number of entries in the queue. Each command is 16 bytes.
                                 entry in the queue is also `UNSPECIFIED`.
 |63:49 |`reserved` |WPRI      | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[CQH]]
 === Command-queue head (`cqh`)
@@ -463,6 +483,12 @@ and number of entries in the queue. Each fault record is 32 bytes.
                                `UNSPECIFIED`.
 |63:49 |`reserved`|WPRI       | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[FQH]]
 === Fault queue head (`fqh`)
@@ -553,6 +579,12 @@ message is 16 bytes.
                                queue is also `UNSPECIFIED`.
 |63:49 |`reserved`|WPRI      | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[PQH]]
 === Page-request-queue head (`pqh`)
@@ -989,14 +1021,14 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 [[OVF]]
 === Performance-monitoring counter overflow status (`iocountovf`)
 The performance-monitoring counter overflow status is a 32-bit read-only
-register that contains shadow copies of the OF bits in the `iohpmevt*` registers
+register that contains shadow copies of the OF bits in the `iohpmevt1-31` registers
 - where `iocntovf` bit X corresponds to `iohpmevtX` and bit 0 corresponds to the
 `OF` bit of `iohpmcycles`.
 
 This register enables overflow interrupt handler software to quickly and easily
 determine which counter(s) have overflowed.
 
-.iocntovf register fields
+.Performance-monitoring counter overflow status register fields
 
 [wavedrom, , ]
 ....
@@ -1012,7 +1044,7 @@ determine which counter(s) have overflowed.
 |===
 |Bits   |Field   |Attribute | Description
 |0      |`CY`    |RO        | Shadow of `iohpmcycles.OF`
-|31:1   |`HPM`   |RO        | Shadow of `iohpmevt*.OF`
+|31:1   |`HPM`   |RO        | Shadow of `iohpmevt[1-31].OF`
 |===
 
 [[INH]]
@@ -1022,7 +1054,7 @@ that contains bits to inhibit the corresponding counters from counting. Bit X
 when set inhibits counting in `iohpmctrX` and bit 0 inhibits counting in
 `iohpmcycles`.
 
-.iocntinh register fields
+.Performance-monitoring counter inhibits register fields
 
 [wavedrom, , ]
 ....
@@ -1055,7 +1087,7 @@ with events to count b) one or more counters to be sampled atomically.
 This 64-bits register is a free running clock cycle counter.
 There is no associated `iohpmevt0`.
 
-.iohpmcycles register fields
+.Performance-monitoring cycles counter register fields
 
 [wavedrom, , ]
 ....
@@ -1080,7 +1112,7 @@ be at least a 32-bits wide.
 === Performance-monitoring event counters (`iohpmctr1-31`)
 These registers are 64-bit WARL counter registers.
 
-.iohpmctr* register fields
+.Performance-monitoring event counters register fields
 
 [wavedrom, , ]
 ....
@@ -1099,20 +1131,6 @@ These registers are 64-bit WARL counter registers.
 When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmctr1` register
 must be present and be at least 32-bits wide.
 
-[[NOTE]]
-====
-A minimum of one progammable event counter besides the cycles counter is 
-required to comply with this specification. One counter may be used in a time
-multiplexed manner to sample events but such analysis may take longer to
-complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
-the PMU may be used by a performance analyst to analyze one or more of those
-streams concurrently. Typically a performance analyst may require four 
-programmable counters, to count events for an IO stream. To support concurrent
-analysis of at least two streams of IO it is recommended to support seven 
-programmable counters.
-====
-
-
 [[EVT]]
 === Performance-monitoring event selector (`iohpmevt1-31`)
 These performance-monitoring event registers are 64-bit RW registers. When a
@@ -1125,7 +1143,7 @@ filters. When such `device_id` based filtering is used, the match may be
 configured to be a precise match or a partial match. A partial match allows
 a transactions with a range of IDs to be counted by the counter.
 
-.iohpmevt* register fields
+.Performance-monitoring event selector register fields
 
 [wavedrom, , ]
 ....
@@ -1177,7 +1195,8 @@ a transactions with a range of IDs to be counted by the counter.
 | 63    |`OF`       |RW        | Overflow status or Interrupt disable 
 |===
 
-When `capabilities.HPM` is set, the `iohpmevt1-7` registers must be present.
+When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmevt1` register
+must be present and be at least 32-bits wide.
 
 The table below summarizes the filtering option for events that support 
 filtering by IDs.
@@ -1225,7 +1244,7 @@ low order 0 bit (including the 0 bit position itself) are masked.
 
 The following example illustrates the use of DMASK and filtering by `device_id`.
 
-.DMASK with IDT set to `device_id` based filtering
+.`DMASK` with `IDT` set to `device_id` based filtering
 [cols="^1,3,3", options="header"]
 |===
 | *DMASK* | *DID_GSCID*                  | *Comment*
@@ -1258,17 +1277,17 @@ Some events types may be filtered by IDs. When a event type that does not
 support filtering by IDs is programmed then the associated counter does not
 increment.
 
-The `OF` bit is set when the corresponding `iohpmctr*` overflows, and remains
-set until cleared by software. Since `iohpmctr*` values are unsigned values,
-overflow is defined as unsigned overflow. Note that there is no loss of
-information after an overflow since the counter wraps around and keeps 
+The `OF` bit is set when the corresponding `iohpmctr1-31` counter overflows, 
+and remains set until cleared by software. Since `iohpmctr1-31` values are 
+unsigned values, overflow is defined as unsigned overflow. Note that there is no
+loss of information after an overflow since the counter wraps around and keeps 
 counting while the sticky `OF` bit remains set.
 
-If an `iohpmctr*` overflows when the associated `OF` bit is zero, then a HPM
-Counter Overflow interrupt is generated by setting `ipsr.pmip` bit to 1. If 
-the `OF` bit is already one, then no interrupt request is generated. 
-Consequently the `OF` bit also functions as a count overflow interrupt disable
-for the associated `iohpmctr*`.
+If a `iohpmctr1-31` counter overflows when the associated `OF` bit is zero, then
+a HPM Counter Overflow interrupt is generated by setting `ipsr.pmip` bit to 1. If
+the `OF` bit is already one, then no interrupt request is generated. Consequently
+the `OF` bit also functions as a count overflow interrupt disable for the 
+associated `iohpmctr1-31`.
 
 [NOTE]
 ====
@@ -1278,6 +1297,36 @@ done in conjunction with initializing the counter to a starting value. Once a
 counter has overflowed, it and the `OF` bit must be reinitialized before
 another overflow interrupt can be generated.
 ====
+
+[NOTE]
+====
+In RV32, memory-mapped writes to `iohpmevt1-31` modify only one 32-bit part of 
+the register. The following sequence may be used to update the register without
+counting events spuriously due to the intermediate value of the register:
+
+* Write the low order 32-bits to set `eventID` to 0.
+* Write the high order 32-bits with the new desired values.
+* Write the low order 32-bits the new desired values, including that of the
+  `eventID` field.
+
+Alternatively, the counter may first be inhibited such that no events count
+during the update and the inhibit removed after the register has been programmed
+with the desired value.
+====
+
+[NOTE]
+====
+A minimum of one progammable event counter besides the cycles counter is 
+required to comply with this specification. One counter may be used in a time
+multiplexed manner to sample events but such analysis may take longer to
+complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
+the PMU may be used by a performance analyst to analyze one or more of those
+streams concurrently. Typically a performance analyst may require four 
+programmable counters, to count events for an IO stream. To support concurrent
+analysis of at least two streams of IO it is recommended to support seven 
+programmable counters.
+====
+
 
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
@@ -1302,7 +1351,7 @@ If an implementation only supports a single vector then all bits of this
 register may be hardwired to 0 (WARL). Likewise if only two vectors are 
 supported then only bit 0 for each cause could be writable.
 
-.icvec register fields
+.Interrupt-cause-to-vector register fields
 
 [wavedrom, , ]
 ....
@@ -1360,7 +1409,7 @@ and `iotval` set to the value of `msi_addr_x`.
 2+^|...                                            |+020h     
 |===
 
-.`msi_addr_x` register fields
+.Message address register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -1380,7 +1429,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |===
 
 
-.`msi_data_x` register fields
+.Message data register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -1396,7 +1445,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |===
 
 
-.`msi_vec_ctrl_x` register fields
+.Vector control register fields
 [wavedrom, , ]
 ....
 {reg: [
