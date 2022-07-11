@@ -5,7 +5,8 @@ registers of each IOMMU are located within a naturally aligned 4-KiB region
 (a page) of physical address space. 
 
 The IOMMU behavior for register accesses where the address is not aligned to 
-the size of the access or if the access spans multiple registers is undefined.
+the size of the access, or if the access spans multiple registers, of if the
+size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`.
 
 Register fields are assigned one of the attributes described in following 
 table.
