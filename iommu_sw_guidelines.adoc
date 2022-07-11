@@ -172,7 +172,10 @@ number `I` that corresponds to an untranslated MSI address `A` then following
 invalidation's must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
-** `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, `AV=1`, and `ADDR[63:12]=A[63:12]`
+** If `DC.fsc.iosatp.MODE == Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, 
+   `AV=1`, and `ADDR[63:12]=A[63:12]`
+** If `DC.fsc.iosatp.MODE != Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=1`, 
+   `AV=1`, `PSCID=DC.ta.PSCID`, and `ADDR[63:12]=A[63:12]`
 * else
 ** `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and 
     `GSCID=DC.iohgatp.GSCID`
