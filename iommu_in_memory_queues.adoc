@@ -328,8 +328,10 @@ IOMMU be committed to a global ordering point such that they can be observed by
 all RISC-V harts and IOMMUs in the machine. 
 
 The wired-interrupt-signaling (`WIS`) bit when set to 1 causes a wired-interrupt
-from the command queue to be generated on completion of `IOFENCE.C`. This bit is
-reserved if the IOMMU supports MSI.
+from the command queue to be generated (by setting `cqcsr.fence_w_ip` - <<CSR>>)
+on completion of `IOFENCE.C`. This bit is reserved if the IOMMU does not support
+wired-interrupts or wired-interrupts have not been enabled 
+(i.e., `fctrl.WIS == 0`).
 
 [NOTE]
 ====
@@ -594,8 +596,7 @@ do not require a response, i.e. those with the "Last Request in PRG" field is 0,
 are silently discarded. "Page request" messages that require a response, i.e. 
 those with "Last Request in PRG" field set to 1 and are not Stop Marker 
 messages, may be auto-completed by an IOMMU generated “Page Request Group 
-Response” message as specified by PCIe ATS specifications. Such responses 
-shall have the status set to Invalid Request.
+Response” message as specified in <<ATS_PRI>>.
 
 When an error bit is in the `pqcsr` changes state from 0 to 1 or when a new 
 message is produced in the queue, page-request-queue interrupt pending (`pip`) 

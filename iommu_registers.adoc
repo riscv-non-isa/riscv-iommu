@@ -226,6 +226,10 @@ or disabling the feature controlled by that field.
 If software enables or disables a feature when the IOMMU is not OFF 
 (i.e. `ddtp.iommu_mode == Off`) then the IOMMU behavior is `UNSPECIFIED`.
 
+If software enables or disables a feature when the IOMMU in-memory queues
+are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or 
+`pqcsr.pqon/pqen == 1`) then the IOMMU behavior is `UNSPECIFIED`.
+
 .Features-control register fields
 [wavedrom, , ]
 ....
@@ -684,7 +688,9 @@ status of the command-queue.
                             (i.e. `ipsr.cip == 1`) and `fence_w_ip` is 0. 
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
-                            This bit is reserved if the IOMMU uses MSI. 
+                            This bit is reserved if the IOMMU does not support
+                            wired-interrupts or wired-interrupts are not
+                            enabled (i.e., `fctrl.WIS == 0`).
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
                             IOMMU behavior on changing `cqb` when `busy` is 1 or 
@@ -869,9 +875,8 @@ status of the page-request-queue.
 
                               The IOMMU may respond to “Page Request” messages 
                               received when page-request-queue is off or in 
-                              the process of being turned off, as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              the process of being turned off, as specified in
+                              <<ATS_PRI>>.
 |1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
@@ -893,9 +898,8 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
 |9      |`pqof`   |RW1C     | The page-request-queue-overflow bit is set to 1 
                               if the page-request queue overflows i.e. IOMMU 
                               needs to queue a page-request message but the 
@@ -915,9 +919,8 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
 |15:10  |`reserved`   |WPRI | Reserved for standard use
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 
