@@ -1223,7 +1223,7 @@ making the acccess.
 
 The device-context provides the PDT root page PPN (`pdtp.ppn`).  When 
 `DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
-Physical Addresses (GPA) which must be translated into System Physical
+Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the G-stage page table pointed to by `DC.iohgatp`.
 
 The process to locate the Process-context for a transaction using its

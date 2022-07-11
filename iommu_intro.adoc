@@ -418,7 +418,7 @@ of a Root Port.
 The IO Bridge is placed between the device(s) and the fabric/interconnect to 
 process device originated DMA transactions. IO Devices may perform DMA 
 transactions using IO Virtual Addresses (VA, GVA or GPA). The IO Bridge 
-invokes the associated IOMMU to translate the IOVA to a System Physical 
+invokes the associated IOMMU to translate the IOVA to a Supervisor Physical 
 Addresses (SPA).
 
 The IOMMU is not invoked for outbound transactions.
@@ -463,7 +463,7 @@ and has several interfaces:
   such as:
 .. Status of the request. Indicates if request completed successfully or a fault
    occurred.
-.. If the request was completed successfully; the System Physical Address (SPA).
+.. If the request was completed successfully; the Supervisor Physical Address (SPA).
 .. Opaque information (e.g. tags), if applicable, associated with the request.
 .. The page-based memory types (PBMT), if Svpbmt is supported, obtained from the
    IOMMU address translation page tables. When two-stage address translation is
