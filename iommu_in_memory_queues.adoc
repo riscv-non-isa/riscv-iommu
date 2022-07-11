@@ -87,7 +87,7 @@ number of commands written.
 The head of the command-queue resides in a read-only memory-mapped IOMMU 
 controlled register called command-queue head (`cqh`). The `cqh` is an index 
 into the command queue that IOMMU should process next. Subsequent to reading
-each command the IOMMU advances the `cqh` by 1. If `cqh` == `cqt`, the 
+each command the IOMMU may advance the `cqh` by 1. If `cqh` == `cqt`, the 
 command-queue is empty. If `cqt` == (`cqh` - 1) the command-queue is full.
 
 IOMMU commands are grouped into a major command group determined by the `opcode`
