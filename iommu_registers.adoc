@@ -1095,8 +1095,21 @@ These registers are 64-bit WARL counter registers.
 |63:0   |`counter`|WARL      | Event counter value.
 |===
 
-When `capabilities.HPM` is set, the `iohpmctr1-7` registers must be present 
-and be at least 32-bits wide.
+When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmctr1` register
+must be present and be at least 32-bits wide.
+
+[[NOTE]]
+====
+A minimum of one progammable event counter besides the cycles counter is 
+required to comply with this specification. One counter may be used in a time
+multiplexed manner to sample events but such analysis may take longer to
+complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
+the PMU may be used by a performance analyst to analyze one or more of those
+streams concurrently. Typically a performance analyst may require four 
+programmable counters, to count events for an IO stream. To support concurrent
+analysis of at least two streams of IO it is recommended to support seven 
+programmable counters.
+====
 
 
 [[EVT]]
