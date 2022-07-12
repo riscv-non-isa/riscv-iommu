@@ -93,7 +93,8 @@ command-queue is empty. If `cqt` == (`cqh` - 1) the command-queue is full.
 IOMMU commands are grouped into a major command group determined by the `opcode`
 and within each group the `func3` field specifies the function invoked by that 
 command. The `opcode` defines the format of the operand fields. One or more of
-those fields may be used by the specific function invoked.
+those fields may be used by the specific function invoked. The `opcode` 
+encodings 64 to 127 are designated for custom use.
 
 .Format of an IOMMU command
 
