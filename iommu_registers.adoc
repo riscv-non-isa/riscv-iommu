@@ -1387,11 +1387,12 @@ supported then only bit 0 for each cause could be writable.
 
 [[MSI]]
 === MSI configuration table (`msi_cfg_tbl`)
-IOMMU that supports MSI implements a MSI configuration table that is indexed 
-by the vector from `icvec` to determine a MSI table entry. Each MSI table 
-entry for interrupt vector `x` has three registers `msi_addr_x`, `msi_data_x`, 
-and `msi_vec_ctrl_x`. These registers are hard wired to 0 if the IOMMU does 
-not support MSI.
+IOMMU that supports generating IOMMU originated interrupts 
+(i.e., `capabilities.IGS == MSI` or `capabilities.IGS == BOTH`) as MSI 
+implements a MSI configuration table that is indexed by the vector from `icvec`
+to determine a MSI table entry. Each MSI table entry for interrupt vector `x` 
+has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctrl_x`. These 
+registers are hard wired to 0 if `capabilities.IGS == WIS`.
 
 If an access fault is detected on a MSI write using `msi_addr_x`, then the IOMMU
 reports a "IOMMU MSI write access fault" (cause 273) fault, with `TTYP` set to 0
