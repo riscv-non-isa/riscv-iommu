@@ -1605,7 +1605,13 @@ For IOMMU generated "Page Request Group Response" with response code set to
 Response Failure, if the "Page Request" had a PASID then response is generated
 with a PASID.
 
-No faults are logged in the fault queue for PCIe ATS "Page Request" messages.
+No faults are logged in the fault queue for PCIe ATS "Page Request" messages for
+following conditions:
+
+* Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
+* Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)
+* "Page Request" could not be queued due to the page-request queue being full 
+  (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 === Caching in-memory data structures
 
