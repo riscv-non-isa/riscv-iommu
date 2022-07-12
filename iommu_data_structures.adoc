@@ -407,7 +407,6 @@ entry in the root page table is also `UNSPECIFIED`.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-
 ===== First-Stage context (`fsc`)
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
 is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide the
@@ -1225,6 +1224,8 @@ The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 `DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the G-stage page table pointed to by `DC.iohgatp`.
+The memory accesses to the PDT are treated as implicit read memory accesses
+by the G-stage page table.
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
@@ -1233,9 +1234,9 @@ The process to locate the Process-context for a transaction using its
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
 . If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
-  to translate `a` to a SPA. If faults occur during G-stage address 
-  translation of `a` then stop and the fault detected by the G-stage 
-  address translation process. The translated `a` is used in subsequent
+  to translate `a` to a SPA as an implicit memory access. If faults occur during
+  G-stage address translation of `a` then stop and the fault detected by the 
+  G-stage address translation process. The translated `a` is used in subsequent
   steps. 
 . If `i == 0` go to step 9.
 . Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If 

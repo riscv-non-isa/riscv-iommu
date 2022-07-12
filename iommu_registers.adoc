@@ -346,7 +346,8 @@ In RV32, memory-mapped writes to `ddtp` modify only one 32-bit part of the
 register. The following sequence may be used to update the register using two
 32-bit writes.
 
-* Write the low order 32-bits to update the `PPN`
+* Write the low order 32-bits to update the `PPN`. In RV32, the `PPN` is 
+  upto 22-bits.
 * Write the high order 32-bits to update the `iommu_mode` if required.
 ====
 
