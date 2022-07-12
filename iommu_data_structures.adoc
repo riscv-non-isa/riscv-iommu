@@ -1047,6 +1047,7 @@ the interrupt-pending bit is set in the MRIF, the IOMMU sends the notice MSI
 that software has configured for the MRIF. The exact process of storing an MSI 
 to an MRIF is specified more precisely in <<MSI_TRANS>>.
 
+[[P2IOVA]]
 === Process to translate an IOVA
 The process to translate an `IOVA` is as follows:
 

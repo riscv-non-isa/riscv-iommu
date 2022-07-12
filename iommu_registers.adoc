@@ -22,6 +22,12 @@ table.
                   If the optional feature that is associated with the bits is 
                   not implemented, the bits are permitted to be hardwired to
                   Zero.
+| RW1S          | Read-Write-1-to-set - register bits indicate status when
+                  read. The bit may be Set by writing 1b. Writing a 0b to RW1S
+                  bits has no effect.
+
+                  If the optional feature that introduces the bit is not 
+                  implemented, the bit must be read-only and hardwired to Zero
 | RO            | Read-only - Register bits are read-only and cannot be altered
                   by software. Where explicitly defined, these bits are used
                   to reflect changing hardware state, and as a result bit 
@@ -73,7 +79,10 @@ table.
 |96    |`iohpmcycles`   |8   |<<CYC, Performance-monitoring cycles counter>>
 |104   |`iohpmctr1 - 31`|248 |<<CTR, Performance-monitoring event counters>>
 |352   |`iohpmevt1 - 31`|248 |<<EVT, Performance-monitoring event selector>>
-|600   |Reserved        |82  |Reserved for future use (`WPRI`)
+|600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request IOVA>>
+|608   |`tr_req_ctrl`   |8   |<<TRR_CTRL, Translation-request control>>
+|616   |`tr_response`   |8   |<<TRR_RSP, Translation-request response>>
+|624   |Reserved        |58  |Reserved for future use (`WPRI`)
 |682   |_custom_        |78  |_Reserved for custom use (`WARL`)_
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause to vector register>>
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration Table>>
@@ -1382,8 +1391,159 @@ supported then only bit 0 for each cause could be writable.
 | 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
                                is the vector number assigned to the
                                page-request-queue-interrupt.
-| 31:16 |`reserved`   |WPRI  | Reserved for standard use
+| 31:16 |`reserved`|WPRI     | Reserved for standard use
 | 63:32 |_custom_ |WARL      | _Reserved for custom use_
+|===
+
+[[TRR_IOVA]]
+=== Translation-request IOVA (`tr_req_iova`)
+The `tr_req_iova` is a 64-bit WARL register used to implement a 
+translation-request interface for debug. This register is present when 
+`capabilities.DBG == 1`.
+
+.Translation-request IOVA register fields
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 12, name: 'pgoff'},
+  {bits: 52, name: 'iova_vpn'},
+], config:{lanes: 2, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 11:0  |`pgoff`    |WARL      | The IOVA page-offset
+| 63:12 |`iova_vpn` |WARL      | The IOVA virtual page number
+|===
+
+
+[[TRR_CTRL]]
+=== Translation-request control (`tr_req_ctrl`)
+The `tr_req_ctrl` is a 64-bit WARL register used to implement a 
+translation-request interface for debug. This register is present when
+`capabilities.DBG == 1`.
+
+.Translation-request control register fields
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1, name: 'Go/Busy'},
+  {bits: 1, name: 'Priv'},
+  {bits: 1, name: 'Exe'},
+  {bits: 1, name: 'RWn'},
+  {bits: 1, name: 'PV'},
+  {bits: 11, name: 'reserved'},
+  {bits: 24, name: 'DID'},
+  {bits: 20, name: 'PID'},
+  {bits: 4, name: 'custom'},
+], config:{lanes: 4, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 0     |`Go/Busy`  |RW1S      | This bit is set to indicate a valid 
+                                 request has been setup in the 
+                                 `tr_req_iova/tr_req_ctrl` registers
+                                 for the IOMMU to translate.
+                                 
+                                 The IOMMU indicates completion of the
+                                 requested translation by clearing this
+                                 bit to 0. On completion, the results 
+                                 of the translation are in `tre_response`
+                                 register.
+| 1     |`Priv`     |WARL      | When set to 1 the requests needs Privileged
+                                 Mode access for this translation.
+| 2     |`Exe`      |WARL      | When set to 1 the request needs execute
+                                 access for this translation.
+| 3     |`RWn`      |WARL      | When set to 1 the request only needs
+                                 read-only access for this translation.
+| 4     |`PV`       |WARL      | When set to 1 the `PID` field of the 
+                                 register is valid.
+| 15:5  |reserved   |WPRI      | Reserved for standard use
+| 39:16 |`DID`      |WARL      | This field provides the `device_id` for
+                                 this translation request.
+| 59:40 |`DID`      |WARL      | When `PV` is 1 this field provides the
+                                 `process_id` for this translation 
+                                 request.
+| 63:60 a|_custom_ |WARL      a| _Reserved for custom use_
+|===
+
+
+[[TRR_RSP]]
+=== Translation-response (`tr_response`)
+The `tr_response` is a 64-bit RO register used to hold the results
+of a translation requested using the translation-request interface.
+This register is present when `capabilities.DBG == 1`.
+
+.Translation-response register fields
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 1, name: 'S'},
+  {bits: 2, name: 'PBMT'},
+  {bits: 1, name: 'fault'},
+  {bits: 12, name: 'reserved'},
+  {bits: 4, name: 'custom'},
+], config:{lanes: 4, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 43:0  |`PPN`      |RO        a| If the `fault` bit is 0, then this field
+                                 provides the PPN determined as a result of
+                                 translating the `iova_vpn` in `tr_req_iova`. +
+ +
+                                 If the `fault` bit is 1, then the value of
+                                 this field is `UNSPECIFIED`. +
+ +
+                                 If the `S` bit is 0, then the size of the
+                                 translation is 4 KiB - a page. +
+ +
+                                 If the `S` bit is 1, then the translation
+                                 resulted in a superpage, and the size of the
+                                 superpage is encoded in the PPN itself. If
+                                 scanning from bit position 0 to bit position 
+                                 43, the first bit with a value of 0 at 
+                                 position `X`, then the superpage size is 
+                                `2^X+1^ * 4` KiB. +
+ +
+                                 If `X` is not 0, then all bits at position 0
+                                 through `X-1` are each encoded with a value 
+                                 of 1.
+ +
+[%header, cols="4,1,1"]
+!===
+                                !           `PPN`          !`S`!   Size
+                                !`yyyy....yyyy yyyy yyyy`  !`0`!  4 KiB
+                                !`yyyy....yyyy yyyy 0111`  !`1`! 64 KiB
+                                !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
+                                !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
+!===
+| 44   |`S`      |RO          | Translation range size field, when set to 1
+                                indicates that the translation applies to a
+                                range that is larger than 4 KiB and the size
+                                of the translation range is encoded in the 
+                                `PPN` field. The value of this field is 
+                                `UNSPECIFIED` if the `fault` field is 1.
+|46:45 |`PBMT`   |RO          | Memory type determined for the translation 
+                                using the PBMT fields in the S/VS-stage and/or
+                                the G-stage page tables used for the 
+                                translation. This value of field is 
+                                `UNSPECIFIED` if the `fault` field is 1.
+|47    |`fault`  |RO          | If the process to translate the IOVA detects
+                                a fault then the `fault` field is set to 1.
+                                The detected fault may be reported through the
+                                fault-queue.
+|59:48 |reserved   |WPRI      | Reserved for standard use
+|63:60 a|_custom_ |WARL      a| _Reserved for custom use_
 |===
 
 [[MSI]]
