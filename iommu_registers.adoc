@@ -1177,9 +1177,9 @@ a transactions with a range of IDs to be counted by the counter.
 |Bits   |Field      |Attribute | Description
 |14:0   |`eventID`  |WARL     a| Indicates the event to count. A value of 0 
                                  indicates no events are counted. +
-                                 Encodings 1 to 16383 are reserved for standard
+                                 Encoding 1 to 16383 are reserved for standard
                                  events defined in the <<Event_list>>. +
-                                 Encodings 16384 to 32767 are for reserved for 
+                                 Encoding 16384 to 32767 are for reserved for 
                                  custom use. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
@@ -1328,7 +1328,7 @@ with the desired value.
 
 [NOTE]
 ====
-A minimum of one progammable event counter besides the cycles counter is 
+A minimum of one programmable event counter besides the cycles counter is 
 required to comply with this specification. One counter may be used in a time
 multiplexed manner to sample events but such analysis may take longer to
 complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
@@ -1456,7 +1456,7 @@ translation-request interface for debug. This register is present when
                                  The IOMMU indicates completion of the
                                  requested translation by clearing this
                                  bit to 0. On completion, the results 
-                                 of the translation are in `tre_response`
+                                 of the translation are in `tr_response`
                                  register.
 | 1     |`Priv`     |WARL      | When set to 1 the requests needs Privileged
                                  Mode access for this translation.
@@ -1510,18 +1510,21 @@ This register is present when `capabilities.DBG == 1`.
                                  translation is 4 KiB - a page. +
  +
                                  If the `S` bit is 1, then the translation
-                                 resulted in a superpage, and the size of the
-                                 superpage is encoded in the PPN itself. If
+                                 resulted in a super-page, and the size of the
+                                 super-page is encoded in the PPN itself. If
                                  scanning from bit position 0 to bit position 
                                  43, the first bit with a value of 0 at 
-                                 position `X`, then the superpage size is 
+                                 position `X`, then the super-page size is 
                                 `2^X+1^ * 4` KiB. +
  +
                                  If `X` is not 0, then all bits at position 0
                                  through `X-1` are each encoded with a value 
                                  of 1.
  +
-[%header, cols="4,1,1"]
+
+.Example of encoding of super page size in `PPN`
+[width=80%]
+[%header, cols="3,^1,2"]
 !===
                                 !           `PPN`          !`S`!   Size
                                 !`yyyy....yyyy yyyy yyyy`  !`0`!  4 KiB
