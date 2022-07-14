@@ -561,6 +561,10 @@ bit is in the `fqcsr` changes state from 0 to 1 or when a new fault record is
 produced in the fault-queue, fault interrupt pending (`fip`) bit is set in the 
 `fqcsr`. 
 
+The IOMMU may identify multiple requests as having detected an identical fault. 
+In such cases the IOMMU may report each of those faults individually, or report 
+the the fault for a subset, including one, of requests.
+
 [[PRQ]]
 === Page-Request-Queue (`PQ`)
 Page-request queue is an in-memory queue data structure used to report PCIe 
