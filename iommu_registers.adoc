@@ -47,46 +47,61 @@ table.
                   specification for a detailed definition.
 |===
 
+If a register is optional, as determined by the corresponding `capabilities`
+register bit being 0, then a read from the memory mapped register offset of 
+the register returns 0 and writes to that offset are ignored.
 
 === Register layout
 
 .IOMMU Memory-mapped register layout
-[width=90%]
-[%header, cols="^3,6,^3, 18"]
+[width=100%]
+[%header, cols="^3,6,^3, 12, 10"]
 |===
-|Offset|Name            |Size|Description
-|0     |`capabilities`  |8   |<<CAP, Capabilities supported by the IOMMU>>
-|8     |`fctrl`         |4   |<<FCTRL, Features control>>
-|12    |_custom_        |4   |_For custom use_
-|16    |`ddtp`          |8   |<<DDTP, Device directory table pointer>>
-|24    |`cqb`           |8   |<<CQB, Command-queue base>>
-|32    |`cqh`           |4   |<<CQH, Command-queue head>>
-|36    |`cqt`           |4   |<<CQT, Command-queue tail>>
-|40    |`fqb`           |8   |<<FQB, Fault-queue base>>
-|48    |`fqh`           |4   |<<FQH, Fault-queue head>>
-|52    |`fqt`           |4   |<<FQT, Fault-queue tail>>
-|56    |`pqb`           |8   |<<PQB, Page-request-queue base>>
-|64    |`pqh`           |4   |<<PQH, Page-request-queue head>>
-|68    |`pqt`           |4   |<<PQT, Page-request-queue tail>>
-|72    |`cqcsr`         |4   |<<CSR, Command-queue control and status register>>
-|76    |`fqcsr`         |4   |<<FQCSR, Fault-queue control and status register>>
-|80    |`pqcsr`         |4   |<<PQCSR, Page-request-queue control 
-                                     and status register>>
-|84    |`ipsr`          |4   |<<IPSR, Interrupt pending status register>>
-|88    |`iocntovf`      |4   |<<OVF, Performance-monitoring counter 
-                                     overflow status>>
-|92    |`iocntinh`      |4   |<<INH, Performance-monitoring counter inhibits>>
-|96    |`iohpmcycles`   |8   |<<CYC, Performance-monitoring cycles counter>>
-|104   |`iohpmctr1 - 31`|248 |<<CTR, Performance-monitoring event counters>>
-|352   |`iohpmevt1 - 31`|248 |<<EVT, Performance-monitoring event selector>>
-|600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request IOVA>>
-|608   |`tr_req_ctrl`   |8   |<<TRR_CTRL, Translation-request control>>
-|616   |`tr_response`   |8   |<<TRR_RSP, Translation-request response>>
-|624   |Reserved        |58  |Reserved for future use (`WPRI`)
-|682   |_custom_        |78  |_Reserved for custom use (`WARL`)_
-|760   |`icvec`         |4   |<<ICVEC, Interrupt cause to vector register>>
-|768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration Table>>
-|1024  |Reserved        |3072|Reserved for future use (`WPRI`)
+|Offset|Name            |Size|Description                 | Is Optional?
+|0     |`capabilities`  |8   |<<CAP, Capabilities of the
+                                     IOMMU>>              | No
+|8     |`fctrl`         |4   |<<FCTRL, Features control>> | No
+|12    |_custom_        |4   |_For custom use_            |
+|16    |`ddtp`          |8   |<<DDTP, Device directory
+                              table pointer>>             | No
+|24    |`cqb`           |8   |<<CQB, Command-queue base>> | No
+|32    |`cqh`           |4   |<<CQH, Command-queue head>> | No
+|36    |`cqt`           |4   |<<CQT, Command-queue tail>> | No
+|40    |`fqb`           |8   |<<FQB, Fault-queue base>>   | No
+|48    |`fqh`           |4   |<<FQH, Fault-queue head>>   | No
+|52    |`fqt`           |4   |<<FQT, Fault-queue tail>>   | No
+|56    |`pqb`           |8   |<<PQB, Page-request-queue
+                                     base>>               | if `capabilities.ATS==0`
+|64    |`pqh`           |4   |<<PQH, Page-request-queue
+                                     head>>               | if `capabilities.ATS==0`
+|68    |`pqt`           |4   |<<PQT, Page-request-queue
+                                     tail>>               | if `capabilities.ATS==0`
+|72    |`cqcsr`         |4   |<<CSR, Command-queue CSR>>  | No
+|76    |`fqcsr`         |4   |<<FQCSR, Fault-queue CSR>>  | No
+|80    |`pqcsr`         |4   |<<PQCSR, Page-request-queue
+                                       CSR >>             | if `capabilities.ATS==0`
+|84    |`ipsr`          |4   |<<IPSR, Interrupt pending
+                                         status register>>| No
+|88    |`iocntovf`      |4   |<<OVF, HPM counter overflows>> | if `capabilities.HPM==0`
+|92    |`iocntinh`      |4   |<<INH, HPM counter inhibits>> | if `capabilities.HPM==0`
+|96    |`iohpmcycles`   |8   |<<CYC, HPM cycles counter>> | if `capabilities.HPM==0`
+|104   |`iohpmctr1-31`  |248 |<<CTR, HPM event counters>> | if `capabilities.HPM==0`
+|352   |`iohpmevt1-31`  |248 |<<EVT, HPM event selector>> | if `capabilities.HPM==0`
+|600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request
+                                     IOVA>>               | if `capabilities.DBG==0`
+|608   |`tr_req_ctrl`   |8   |<<TRR_CTRL, Translation-request
+                                     control>>            | if `capabilities.DBG==0`
+|616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
+                                     response>>           | if `capabilities.DBG==0`
+|624   |Reserved        |58  |Reserved for future use
+                              (`WPRI`)                    |
+|682   |_custom_        |78  |_Reserved for custom use
+                              (`WARL`)_                   |
+|760   |`icvec`         |4   |<<ICVEC, Interrupt cause
+                              to vector register>>        | No
+|768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration
+                                     Table>>              | if `capabilities.IGS==WIS`
+|1024  |Reserved        |3072|Reserved for future use (`WPRI`)|
 |===
 
 === Reset behavior
