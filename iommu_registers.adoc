@@ -138,7 +138,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'T2GPA'},
   {bits: 1, name: 'END'},
   {bits: 2, name: 'IGS'},
-  {bits: 1, name: 'PMON'},
+  {bits: 1, name: 'HPM'},
   {bits: 1, name: 'DBG'},
   {bits: 6, name: 'PAS'},
   {bits: 10, name: 'reserved'},
@@ -205,7 +205,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
                                 !3      ! 0        ! Reserved for standard use
 !===
 
-|30    |`PMON`     |RO        | IOMMU implements a performance-monitoring unit
+|30    |`HPM`     |RO         | IOMMU implements a hardware performance monitor.
 |31    |`DBG`      |RO        | IOMMU supports the translation-request interface
 |37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
 |47:38 | reserved  |RO        | Reserved for standard use

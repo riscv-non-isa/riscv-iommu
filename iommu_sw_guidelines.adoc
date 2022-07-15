@@ -325,7 +325,7 @@ must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
 ==== Guidelines for handling interrupts from IOMMU
-IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the PMU. Each 
+IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each 
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
 as a MSI or a wire-based-interrupt. The interrupt handler may perform the 
@@ -381,7 +381,7 @@ following actions:
    a "Page Request" with the "Last Request in PRG" flag set to 1, then software
    may observe an incomplete page-request group. Software should ignore the
    group and not service such groups.
-. If `ipsr.pmip` bit is set then an interrupt is pending from the PMU.
+. If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
 .. Process the performance monitoring counter overflows.
 . For each source that was serviced in this process, clear the interrupt pending
   bit for the source by clearing the corresponding bit in `ipsr`.
