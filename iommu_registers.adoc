@@ -5,7 +5,8 @@ registers of each IOMMU are located within a naturally aligned 4-KiB region
 (a page) of physical address space. 
 
 The IOMMU behavior for register accesses where the address is not aligned to 
-the size of the access or if the access spans multiple registers is undefined.
+the size of the access, or if the access spans multiple registers, of if the
+size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`.
 
 Register fields are assigned one of the attributes described in following 
 table.
@@ -21,6 +22,12 @@ table.
                   If the optional feature that is associated with the bits is 
                   not implemented, the bits are permitted to be hardwired to
                   Zero.
+| RW1S          | Read-Write-1-to-set - register bits indicate status when
+                  read. The bit may be Set by writing 1b. Writing a 0b to RW1S
+                  bits has no effect.
+
+                  If the optional feature that introduces the bit is not 
+                  implemented, the bit must be read-only and hardwired to Zero
 | RO            | Read-only - Register bits are read-only and cannot be altered
                   by software. Where explicitly defined, these bits are used
                   to reflect changing hardware state, and as a result bit 
@@ -72,9 +79,10 @@ table.
 |96    |`iohpmcycles`   |8   |<<CYC, Performance-monitoring cycles counter>>
 |104   |`iohpmctr1 - 31`|248 |<<CTR, Performance-monitoring event counters>>
 |352   |`iohpmevt1 - 31`|248 |<<EVT, Performance-monitoring event selector>>
-//|600   |`iocntconf`     |4   |<<CONF, Counters reserved for confidential mode usage>>
-//|604   |Reserved        |78  |Reserved for future use (`WPRI`)
-|600   |Reserved        |82  |Reserved for future use (`WPRI`)
+|600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request IOVA>>
+|608   |`tr_req_ctrl`   |8   |<<TRR_CTRL, Translation-request control>>
+|616   |`tr_response`   |8   |<<TRR_RSP, Translation-request response>>
+|624   |Reserved        |58  |Reserved for future use (`WPRI`)
 |682   |_custom_        |78  |_Reserved for custom use (`WARL`)_
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause to vector register>>
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration Table>>
@@ -82,14 +90,22 @@ table.
 |===
 
 === Reset behavior
-The reset default value is 0 for the following registers. Reset value is 
-implementation-defined for all other registers and/or fields.
+The reset value is 0 for the following registers/fields.
 
 * `fctrl`
 * `cqcsr`
 * `fqcsr`
 * `pqcsr`
 
+Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`. The 
+reset value for `ddtp.busy` field must be 0.
+
+[NOTE]
+====
+The reset value for the `iommu_mode` is recommended to be `Off`.
+====
+
+Reset value is `UNSPECIFIED` for all other registers and/or fields.
 
 [[CAP]]
 === IOMMU capabilities (`capabilities`)
@@ -98,7 +114,7 @@ The `capabilities` register is a read-only register reporting features supported
 by the IOMMU. Each field if not clear indicates presence of that feature in 
 the IOMMU. At reset, the register shall contain the IOMMU supported features.
 
-.capabilities register fields
+.IOMMU capabilities register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -123,7 +139,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'END'},
   {bits: 2, name: 'IGS'},
   {bits: 1, name: 'PMON'},
-  {bits: 1, name: 'reserved'},
+  {bits: 1, name: 'DBG'},
   {bits: 6, name: 'PAS'},
   {bits: 10, name: 'reserved'},
   {bits: 16, name: 'custom'},
@@ -190,7 +206,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 !===
 
 |30    |`PMON`     |RO        | IOMMU implements a performance-monitoring unit
-|31    |`RAS`      |RO        | IOMMU implements the RISC-V RAS Registers
+|31    |`DBG`      |RO        | IOMMU supports the translation-request interface
 |37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
 |47:38 | reserved  |RO        | Reserved for standard use
 |63:48 |_custom_   |RO        | _Reserved for custom use_
@@ -222,7 +238,11 @@ or disabling the feature controlled by that field.
 If software enables or disables a feature when the IOMMU is not OFF 
 (i.e. `ddtp.iommu_mode == Off`) then the IOMMU behavior is `UNSPECIFIED`.
 
-.Features-control register fields
+If software enables or disables a feature when the IOMMU in-memory queues
+are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or 
+`pqcsr.pqon/pqen == 1`) then the IOMMU behavior is `UNSPECIFIED`.
+
+.Feature-control register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -244,8 +264,8 @@ If software enables or disables a feature when the IOMMU is not OFF
                                 big-endian accesses.
 |1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wired-interrupts.
-|15:2  |`WPRI`     |WPRI      | Reserved for standard use
-|31:16 |_custom_   |          | _These bits are reserved for custom use._
+|15:2  |`reserved` |WPRI      | Reserved for standard use.
+|31:16 |_custom_   |          | _Reserved for custom use._
 |===
 
 [[DDTP]]
@@ -267,14 +287,14 @@ If software enables or disables a feature when the IOMMU is not OFF
 |Bits  |Field      |Attribute | Description
 |43:0  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 device-directory-table.
-|58:44 |`WPRI`     |WPRI      | Reserved for standard use
-|59    |`busy`     |RW        | A write to `ddtp` may require the IOMMU to 
+|58:44 |`reserved` |WPRI      | Reserved for standard use
+|59    |`busy`     |RO        | A write to `ddtp` may require the IOMMU to 
                                 perform many operations that may not occur 
                                 synchronously to the write. When a write is 
                                 observed by the `ddtp`, the `busy` bit is set 
                                 to 1. When the `busy` bit is 1, behavior of 
                                 additional writes to the `ddtp` is 
-                                implementation defined. Some implementations 
+                                `UNSPECIFIED`. Some implementations 
                                 may ignore the second write and others may 
                                 perform the actions determined by the second 
                                 write. Software must verify that the `busy` 
@@ -286,7 +306,7 @@ If software enables or disables a feature when the IOMMU is not OFF
 
                                 An IOMMU that can complete these operations 
                                 synchronously may hard-wire this bit to 0.
-|59    |`iommu_mode` |RW     a| The IOMMU may be configured to be in following
+|63:60 |`iommu_mode` |WARL   a| The IOMMU may be configured to be in following
                                 modes:
 
 [%header, cols="^1,1,3"]
@@ -319,16 +339,27 @@ All IOMMU must support `Off` and `Bare` mode. An IOMMU is allowed to support a
 subset of directory-table levels and device-context widths. At a minimum one 
 of the modes must be supported.
 
-When the `iommu_mode` field value is changed the IOMMU guarantees that 
+When the `iommu_mode` field value is changed `Off` the IOMMU guarantees that 
 in-flight transactions from devices connected to the IOMMU will be processed 
 with the configurations applicable to the old value of the `iommu_mode` field 
 and that all transactions and previous requests from devices that have already 
 been processed by the IOMMU be committed to a global ordering point such that 
 they can be observed by all RISC-V hart, devices, and IOMMUs in the platform.
 
+The IOMMU behavior of writing `iommu_mode` to `1LVL`, `2LVL`, or `3LVL`, when
+the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
+To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off` 
+state.
+
 [NOTE]
 ====
-The reset default for the `iommu_mode` is recommended to be `Off`.
+In RV32, memory-mapped writes to `ddtp` modify only one 32-bit part of the
+register. The following sequence may be used to update the register using two
+32-bit writes.
+
+* Write the low order 32-bits to update the `PPN`. In RV32, the `PPN` is 
+  upto 22-bits.
+* Write the high order 32-bits to update the `iommu_mode` if required.
 ====
 
 [[CQB]]
@@ -343,7 +374,7 @@ and number of entries in the queue. Each command is 16 bytes.
 {reg: [
   {bits:  5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -364,9 +395,20 @@ and number of entries in the queue. Each command is 16 bytes.
                                 `2^LOG2SZ^ x 16`.
 |48:5  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 in-memory command-queue used by software to 
-                                queue commands to the IOMMU. 
-|63:49 |`WPRI`     |WPRI      | Reserved for standard use
+                                queue commands to the IOMMU. If the base 
+                                address as determined by `PPN` is not aligned
+                                as required, all entries in the queue appear
+                                to an IOMMU as `UNSPECIFIED` and any address
+                                an IOMMU may compute and use for accessing an
+                                entry in the queue is also `UNSPECIFIED`.
+|63:49 |`reserved` |WPRI      | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[CQH]]
 === Command-queue head (`cqh`)
@@ -410,8 +452,7 @@ the software queues the next command for the IOMMU.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the command-queue where 
                             software queues the next command for IOMMU.  Only 
-                            `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `cqsr.cqon == 1`).
+                            `LOG2SZ:0` bits are writable.
 |===
 
 [[FQB]]
@@ -427,7 +468,7 @@ and number of entries in the queue. Each fault record is 32 bytes.
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -446,9 +487,20 @@ and number of entries in the queue. Each fault record is 32 bytes.
                                be naturally aligned to `2^LOG2SZ^ x 32`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory fault-queue used by IOMMU to queue 
-                               fault record.
-|63:49 |`WPRI`   |WPRI       | Reserved for standard use
+                               fault record. if the base address as determined 
+                               by `PPN` is not aligned as required, all entries
+                               in the queue appear to an IOMMU as `UNSPECIFIED`
+                               and any address an IOMMU may compute and use for
+                               accessing an entry in the queue is also 
+                               `UNSPECIFIED`.
+|63:49 |`reserved`|WPRI       | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[FQH]]
 === Fault queue head (`fqh`)
@@ -471,8 +523,7 @@ software will fetch the next fault record.
 |Bits |Field   |Attribute |Description
 |31:0 |`index` |WARL      | Holds the `index` into the fault-queue from which 
                             software reads the next fault record.  Only 
-                            `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `fqsr.fqon == 1`).
+                            `LOG2SZ:0` bits are writable.
 |===
 
 [[FQT]]
@@ -512,7 +563,7 @@ message is 16 bytes.
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'WPRI'},
+  {bits: 15, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -532,9 +583,20 @@ message is 16 bytes.
                                must be naturally aligned to `2^LOG2SZ^ x 16`.
 |48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory page-request-queue used by IOMMU to 
-                               queue "Page Request" messages.
-|63:49 |`WPRI`    |WPRI      | Reserved for standard use
+                               queue "Page Request" messages. If the base 
+                               address as determined by `PPN` is not aligned as
+                               required, all entries in the queue appear to an
+                               IOMMU as `UNSPECIFIED` and any address an IOMMU
+                               may compute and use for accessing an entry in the
+                               queue is also `UNSPECIFIED`.
+|63:49 |`reserved`|WPRI      | Reserved for standard use
 |===
+
+[NOTE]
+====
+In RV32, only the low order 32-bits of the register (22-bit `PPN` and 
+5-bit `LOG2SZ-1`) need to be written.
+====
 
 [[PQH]]
 === Page-request-queue head (`pqh`)
@@ -557,8 +619,7 @@ software will fetch the next page-request.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the page-request-queue from 
                             which software reads the next "Page Request" message.
-                            Only `LOG2SZ:0` bits are writable when the queue is 
-                            in enabled state (i.e., `pqsr.pqon == 1`).
+                            Only `LOG2SZ:0` bits are writable.
 |===
 
 [[PQT]]
@@ -596,16 +657,16 @@ status of the command-queue.
 {reg: [
   {bits: 1, name: 'cqen'},
   {bits: 1, name: 'cie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'cqmf'},
   {bits: 1, name: 'cmd_to'},
   {bits: 1, name: 'cmd_ill'},
   {bits: 1, name: 'fence_w_ip'},
-  {bits: 4, name: 'WPRI'},
+  {bits: 4, name: 'reserved'},
   {bits: 1, name: 'cqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
-  {bits: 4, name: 'Custom use'},
+  {bits: 10, name: 'reserved'},
+  {bits: 4, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -636,7 +697,7 @@ status of the command-queue.
 |1    |`cie`   |RW        | Command-queue-interrupt-enable bit enables 
                             generation of interrupts from command-queue when 
                             set to 1.
-|7:2  |`WPRI`  |WPRI      | Reserved for standard use
+|7:2  |`reserved`|WPRI    | Reserved for standard use
 |8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
                             the command-queue-memory-fault bit is set to 1 and 
                             the command-queue stalls until this bit is cleared. 
@@ -669,17 +730,18 @@ status of the command-queue.
                             `fence_w_ip` bit is set to indicate completion of a 
                             `IOFENCE.C` command. An interrupt on setting 
                             `fence_w_ip` if not already pending 
-                            (i.e. `ipsr.cip == 1`) and not masked 
-                            (i.e. `cqsr.cie == 0`) and `fence_w_ip` is 0. 
+                            (i.e. `ipsr.cip == 1`) and `fence_w_ip` is 0. 
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
-                            This bit is reserved if the IOMMU uses MSI. 
-|15:12|`WPRI`   |WPRI     | Reserved for standard use
+                            This bit is reserved if the IOMMU does not support
+                            wired-interrupts or wired-interrupts are not
+                            enabled (i.e., `fctrl.WIS == 0`).
+|15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
-                            IOMMU behavior on changing cqb when busy is 1 or 
-                            `cqon` is 1 is implementation defined. The software 
+                            IOMMU behavior on changing `cqb` when `busy` is 1 or 
+                            `cqon` is 1 is `UNSPECIFIED`. The software 
                             recommended sequence to change `cqb` is to first 
-                            disable the command-queue by clearing cqen and 
+                            disable the command-queue by clearing `cqen` and 
                             waiting for both `busy` and `cqon` to be 0 before 
                             changing the `cqb`.
 |17   |`busy`   |RO       | A write to `cqcsr` may require the IOMMU to perform
@@ -688,19 +750,18 @@ status of the command-queue.
                             `cqcsr`, the `busy` bit is set to 1.
 
                             When the `busy` bit is 1, behavior of additional 
-                            writes to the `cqcsr` is implementation defined. 
+                            writes to the `cqcsr` is `UNSPECIFIED`. 
                             Some implementations may ignore the second write and
                             others may perform the actions determined by the 
                             second write.
 
                             Software must verify that the busy bit is 0 before 
-                            writing to the `cqcsr`. An IOMMU that can complete 
-                            controls synchronously may hard-wire this bit to 0.
+                            writing to the `cqcsr`.
 
                             An IOMMU that can complete these operations 
                             synchronously may hard-wire this bit to 0.
-|27:18 |`WPRI`|WPRI      | Reserved for standard use
-|31:28 |_custom_|        | _These bits are reserved for custom use._
+|27:18 |`reserved`|WPRI  | Reserved for standard use
+|31:28 |_custom_|        | _Reserved for custom use._
 |===
 [NOTE]
 ====
@@ -725,14 +786,14 @@ status of the fault-queue.
 {reg: [
   {bits: 1, name: 'fqen'},
   {bits: 1, name: 'fie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'fqmf'},
   {bits: 1, name: 'fqof'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'fqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
-  {bits: 4, name: 'Custom use'},
+  {bits: 10, name: 'reserved'},
+  {bits: 4, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -742,6 +803,7 @@ status of the fault-queue.
 |Bits  |Field |Attribute | Description
 |0     |`fqen`|RW        | The fault-queue enable bit enables the fault-queue 
                            when set to 1. 
+
                            Changing `fqen`  from 0 to 1, resets the `fqh` and 
                            `fqt` to 0 and clears `fqcsr` bits `fqmf` and `fqof`.
                            The fault-queue may take some time to be active
@@ -751,22 +813,25 @@ status of the fault-queue.
                            When `fqen` is changed from 1 to 0, the fault-queue 
                            may stay active till in-flight fault-recording is 
                            completed. When the fault-queue is off, the `fqon` 
-                           bit reads 0. The IOMMU guarantees that there are no 
+                           bit reads 0, the `fqon` bit reads 0, `fqh` is set to 0,
+                           `fqt` is set to 0 and the `fqcsr` bits `fqof`, and
+                           `fqmf` are set to 0.
+
+                           The IOMMU guarantees that there are no 
                            in-flight implicit writes to the fault-queue in 
                            progress when `fqon` reads 0 and no new fault 
                            records will be written to the fault-queue. 
 |1     |`fie` |RW        | Fault queue interrupt enable bit enables generation 
                            of interrupts from fault-queue when set to 1.
-|7:2   |`WPRI`|WPRI      | Reserved for standard use
+|7:2   |`reserved`|WPRI  | Reserved for standard use
 |8     |`fqmf`|RW1C      | The `fqmf` bit is set to 1 if the IOMMU encounters 
                            an access fault when storing a fault record to the 
                            fault queue. The fault-record that was attempted to 
                            be written is discarded and no more fault records 
                            are generated until software clears `fqmf` bit by 
                            writing 1 to the bit. An interrupt is generated if 
-                           enabled and not already pending 
-                           (i.e. `ipsr.fip == 1`) and not masked 
-                           (i.e. `fqsr.fie == 0`).
+                           not already pending (i.e. `ipsr.fip == 1`) and not 
+                           masked (i.e. `fqsr.fie == 0`).
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the 
                             IOMMU needs to queue a fault record but the 
                             fault-queue is full (i.e., `fqh == fqt - 1`) 
@@ -776,10 +841,10 @@ status of the fault-queue.
                             by writing 1 to the bit. An interrupt is generated 
                             if not already pending (i.e. `ipsr.fip == 1`) and 
                             not masked (i.e. `fqsr.fie == 0`).
-|10:15 |`WPRI`|WPRI      | Reserved for standard use
+|10:15 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
                            IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `pqon` is 1 implementation defined. The 
+                           or `fqon` is 1 is `UNSPECIFIED`. The 
                            recommended sequence to change `fqb` is to first 
                            disable the fault-queue by clearing `fqen` and 
                            waiting for both `busy` and `fqon` to be 0 before 
@@ -790,7 +855,7 @@ status of the fault-queue.
                            When a write is observed by the fqcsr, the `busy` 
                            bit is set to 1. When the `busy` bit is 1, behavior 
                            of additional writes to the `fqcsr` are 
-                           implementation defined. Some implementations may 
+                           `UNSPECIFIED`. Some implementations may 
                            ignore the second write and others may perform the 
                            actions determined by the second write.
 
@@ -799,8 +864,8 @@ status of the fault-queue.
 
                            An IOMMU that can complete controls synchronously 
                            may hard-wire this bit to 0. 
-|27:18 |`WPRI`|WPRI      | Reserved for standard use
-|31:28 |_custom_|        | _These bits are reserved for custom use._
+|27:18 |`reserved`|WPRI  | Reserved for standard use
+|31:28 |_custom_|        | _Reserved for custom use._
 |===
 
 [[PQCSR]]
@@ -816,13 +881,13 @@ status of the page-request-queue.
 {reg: [
   {bits: 1, name: 'pqen'},
   {bits: 1, name: 'pie'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'pqmf'},
   {bits: 1, name: 'pqof'},
-  {bits: 6, name: 'WPRI'},
+  {bits: 6, name: 'reserved'},
   {bits: 1, name: 'pqon'},
   {bits: 1, name: 'busy'},
-  {bits: 10, name: 'WPRI'},
+  {bits: 10, name: 'reserved'},
   {bits: 4, name: 'Custom use'},
 ], config:{lanes: 4, hspace:1024}}
 ....
@@ -831,7 +896,7 @@ status of the page-request-queue.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field   |Attribute | Description
-|16     |`pqon`  |RW        | The page-request-enable bit enables the
+|0      |`pqen`  |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. 
 
                               Changing `pqen` from 0 to 1, resets the `pqh` 
@@ -845,7 +910,8 @@ status of the page-request-queue.
                               page-request-queue may stay active till in-flight 
                               page-request writes are completed. When the
                               page-request-queue turns off, the `pqon` bit 
-                              reads 0.
+                              reads 0, `pqh` is set to 0, `pqt` is set to 0 and 
+                              the `pqcsr` bits `pqof`, and `pqmf` are set to 0.
 
                               When `pqon` reads 0, the IOMMU guarantees that 
                               there are no older in-flight implicit writes to 
@@ -854,13 +920,12 @@ status of the page-request-queue.
 
                               The IOMMU may respond to “Page Request” messages 
                               received when page-request-queue is off or in 
-                              the process of being turned off, as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              the process of being turned off, as specified in
+                              <<ATS_PRI>>.
 |1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
-|7:2    |`WPRI`  |WPRI      | Reserved for standard use
+|7:2    |`reserved`  |WPRI  | Reserved for standard use
 |8      |`pqmf`  |RW1C      | The `pqmf` bit is set to 1 if the IOMMU 
                               encounters an access fault when storing a 
                               page-request message to the page-request-queue.
@@ -878,9 +943,8 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
 |9      |`pqof`   |RW1C     | The page-request-queue-overflow bit is set to 1 
                               if the page-request queue overflows i.e. IOMMU 
                               needs to queue a page-request message but the 
@@ -900,14 +964,13 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages 
                               that caused the `pqof` or `pqmf` bit to be set 
                               and all subsequent “Page Request” messages 
-                              received while these bits are 1 as having 
-                              encountered a catastrophic error as defined by 
-                              the PCIe ATS specifications
-|15:10  |`WPRI`   |WPRI     | Reserved for standard use
+                              received while these bits are 1 as specified in
+                              <<ATS_PRI>>.
+|15:10  |`reserved`   |WPRI | Reserved for standard use
 |16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
 
                               IOMMU behavior on changing `pqb` when `busy` is 1
-                              or `pqon` is 1 implementation defined. The 
+                              or `pqon` is 1 is `UNSPECIFIED`. The 
                               recommended sequence to change `pqb` is to first 
                               disable the page-request queue by clearing `pqen`
                               and waiting for both `busy` and `pqon` to be 0 
@@ -919,7 +982,7 @@ status of the page-request-queue.
                               to 1.
 
                               When the `busy` bit is 1, behavior of additional 
-                              writes to the `pqcsr` are implementation defined.
+                              writes to the `pqcsr` are `UNSPECIFIED`.
                               Some implementations may ignore the second write 
                               and others may perform the actions determined by 
                               the second write. Software should ensure that the
@@ -927,8 +990,8 @@ status of the page-request-queue.
 
                               An IOMMU that can complete controls synchronously
                               may hard-wire this bit to 0
-|27:18 |`WPRI`   |WPRI      | Reserved for standard use
-|31:28 |_custom_ |          | _These bits are designated for custom use._
+|27:18 |`reserved`   |WPRI  | Reserved for standard use
+|31:28 |_custom_ |          | _Reserved for custom use._
 |===
 
 [[IPSR]]
@@ -948,9 +1011,9 @@ software clears that interrupt-pending bit by writing 1 to clear it.
   {bits: 1, name: 'fip'},
   {bits: 1, name: 'pmip'},
   {bits: 1, name: 'pip'},
-  {bits: 4, name: 'WPRI'},
-  {bits: 8, name: 'Custom use'},
-  {bits: 16, name: 'WPRI'},
+  {bits: 4, name: 'reserved'},
+  {bits: 8, name: 'custom'},
+  {bits: 16, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -962,22 +1025,22 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 |1      |`fip`   |RW1C      | The fault-queue-interrupt-pending
 |2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending
 |3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending
-|7:4    |`WPRI`  |WPRI      | Reserved for standard use
-|15:8   |_custom_|          | _These bits are designated for custom use._
-|31:16  |`WPRI`  |WPRI      | Reserved for standard use
+|7:4    |`reserved`  |WPRI  | Reserved for standard use
+|15:8   |_custom_|          | _Reserved for custom use._
+|31:16  |`reserved`  |WPRI  | Reserved for standard use
 |===
 
 [[OVF]]
 === Performance-monitoring counter overflow status (`iocountovf`)
 The performance-monitoring counter overflow status is a 32-bit read-only
-register that contains shadow copies of the OF bits in the `iohpmevt*`
-registers - where `iocntovf` bit X corresponds to `iohpmevtX` and bit 0 corresponds
-to the OF bit of `iohpmcycles`.
+register that contains shadow copies of the OF bits in the `iohpmevt1-31` registers
+- where `iocntovf` bit X corresponds to `iohpmevtX` and bit 0 corresponds to the
+`OF` bit of `iohpmcycles`.
 
 This register enables overflow interrupt handler software to quickly and easily
 determine which counter(s) have overflowed.
 
-.iocntovf register fields
+.Performance-monitoring counter overflow status register fields
 
 [wavedrom, , ]
 ....
@@ -993,7 +1056,7 @@ determine which counter(s) have overflowed.
 |===
 |Bits   |Field   |Attribute | Description
 |0      |`CY`    |RO        | Shadow of `iohpmcycles.OF`
-|31:1   |`HPM`   |RO        | Shadow of `iohpmevt*.OF`
+|31:1   |`HPM`   |RO        | Shadow of `iohpmevt[1-31].OF`
 |===
 
 [[INH]]
@@ -1003,7 +1066,7 @@ that contains bits to inhibit the corresponding counters from counting. Bit X
 when set inhibits counting in `iohpmctrX` and bit 0 inhibits counting in
 `iohpmcycles`.
 
-.iocntinh register fields
+.Performance-monitoring counter inhibits register fields
 
 [wavedrom, , ]
 ....
@@ -1036,7 +1099,7 @@ with events to count b) one or more counters to be sampled atomically.
 This 64-bits register is a free running clock cycle counter.
 There is no associated `iohpmevt0`.
 
-.iohpmcycles register fields
+.Performance-monitoring cycles counter register fields
 
 [wavedrom, , ]
 ....
@@ -1061,7 +1124,7 @@ be at least a 32-bits wide.
 === Performance-monitoring event counters (`iohpmctr1-31`)
 These registers are 64-bit WARL counter registers.
 
-.iohpmctr* register fields
+.Performance-monitoring event counters register fields
 
 [wavedrom, , ]
 ....
@@ -1077,9 +1140,8 @@ These registers are 64-bit WARL counter registers.
 |63:0   |`counter`|WARL      | Event counter value.
 |===
 
-When `capabilities.HPM` is set, the `iohpmctr1-7` registers must be present 
-and be at least 32-bits wide.
-
+When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmctr1` register
+must be present and be at least 32-bits wide.
 
 [[EVT]]
 === Performance-monitoring event selector (`iohpmevt1-31`)
@@ -1093,7 +1155,7 @@ filters. When such `device_id` based filtering is used, the match may be
 configured to be a precise match or a partial match. A partial match allows
 a transactions with a range of IDs to be counted by the counter.
 
-.iohpmevt* register fields
+.Performance-monitoring event selector register fields
 
 [wavedrom, , ]
 ....
@@ -1115,37 +1177,38 @@ a transactions with a range of IDs to be counted by the counter.
 |Bits   |Field      |Attribute | Description
 |14:0   |`eventID`  |WARL     a| Indicates the event to count. A value of 0 
                                  indicates no events are counted. +
-                                 Encodings 1 to 16383 are reserved for standard
+                                 Encoding 1 to 16383 are reserved for standard
                                  events defined in the <<Event_list>>. +
-                                 Encodings 16384 to 32767 are for reserved for 
-                                 custom use and are implementation defined. +
+                                 Encoding 16384 to 32767 are for reserved for 
+                                 custom use. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
-|15     |`DMASK`    |WARL      | When set to 1, partial matching of the
+|15     |`DMASK`    |RW        | When set to 1, partial matching of the
                                  `DID_GSCID` is performed for the transaction.
                                  The lower bits of the `DID_GSCID` all the way 
                                  to the first low order 0 bit (including
                                  the 0 bit position itself) are masked.
-|35:16  |`PID_PSCID`|WARL      | `process_id` if `IDT` is 0, 
+|35:16  |`PID_PSCID`|RW        | `process_id` if `IDT` is 0, 
                                  `PSCID` if `IDT` is 1
-| 59:36 |`DID_GSCID`|WARL      | `device_id` if `IDT` is 0, 
+| 59:36 |`DID_GSCID`|RW        | `device_id` if `IDT` is 0, 
                                  `GSCID` if `IDT` is 1.
-| 60    |`PV_PSCV`  |WARL      | If set, only transactions with matching
+| 60    |`PV_PSCV`  |RW        | If set, only transactions with matching
                                  `process_id` or `PSCID` (based on the Filter 
                                  ID Type) are counted.
-| 61    |`DV_GSCV`  |WARL      | If set, only transactions with matching
+| 61    |`DV_GSCV`  |RW        | If set, only transactions with matching
                                  `device_id` or `GSCID` (based on the Filter ID
                                  Type) are counted.
-| 62    |`IDT`      |WARL      | Filter ID Type: This field indicates the type 
+| 62    |`IDT`      |RW        | Filter ID Type: This field indicates the type 
                                  of ID to filter on. When 0, the `DID_GSCID`
                                  field holds a `device_id` and the `PID_PSCID` 
                                  field holds a `process_id`. When 1, the
                                  `DID_GSCID` field holds a `GSCID` and
                                  `PID_PSCID` field holds a `PSCID`.
-| 63    |`OF`       |WARL      | Overflow status or Interrupt disable 
+| 63    |`OF`       |RW        | Overflow status or Interrupt disable 
 |===
 
-When `capabilities.HPM` is set, the `iohpmevt1-7` registers must be present.
+When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmevt1` register
+must be present and be at least 32-bits wide.
 
 The table below summarizes the filtering option for events that support 
 filtering by IDs.
@@ -1193,7 +1256,7 @@ low order 0 bit (including the 0 bit position itself) are masked.
 
 The following example illustrates the use of DMASK and filtering by `device_id`.
 
-.DMASK with IDT set to `device_id` based filtering
+.`DMASK` with `IDT` set to `device_id` based filtering
 [cols="^1,3,3", options="header"]
 |===
 | *DMASK* | *DID_GSCID*                  | *Comment*
@@ -1214,33 +1277,29 @@ The following table lists the standard events that can be counted:
 | 1          | Untranslated requests        | 0
 | 2          | Translated requests          | 0
 | 3          | ATS Translation requests     | 0
-| 4          | Device-context cache miss    | 0 
-| 5          | Process-context cache miss   | 0
-| 6          | TLB miss                     | 0/1
-| 7          | Device Directory Walks       | 0 
-| 8          | Process Directory Walks      | 0
-| 9          | S/VS-stage Page Table Walks  | 0/1
-| 10         | G-stage Page Table Walks     | 0/1
-| 11 - 16383 | reserved for future standard | -
+| 4          | TLB miss                     | 0/1
+| 5          | Device Directory Walks       | 0 
+| 6          | Process Directory Walks      | 0
+| 7          | S/VS-stage Page Table Walks  | 0/1
+| 8          | G-stage Page Table Walks     | 0/1
+| 9 - 16383 | reserved for future standard | -
 |===
 
 Some events types may be filtered by IDs. When a event type that does not 
 support filtering by IDs is programmed then the associated counter does not
 increment.
 
-The `OF` bit is set when the corresponding `iohpmctr*` overflows, and remains
-set until cleared by software. Since `iohpmctr*` values are unsigned values,
-overflow is defined as unsigned overflow. Note that there is no loss of
-information after an overflow since the counter wraps around and keeps 
+The `OF` bit is set when the corresponding `iohpmctr1-31` counter overflows, 
+and remains set until cleared by software. Since `iohpmctr1-31` values are 
+unsigned values, overflow is defined as unsigned overflow. Note that there is no
+loss of information after an overflow since the counter wraps around and keeps 
 counting while the sticky `OF` bit remains set.
 
-If an `iohpmctr*` overflows while the associated `OF` bit is zero, then a HPM
-Counter Overflow interrupt is generated. If the `OF` bit is one, then no
-interrupt request is generated. Consequently the `OF` bit also functions as a
-count overflow interrupt disable for the associated `iohpmctr*`.
-
-A pending HPM Counter Overflow interrupt (OR of all `iohpmctr*` overflows) is 
-and reported through `ipsr` register.
+If a `iohpmctr1-31` counter overflows when the associated `OF` bit is zero, then
+a HPM Counter Overflow interrupt is generated by setting `ipsr.pmip` bit to 1. If
+the `OF` bit is already one, then no interrupt request is generated. Consequently
+the `OF` bit also functions as a count overflow interrupt disable for the 
+associated `iohpmctr1-31`.
 
 [NOTE]
 ====
@@ -1251,10 +1310,35 @@ counter has overflowed, it and the `OF` bit must be reinitialized before
 another overflow interrupt can be generated.
 ====
 
-//[[CONF]]
-//=== Counters reserved for confidential mode usage (`iocntconf`)
+[NOTE]
+====
+In RV32, memory-mapped writes to `iohpmevt1-31` modify only one 32-bit part of 
+the register. The following sequence may be used to update the register without
+counting events spuriously due to the intermediate value of the register:
 
-//Reserved for future standard use.
+* Write the low order 32-bits to set `eventID` to 0.
+* Write the high order 32-bits with the new desired values.
+* Write the low order 32-bits the new desired values, including that of the
+  `eventID` field.
+
+Alternatively, the counter may first be inhibited such that no events count
+during the update and the inhibit removed after the register has been programmed
+with the desired value.
+====
+
+[NOTE]
+====
+A minimum of one programmable event counter besides the cycles counter is 
+required to comply with this specification. One counter may be used in a time
+multiplexed manner to sample events but such analysis may take longer to
+complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
+the PMU may be used by a performance analyst to analyze one or more of those
+streams concurrently. Typically a performance analyst may require four 
+programmable counters, to count events for an IO stream. To support concurrent
+analysis of at least two streams of IO it is recommended to support seven 
+programmable counters.
+====
+
 
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
@@ -1264,17 +1348,22 @@ be mapped to same vector or a cause can be given a unique vector.
 
 The vector is used:
 
-. By a MSI capable IOMMU to index into MSI configuration table (`msi_cfg_tbl`)
-  to determine the MSI to generate. A IOMMU is capable of generating IOMMU
-  generated interrupt as a MSI if `capabilities.IGS==MSI` or if 
-  `capabilities.IGS==BOTH` and `fctrl.WIS` is set to 1.
-. By a non-MSI capable IOMMU determine the wire to use to signal the interrupt
+. By an IOMMU that generates interrupts as MSI, to index into MSI 
+  configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An 
+  IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
+  or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
+  configured to generate interrupts as MSI by setting `fctrl.WIS` to 0.
+. By an IOMMU that generates wire based interrupts, to determine the wire 
+  to signal the interrupt. An IOMMU is capable of generating wire based 
+  interrupts if `capabilities.IGS==WIS` or if `capabilities.IGS==BOTH`. When 
+  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire based 
+  interrupts by setting `fctrl.WIS` to 1.
 
 If an implementation only supports a single vector then all bits of this
 register may be hardwired to 0 (WARL). Likewise if only two vectors are 
 supported then only bit 0 for each cause could be writable.
 
-.icvec register fields
+.Interrupt-cause-to-vector register fields
 
 [wavedrom, , ]
 ....
@@ -1283,8 +1372,8 @@ supported then only bit 0 for each cause could be writable.
   {bits: 4, name: 'fiv'},
   {bits: 4, name: 'pmiv'},
   {bits: 4, name: 'piv'},
-  {bits: 16, name: 'WPRI'},
-  {bits: 32, name: 'Custom'},
+  {bits: 16, name: 'reserved'},
+  {bits: 32, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -1304,17 +1393,172 @@ supported then only bit 0 for each cause could be writable.
 | 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
                                is the vector number assigned to the
                                page-request-queue-interrupt.
-| 31:16 |`WPRI`   |WPRI      | Reserved for standard use
+| 31:16 |`reserved`|WPRI     | Reserved for standard use
 | 63:32 |_custom_ |WARL      | _Reserved for custom use_
+|===
+
+[[TRR_IOVA]]
+=== Translation-request IOVA (`tr_req_iova`)
+The `tr_req_iova` is a 64-bit WARL register used to implement a 
+translation-request interface for debug. This register is present when 
+`capabilities.DBG == 1`.
+
+.Translation-request IOVA register fields
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 12, name: 'pgoff'},
+  {bits: 52, name: 'iova_vpn'},
+], config:{lanes: 2, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 11:0  |`pgoff`    |WARL      | The IOVA page-offset
+| 63:12 |`iova_vpn` |WARL      | The IOVA virtual page number
+|===
+
+
+[[TRR_CTRL]]
+=== Translation-request control (`tr_req_ctrl`)
+The `tr_req_ctrl` is a 64-bit WARL register used to implement a 
+translation-request interface for debug. This register is present when
+`capabilities.DBG == 1`.
+
+.Translation-request control register fields
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1, name: 'Go/Busy'},
+  {bits: 1, name: 'Priv'},
+  {bits: 1, name: 'Exe'},
+  {bits: 1, name: 'RWn'},
+  {bits: 1, name: 'PV'},
+  {bits: 11, name: 'reserved'},
+  {bits: 24, name: 'DID'},
+  {bits: 20, name: 'PID'},
+  {bits: 4, name: 'custom'},
+], config:{lanes: 4, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 0     |`Go/Busy`  |RW1S      | This bit is set to indicate a valid 
+                                 request has been setup in the 
+                                 `tr_req_iova/tr_req_ctrl` registers
+                                 for the IOMMU to translate.
+                                 
+                                 The IOMMU indicates completion of the
+                                 requested translation by clearing this
+                                 bit to 0. On completion, the results 
+                                 of the translation are in `tr_response`
+                                 register.
+| 1     |`Priv`     |WARL      | When set to 1 the requests needs Privileged
+                                 Mode access for this translation.
+| 2     |`Exe`      |WARL      | When set to 1 the request needs execute
+                                 access for this translation.
+| 3     |`RWn`      |WARL      | When set to 1 the request only needs
+                                 read-only access for this translation.
+| 4     |`PV`       |WARL      | When set to 1 the `PID` field of the 
+                                 register is valid.
+| 15:5  |reserved   |WPRI      | Reserved for standard use
+| 39:16 |`DID`      |WARL      | This field provides the `device_id` for
+                                 this translation request.
+| 59:40 |`DID`      |WARL      | When `PV` is 1 this field provides the
+                                 `process_id` for this translation 
+                                 request.
+| 63:60 a|_custom_ |WARL      a| _Reserved for custom use_
+|===
+
+
+[[TRR_RSP]]
+=== Translation-response (`tr_response`)
+The `tr_response` is a 64-bit RO register used to hold the results
+of a translation requested using the translation-request interface.
+This register is present when `capabilities.DBG == 1`.
+
+.Translation-response register fields
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 1, name: 'S'},
+  {bits: 2, name: 'PBMT'},
+  {bits: 1, name: 'fault'},
+  {bits: 12, name: 'reserved'},
+  {bits: 4, name: 'custom'},
+], config:{lanes: 4, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field      |Attribute | Description
+| 43:0  |`PPN`      |RO        a| If the `fault` bit is 0, then this field
+                                 provides the PPN determined as a result of
+                                 translating the `iova_vpn` in `tr_req_iova`. +
+ +
+                                 If the `fault` bit is 1, then the value of
+                                 this field is `UNSPECIFIED`. +
+ +
+                                 If the `S` bit is 0, then the size of the
+                                 translation is 4 KiB - a page. +
+ +
+                                 If the `S` bit is 1, then the translation
+                                 resulted in a super-page, and the size of the
+                                 super-page is encoded in the PPN itself. If
+                                 scanning from bit position 0 to bit position 
+                                 43, the first bit with a value of 0 at 
+                                 position `X`, then the super-page size is 
+                                `2^X+1^ * 4` KiB. +
+ +
+                                 If `X` is not 0, then all bits at position 0
+                                 through `X-1` are each encoded with a value 
+                                 of 1.
+ +
+
+.Example of encoding of super page size in `PPN`
+[width=80%]
+[%header, cols="3,^1,2"]
+!===
+                                !           `PPN`          !`S`!   Size
+                                !`yyyy....yyyy yyyy yyyy`  !`0`!  4 KiB
+                                !`yyyy....yyyy yyyy 0111`  !`1`! 64 KiB
+                                !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
+                                !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
+!===
+| 44   |`S`      |RO          | Translation range size field, when set to 1
+                                indicates that the translation applies to a
+                                range that is larger than 4 KiB and the size
+                                of the translation range is encoded in the 
+                                `PPN` field. The value of this field is 
+                                `UNSPECIFIED` if the `fault` field is 1.
+|46:45 |`PBMT`   |RO          | Memory type determined for the translation 
+                                using the PBMT fields in the S/VS-stage and/or
+                                the G-stage page tables used for the 
+                                translation. This value of field is 
+                                `UNSPECIFIED` if the `fault` field is 1.
+|47    |`fault`  |RO          | If the process to translate the IOVA detects
+                                a fault then the `fault` field is set to 1.
+                                The detected fault may be reported through the
+                                fault-queue.
+|59:48 |reserved   |WPRI      | Reserved for standard use
+|63:60 a|_custom_ |WARL      a| _Reserved for custom use_
 |===
 
 [[MSI]]
 === MSI configuration table (`msi_cfg_tbl`)
-IOMMU that supports MSI implements a MSI configuration table that is indexed 
-by the vector from `icvec` to determine a MSI table entry. Each MSI table 
-entry for interrupt vector `x` has three registers `msi_addr_x`, `msi_data_x`, 
-and `msi_vec_ctrl_x`. These registers are hard wired to 0 if the IOMMU does 
-not support MSI.
+IOMMU that supports generating IOMMU originated interrupts 
+(i.e., `capabilities.IGS == MSI` or `capabilities.IGS == BOTH`) as MSI 
+implements a MSI configuration table that is indexed by the vector from `icvec`
+to determine a MSI table entry. Each MSI table entry for interrupt vector `x` 
+has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctrl_x`. These 
+registers are hard wired to 0 if `capabilities.IGS == WIS`.
 
 If an access fault is detected on a MSI write using `msi_addr_x`, then the IOMMU
 reports a "IOMMU MSI write access fault" (cause 273) fault, with `TTYP` set to 0
@@ -1332,7 +1576,7 @@ and `iotval` set to the value of `msi_addr_x`.
 2+^|...                                            |+020h     
 |===
 
-.`msi_addr_x` register fields
+.Message address register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -1352,7 +1596,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |===
 
 
-.`msi_data_x` register fields
+.Message data register fields
 [wavedrom, , ]
 ....
 {reg: [
@@ -1368,7 +1612,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |===
 
 
-.`msi_vec_ctrl_x` register fields
+.Vector control register fields
 [wavedrom, , ]
 ....
 {reg: [

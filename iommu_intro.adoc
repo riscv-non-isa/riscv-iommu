@@ -133,6 +133,12 @@ MSI address translation table configured by software in the device context.
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
+| PPN             | Physical Page Number.
+| PRI             | Page Request Interface - a PCIe protocol that enables 
+                    devices to request OS memory manager services to make pages
+                    resident.
+| PT              | Page Table.
+| PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard.
 | PDI             | Process-directory-index: a sub field of the unique process
@@ -207,8 +213,9 @@ by malicious software/hardware.
 
 The IOMMU offers a mechanism for the OS to defend against such unintended
 corruptions by limiting the memory that can be accessed by devices using DMA.
-Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System configures the IOMMU to use the S-stage page table
-to translate IOVA to SPA and thereby limit the addresses that may be accessed.
+Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System 
+configures the IOMMU to use the S-stage page table to translate IOVA to SPA and
+thereby limit the addresses that may be accessed.
 
 The OS may also use the MSI address translation capability to dynamically
 redirect interrupts from one RISC-V hart to another without needing to reprogram
@@ -445,10 +452,10 @@ The second instance, IOMMU 1 (associated with the IO Bridge 1), illustrates
 interfacing devices (IO Devices A and B) to the system fabric without the use
 of a Root Port.
 
-The IO Bridge is placed between the device(s) and the system fabric to
-process device originated DMA transactions. IO Devices may perform DMA
-transactions using IO Virtual Addresses (VA, GVA or GPA). The IO Bridge
-invokes the associated IOMMU to translate the IOVA to a System Physical
+The IO Bridge is placed between the device(s) and the system interconnect to 
+process device originated DMA transactions. IO Devices may perform DMA 
+transactions using IO Virtual Addresses (VA, GVA or GPA). The IO Bridge 
+invokes the associated IOMMU to translate the IOVA to a Supervisor Physical 
 Addresses (SPA).
 
 The IOMMU is not invoked for outbound transactions.
@@ -494,7 +501,7 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
   such as:
 .. The status of the request, indicating if the request completed successfully or a fault
    occurred.
-.. If the request was completed successfully; the System Physical Address (SPA).
+.. If the request was completed successfully; the Supervisor Physical Address (SPA).
 .. Opaque information (e.g. tags), if applicable, associated with the request.
 .. The page-based memory types (PBMT), if Svpbmt is supported, obtained from the
    IOMMU address translation page tables. When two-stage address translation is
