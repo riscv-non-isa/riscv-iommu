@@ -17,7 +17,7 @@ Read or write access to IOMMU registers must follow the following rules:
 
 === Guidelines for initialization
 
-This guidelines initializing the IOMMU are as follows:
+The guidelines for initializing the IOMMU are as follows:
 
 . Read the `capabilities` register to discover the capabilities of the IOMMU.
 . Stop and report failure if `capabilities.version` is not supported.
@@ -54,11 +54,12 @@ This guidelines initializing the IOMMU are as follows:
   `msi_vec_ctrl_V` register appropriately.
 . To program the command queue, first determine the number of entries `N` needed
   in the command queue. The number of entries in the command queue is always a 
-  power of two. Let `N = 2^k^`.  If `N` is 256 or lower then allocate a memory 
-  buffer that is aligned to a 4-KiB page address and is of size `N` x 16-bytes. 
-  If `N` is greater than 256 then allocate a memory buffer that is naturally 
-  aligned to a `N` * 16-byte address boundary. Let the physical page number of 
-  the buffer be `B`. Program the command queue registers as follows.
+  power of two. If `N` is 256 or lower then allocate a memory buffer that is
+  aligned to a 4-KiB page address and is of size `N` x 16-bytes.  If `N` is
+  greater than 256 then allocate a memory buffer that is naturally aligned to a
+  `N` x 16-byte address boundary. Let `k=log~2~(N)` and `B` be the physical page
+  number (PPN) of the allocated memory buffer. Program the command queue
+  registers as follows:
 
 **  Poll on `cqcsr.busy` till it reads 0
 **  `temp_cqb_var.PPN = B`
@@ -69,11 +70,11 @@ This guidelines initializing the IOMMU are as follows:
 
 . To program the fault queue, first determine the number of entries N needed in
   the fault queue. The number of entries in the fault queue is always a power 
-  of two.  Let `N = 2^k^`. If `N` is 128 or lower then allocate a memory buffer 
-  that is aligned to 4-KiB page address and is of size `N` x 32-bytes. If `N` 
-  is greater than 128 then allocate a memory buffer that is naturally aligned to
-  a `N` * 32-byte address boundary. Let the physical page number of the buffer 
-  be `B`. Program the fault queue registers as follows:
+  of two. If `N` is 128 or lower then allocate a memory buffer that is aligned
+  to 4-KiB page address and is of size `N` x 32-bytes. If `N` is greater than
+  128 then allocate a memory buffer that is naturally aligned to a
+  `N` x 32-byte address boundary. Let `k=log~2~(N)` and `B` be the PPN of the
+  allocated memory buffer. Program the fault queue registers as follows:
 
 **  Poll on `fqcsr.busy` till it reads 0
 **  `temp_fqb_var.PPN = B`
@@ -84,12 +85,12 @@ This guidelines initializing the IOMMU are as follows:
 
 . To program the page-request queue, first determine the number of entries `N` 
   needed in the page-request queue. The number of entries in the page-request
-  queue is always a power of. Let `N = 2^k^`.  If `N` is 256 or lower then 
-  allocate a memory buffer that is aligned to 4-KiB page address and is of 
-  size `N` x 16-bytes. If `N` is greater than 256 then allocate a memory buffer
-  at an address that is naturally aligned to a `N` * 16-byte address boundary.
-  Let the physical page number of the buffer be `B`. Program the page-request 
-  queue registers as follows:
+  queue is always a power of. If `N` is 256 or lower then allocate a memory
+  buffer that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If
+  `N` is greater than 256 then allocate a memory buffer at an address that is
+  naturally aligned to a `N` x 16-byte address boundary. Let `k=log~2~(N)` and
+  `B` be the PPN of the allocated memory buffer. Program the page-request queue
+  registers as follows:
 
 **  Poll on `pqcsr.busy` till it reads 0
 **  `temp_pqb_var.PPN = B`
@@ -100,27 +101,28 @@ This guidelines initializing the IOMMU are as follows:
 
 . To program the DDT pointer, first determine the supported `device_id` width `Dw` 
   and the format of the device-context data structure. If `capabilities.MSI` is
-  0, then the IOMMU uses base format device-context else extended format 
-  device-context are used. Allocate a page (4 KiB) of memory to use as the root
-  table of the DDT. Let `B` be the PPN of the allocated memory. Initialize the 
-  allocated memory to all 0. Determine the mode `M` of the DDT based on `Dw` and 
-  if the IOMMU requires base or extended format device-contexts.
-. If extended format device-context are used then
+  0, then the IOMMU uses base-format device-contexts else extended-format 
+  device-contexts are used. Allocate a page (4 KiB) of memory to use as the root
+  table of the DDT. Initialize the allocated memory to all 0. Let `B` be the
+  PPN of the allocated memory. Determine the mode `M` of the DDT based on `Dw`
+  and the IOMMU device-contexts format as follows:
+** If extended-format device-contexts are used then
 .. If `Dw` is less than or equal to  6-bits then `M = 1LVL`
 .. If `Dw` is less than or equal to 15-bits then `M = 2LVL`
 .. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
-. If base format device-context are used then
+** If base-format device-contexts are used then
 .. If `Dw` is less than or equal to  7-bits then `M = 1LVL`
 .. If `Dw` is less than or equal to 16-bits then `M = 2LVL`
 .. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
 
-. Program the `ddtp` register as follows:
++
+Program the `ddtp` register as follows:
 
 ** `temp_ddtp_var.MODE = M`
 ** `temp_ddtp_var.PPN = B`
 ** `ddtp = temp_ddtp_var`
 
-The IOMMU is initialized and may be now be configured with device-context
+The IOMMU is initialized and may be now be configured with device-contexts
 for devices in scope of the IOMMU.
 
 === Guidelines for invalidation's
