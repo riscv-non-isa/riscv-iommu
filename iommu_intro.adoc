@@ -121,6 +121,7 @@ MSI address translation table configured by software in the device context.
                     same GSCID must also be programmed with identical G-stage
                     page tables.
 | Guest           | Software in a virtual machine.
+| HPM             | Hardware Performance Monitor.
 | Hypervisor      | Software entity that controls virtualization.
 | ID              | Identifier.
 | IMSIC           | Incoming Message-signaled Interrupt Controller.
@@ -586,9 +587,9 @@ features:
   supported the IOMMU may optionally support the ability to translate to a GPA
   instead of a SPA in response to a translation request.
 
-* IOMMU may optionally support a hardware performance monitoring unit (PMU). If
-  a PMU is supported then the IOMMU must support the cycles counter and at least
-  7 hardware performance monitoring counters must be supported.
+* IOMMU may optionally support a hardware performance monitor (HPM) unit. If 
+  HPM is supported then the IOMMU must support the cycles counter and at least 
+  1 hardware performance monitoring counters must be supported.
 
 * The IOMMU may use MSI or wire-based-interrupts to request service from
   software. At least one method of generating interrupts from the IOMMU must be
