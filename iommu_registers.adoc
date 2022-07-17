@@ -1274,11 +1274,11 @@ The following example illustrates the use of DMASK and filtering by `device_id`.
 .`DMASK` with `IDT` set to `device_id` based filtering
 [cols="^1,3,3", options="header"]
 |===
-| *DMASK* | *DID_GSCID*                  | *Comment*
-| 0       | yyyyyyyy  yyyyyyyy  yyyyyyyy | One specific seg:bus:dev:func
-| 1       | yyyyyyyy  yyyyyyyy  yyyyy011 | seg:bus:dev - any func
-| 1       | yyyyyyyy  yyyyyyyy  01111111 | seg:bus - any dev:func
-| 1       | yyyyyyyy  01111111  11111111 | seg - any bus:dev:func
+| `DMASK` | `DID_GSCID`                  | *Comment*
+| 0       |`yyyyyyyy  yyyyyyyy  yyyyyyyy`| One specific seg:bus:dev:func
+| 1       |`yyyyyyyy  yyyyyyyy  yyyyy011`| seg:bus:dev - any func
+| 1       |`yyyyyyyy  yyyyyyyy  01111111`| seg:bus - any dev:func
+| 1       |`yyyyyyyy  01111111  11111111`| seg - any bus:dev:func
 |===
 
 The following table lists the standard events that can be counted:
@@ -1484,7 +1484,7 @@ translation-request interface for debug. This register is present when
 | 15:5  |reserved   |WPRI      | Reserved for standard use
 | 39:16 |`DID`      |WARL      | This field provides the `device_id` for
                                  this translation request.
-| 59:40 |`DID`      |WARL      | When `PV` is 1 this field provides the
+| 59:40 |`PID`      |WARL      | When `PV` is 1 this field provides the
                                  `process_id` for this translation 
                                  request.
 | 63:60 a|_custom_ |WARL      a| _Reserved for custom use_
