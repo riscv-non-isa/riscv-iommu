@@ -8,7 +8,7 @@
 uint8_t
 locate_process_context(
     process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id, 
-    uint32_t *cause, uint64_t *iotval2) {
+    uint32_t *cause, uint64_t *iotval2, uint8_t TTYP) {
     uint64_t a, gst_page_sz;
     uint8_t i, LEVELS, status;
     uint8_t GR, GW, GX, GD, GPBMT;
@@ -79,7 +79,7 @@ step_2:
     if ( g_stage_address_translation(a, 1, 0, 0, 1,
             DC->iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
             1, process_id, 0, 0, device_id, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
-            DC->iohgatp.GSCID) )
+            DC->iohgatp.GSCID, TTYP) )
         return 1;
 
     // 3. If `i == 0` go to step 9.

@@ -282,7 +282,7 @@ step_9:
     }
 
     // 13. Locate the process-context (`PC`) as specified in Section 2.4.2
-    if ( locate_process_context(&PC, &DC, req.device_id, req.process_id, &cause, &iotval2) )
+    if ( locate_process_context(&PC, &DC, req.device_id, req.process_id, &cause, &iotval2, TTYP) )
         return;
 
     // 14. if any of the following conditions hold then stop and report 
@@ -321,16 +321,21 @@ step_16:
     //     translation process then stop and report the fault.
     if ( s_vs_stage_address_translation(req.tr.iova, priv, is_read, is_write, is_exec,
                         SUM, iosatp, PSCID, iohgatp, &cause, &iotval2, &pa, &page_sz, &R, &W, &X, &G, 
-                        &PBMT, &UNTRANSLATED_ONLY, req.pid_valid, req.process_id, req.device_id) )
+                        &PBMT, &UNTRANSLATED_ONLY, req.pid_valid, req.process_id, req.device_id,
+                        TTYP, DC.tc.T2GPA) )
         goto stop_and_report_fault;
 
 step_18:
     // 18. Translation process is complete
     rsp_msg->status          = SUCCESS;
-    rsp_msg->trsp.PPN        = (pa & ~(page_sz - 1))/PAGESIZE;
+    // The PPN and size is returned in same format as for ATS translation response
+    // see below comments on for format details.
+    rsp_msg->trsp.PPN        = ((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE;
+    rsp_msg->trsp.S          = (page_sz > PAGESIZE) ? 1 : 0;
     rsp_msg->trsp.is_msi     = is_msi;
     rsp_msg->trsp.is_mrif_wr = is_mrif_wr;
     rsp_msg->trsp.mrif_nid   = mrif_nid;
+    rsp_msg->trsp.PBMT       = PBMT;
 
     if ( req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
         // When a Success response is generated for a ATS translation request, the setting
@@ -396,8 +401,6 @@ step_18:
         // in MRIF mode then a Success response is generated with R, W, and U bit set to
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
-        rsp_msg->trsp.PPN    = ((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE;
-        rsp_msg->trsp.S      = (page_sz > PAGESIZE) ? 1 : 0;
         rsp_msg->trsp.Priv   = (req.pid_valid && req.priv_req) ? 1 : 0;
         rsp_msg->trsp.CXL_IO = (req.is_cxl_dev && ((PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
@@ -407,7 +410,6 @@ step_18:
         rsp_msg->trsp.R      = R;
         rsp_msg->trsp.W      = W;
         rsp_msg->trsp.Exe    = (X & R);
-        rsp_msg->trsp.PBMT   = PBMT;
     }
     return;
 

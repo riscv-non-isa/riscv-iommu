@@ -12,16 +12,16 @@ s_vs_stage_address_translation(
     uint8_t SUM, iosatp_t iosatp, uint32_t PSCID, iohgatp_t iohgatp, 
     uint32_t *cause, uint64_t *iotval2, uint64_t *resp_pa, uint64_t *page_sz,
     uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT, uint8_t *UNTRANSLATED_ONLY,
-    uint8_t pid_valid, uint32_t process_id, uint32_t device_id) {
+    uint8_t pid_valid, uint32_t process_id, uint32_t device_id, uint8_t TTYP, uint8_t T2GPA) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
     pte_t pte;
     uint8_t NL_G = 1;
     uint8_t i, PTESIZE, LEVELS, status, do_page_fault;
-    uint64_t a, masked_upper_bits, mask, napot_ppn;
+    uint64_t a, masked_upper_bits, mask, napot_ppn, napot_iova, napot_gpa;
     uint8_t is_implicit_write = 0;
-    uint64_t gst_page_sz;
+    uint64_t gst_page_sz, resp_gpa;
     uint8_t GR, GW, GX, GD, GPBMT;
     uint8_t ioatc_status, GV, PSCV;
     uint16_t GSCID;
@@ -124,7 +124,7 @@ step_2:
     is_implicit_write = ( g_reg_file.capabilities.amo == 0 ) ? 0 : 1;
     if ( g_stage_address_translation(a, 1, is_implicit_write, 0, 1,
             iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
-            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID) ) 
+            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
         return 1;
 
     // Count S/VS stage page walks
@@ -192,9 +192,22 @@ step_5:
     //    privilege mode and the value of the SUM and MXR fields of the mstatus 
     //    register. If not, stop and raise a page-fault exception corresponding to 
     //    the original access type.
-    if ( is_exec  && (pte.X == 0) ) goto page_fault;
-    if ( is_read  && (pte.R == 0) ) goto page_fault;
-    if ( is_write && (pte.W == 0) ) goto page_fault;
+    // For PCIe ATS Translation Requests:
+    //   If the translation could be successfully completed but the requested 
+    //   permissions are not present (Execute requested but no execute permission; 
+    //   no-write not requested and no write permission; no read permission) then a 
+    //   Success response is returned with the denied permission (R, W or X) set to 0
+    //   and the other permission bits set to value determined from the page tables. 
+    //   The X permission is granted only if the R permission is also granted. 
+    //   Execute-only translations are not compatible with PCIe ATS as PCIe requires 
+    //   read permission to be granted if the execute permission is granted.
+    //   No faults are caused here - the denied permissions will be reported back in
+    //   the ATS completion
+    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
+        if ( is_exec  && (pte.X == 0) ) goto page_fault;
+        if ( is_read  && (pte.R == 0) ) goto page_fault;
+        if ( is_write && (pte.W == 0) ) goto page_fault;
+    }
     if ( (priv == U_MODE) && (pte.U == 0) ) goto page_fault;
 
     // When ENS is 1, supervisor privilege transactions that read with 
@@ -231,7 +244,7 @@ step_5:
         ppn[3] = get_bits(45, 37, pte.raw);
         ppn[4] = get_bits(53, 46, pte.raw);
     }
-    // 6. If i > 0 and pte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; 
+    // 6. If i > 0 and pte.ppn[i − 1 : 0] = 0, this is a misaligned superpage; 
     // stop and raise a page-fault exception corresponding to the original 
     // access type.
     if ( i > 0 ) {
@@ -294,10 +307,13 @@ step_5:
     do_page_fault = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&pte.raw);
     if ( status != 0 ) goto access_fault;
-    // Determine if the reloaded PTE causes a fault
-    if ( is_exec  && (pte.X == 0) ) do_page_fault = 1;
-    if ( is_read  && (pte.R == 0) ) do_page_fault = 1;
-    if ( is_write && (pte.W == 0) ) do_page_fault = 1;
+    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
+        // Determine if the reloaded PTE causes a fault
+        // See note about PCIe ATS translation requests in step 5
+        if ( is_exec  && (pte.X == 0) ) do_page_fault = 1;
+        if ( is_read  && (pte.R == 0) ) do_page_fault = 1;
+        if ( is_write && (pte.W == 0) ) do_page_fault = 1;
+    }
     if ( (priv == U_MODE) && (pte.U == 0) ) do_page_fault = 1;
     if ( is_exec && (priv == S_MODE) && (pte.U == 1) ) do_page_fault = 1;
     if ( (priv == S_MODE) && !is_exec && SUM == 0 && pte.U == 1 ) do_page_fault = 1;
@@ -333,12 +349,13 @@ step_8:
     // If i > 0, then this is a superpage translation and pa.ppn[i − 1 : 0] = va.vpn[i − 1 : 0].
     // pa.ppn[LEVELS − 1 : i] = pte.ppn[LEVELS − 1 : i]
     *resp_pa = ((pte.PPN * PAGESIZE) & ~(*page_sz - 1)) | (iova & (*page_sz - 1));
+    resp_gpa = *resp_pa;
 
     // Invoke G-stage page table to translate the PTE address if G-stage page
     // table is active.
     if ( g_stage_address_translation(*resp_pa, is_read, is_write, is_exec, 0,
             iohgatp, cause, iotval2, resp_pa, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
-            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID) ) 
+            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
         return 1;
 
     // The page size is smaller of VS or G stage page table size
@@ -363,17 +380,38 @@ step_8:
     *X = pte.X & GX;
 
     // Cache the translation in the IOATC
-    // In the IOTLB the PPN is stored in the NAPOT format
+    // In the IOTLB the IOVA & PPN is stored in the NAPOT format
     napot_ppn = (((*resp_pa & ~(*page_sz - 1)) | ((*page_sz/2) - 1))/PAGESIZE);
-    cache_ioatc_iotlb(iova, 
-                ((iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),                       // GV
-                ((iosatp.MODE == IOSATP_Bare) ? 0 : 1),                         // PSCV
-                iohgatp.GSCID, PSCID,                                           // GSCID, PSCID tags
-                pte.R, pte.W, pte.X, pte.U, *G, pte.D,                          // VS stage attributes
-                *PBMT, GR, GW, GX, GD,                                          // G stage attributes
-                napot_ppn,                                                      // PPN
-                ((*page_sz > PAGESIZE) ? 1 : 0)                                 // S - size
-               );
+    napot_iova = (((iova & ~(*page_sz - 1)) | ((*page_sz/2) - 1))/PAGESIZE);
+    napot_gpa = (((resp_gpa & ~(*page_sz - 1)) | ((*page_sz/2) - 1))/PAGESIZE);
+    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
+        // ATS translation requests are cached in Device TLB. For Untranslated
+        // Requests cache the translations for future re-use
+        cache_ioatc_iotlb(napot_iova, 
+                    ((iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),             // GV
+                    ((iosatp.MODE == IOSATP_Bare) ? 0 : 1),               // PSCV
+                    iohgatp.GSCID, PSCID,                                 // GSCID, PSCID tags
+                    pte.R, pte.W, pte.X, pte.U, *G, pte.D,                // VS stage attributes
+                    *PBMT, GR, GW, GX, GD,                                // G stage attributes
+                    napot_ppn,                                            // PPN
+                    ((*page_sz > PAGESIZE) ? 1 : 0)                       // S - size
+                   );
+    } 
+    if ( TTYP == PCIE_ATS_TRANSLATION_REQUEST && T2GPA == 1 ) {
+        // If in T2GPA mode, cache the final GPA->SPA translation as 
+        // the translated requests may hit on this 
+        cache_ioatc_iotlb(napot_gpa, 
+                    ((iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),             // GV
+                    0,                                                    // PSCV
+                    iohgatp.GSCID, 0,                                     // GSCID, PSCID tags
+                    pte.R, pte.W, pte.X, pte.U, *G, pte.D,                // VS stage attributes
+                    *PBMT, GR, GW, GX, GD,                                // G stage attributes
+                    napot_ppn,                                            // PPN
+                    ((*page_sz > PAGESIZE) ? 1 : 0)                       // S - size
+                   );
+        // Return the GPA as translation response if T2GPA is 1
+        *resp_pa = resp_gpa;
+    }
     return 0;
 
 page_fault:

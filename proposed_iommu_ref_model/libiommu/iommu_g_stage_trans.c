@@ -11,7 +11,7 @@ g_stage_address_translation(
     uint64_t *resp_pa, uint64_t *gst_page_sz,
     uint8_t *GR, uint8_t *GW, uint8_t *GX, uint8_t *GD, uint8_t *GPBMT,
     uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID) {
+    uint8_t GV, uint32_t GSCID, uint8_t TTYP) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -125,9 +125,22 @@ step_5:
     // g-stage page table specifc notes:
     //    when checking the U bit, the current privilege mode is always taken 
     //    to be U-mode; - impiies that U must be always 1 to be legal
-    if ( is_exec  && (gpte.X == 0) ) goto guest_page_fault;
-    if ( is_read  && (gpte.R == 0) ) goto guest_page_fault;
-    if ( is_write && (gpte.W == 0) ) goto guest_page_fault;
+    // For PCIe ATS Translation Requests:
+    //   If the translation could be successfully completed but the requested 
+    //   permissions are not present (Execute requested but no execute permission; 
+    //   no-write not requested and no write permission; no read permission) then a 
+    //   Success response is returned with the denied permission (R, W or X) set to 0
+    //   and the other permission bits set to value determined from the page tables. 
+    //   The X permission is granted only if the R permission is also granted. 
+    //   Execute-only translations are not compatible with PCIe ATS as PCIe requires 
+    //   read permission to be granted if the execute permission is granted.
+    //   No faults are caused here - the denied permissions will be reported back in
+    //   the ATS completion
+    if ( (TTYP != PCIE_ATS_TRANSLATION_REQUEST) && (implicit == 0) ) {
+        if ( is_exec  && (gpte.X == 0) ) goto guest_page_fault;
+        if ( is_read  && (gpte.R == 0) ) goto guest_page_fault;
+        if ( is_write && (gpte.W == 0) ) goto guest_page_fault;
+    }
     if ( gpte.U == 0 )               goto guest_page_fault;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
@@ -202,10 +215,13 @@ step_5:
     do_guest_page_fault = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte.raw);
     if ( status != 0 ) goto access_fault;
-    // Determine if the reloaded PTE causes a fault
-    if ( is_exec  && (gpte.X == 0) ) do_guest_page_fault = 1;
-    if ( is_read  && (gpte.R == 0) ) do_guest_page_fault = 1;
-    if ( is_write && (gpte.W == 0) ) do_guest_page_fault = 1;
+    if ( (TTYP != PCIE_ATS_TRANSLATION_REQUEST) && (implicit == 0) ) {
+        // Determine if the reloaded PTE causes a fault
+        // See note about PCIe ATS translation requests in step 5
+        if ( is_exec  && (gpte.X == 0) ) do_guest_page_fault = 1;
+        if ( is_read  && (gpte.R == 0) ) do_guest_page_fault = 1;
+        if ( is_write && (gpte.W == 0) ) do_guest_page_fault = 1;
+    }
     if ( gpte.U == 0 )               do_guest_page_fault = 1;
     // If no faults detected then set A and if required D bit
     if ( do_guest_page_fault == 0 ) gpte.A = 1;

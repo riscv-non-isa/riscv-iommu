@@ -24,6 +24,8 @@ cache_ioatc_dc(
     ddt_cache[0].lru = (replace == 0) ? 0 : 1;
     ddt_cache[1].lru = (replace == 0) ? 1 : 0;
     ddt_cache[replace].DC = *DC;
+    ddt_cache[replace].DID = device_id;
+    ddt_cache[replace].valid = 1;
     return;
 }
 
@@ -62,6 +64,9 @@ cache_ioatc_pc(
     pdt_cache[0].lru = (replace == 0) ? 0 : 1;
     pdt_cache[1].lru = (replace == 0) ? 1 : 0;
     pdt_cache[replace].PC = *PC;
+    pdt_cache[replace].DID = device_id;
+    pdt_cache[replace].PID = process_id;
+    pdt_cache[replace].valid = 1;
     return;
 }
 // Lookup IOATC for a process context
@@ -87,12 +92,13 @@ lookup_ioatc_pc(
 // Cache a translation in the IOATC
 void
 cache_ioatc_iotlb(
-    uint64_t addr, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
+    uint64_t iova, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
     uint8_t  VS_R, uint8_t  VS_W, uint8_t  VS_X, uint8_t U, uint8_t  G, uint8_t VS_D, uint8_t  PBMT,
     uint8_t  G_R, uint8_t  G_W, uint8_t  G_X, uint8_t G_D,
     uint64_t PPN, uint8_t  S) {
 
     uint8_t i, replace = 0;
+
     for ( i = 0; i < 1; i++ ) {
         if ( tlb[i].valid == 0 ) {
             replace = i; 
@@ -100,8 +106,9 @@ cache_ioatc_iotlb(
         }
         if ( tlb[i].lru == 1 ) replace = i;
     }
+
     // Fill the tags
-    tlb[replace].addr  = addr;;
+    tlb[replace].iova  = iova;
     tlb[replace].GV    = GV;
     tlb[replace].PSCV  = PSCV;
     tlb[replace].GSCID = GSCID;
@@ -120,6 +127,7 @@ cache_ioatc_iotlb(
     // PPN and size
     tlb[replace].PPN   = PPN;
     tlb[replace].S     = S;
+    tlb[replace].valid = 1;
     return;
 }
 
@@ -139,7 +147,7 @@ lookup_ioatc_iotlb(
         if ( tlb[i].valid == 1 && 
              tlb[i].GV == GV && tlb[i].GSCID == GSCID && 
              tlb[i].PSCV == PSCV && tlb[i].PSCID == PSCID &&
-             match_address_range(iova, tlb[i].PPN, tlb[i].S) ) {
+             match_address_range(iova, tlb[i].iova, tlb[i].S) ) {
             hit = i;
             break;
         }
@@ -180,7 +188,8 @@ lookup_ioatc_iotlb(
         tlb[hit].valid = 0;
         return IOATC_MISS;
     }
-    *page_sz = ((tlb[hit].S == 0) ? ~0xFFF : ~(tlb[hit].PPN ^ (tlb[hit].PPN + 1))) + 1;
+    *page_sz = ((tlb[hit].S == 0) ? 1 : (tlb[hit].PPN ^ (tlb[hit].PPN + 1))) + 1;
+    *page_sz = *page_sz * PAGESIZE;
     *resp_pa = ((tlb[hit].PPN * PAGESIZE) & ~(*page_sz - 1)) | (iova & (*page_sz - 1));
     *R = tlb[hit].VS_R & tlb[hit].G_R;
     *W = tlb[hit].VS_W & tlb[hit].G_W;

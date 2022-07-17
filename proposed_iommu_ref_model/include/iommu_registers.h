@@ -68,9 +68,10 @@ typedef union {
                                    //                      must be defined in `fctrl`
                                    //                      register.
                                    // !3      ! 0        ! Reserved for standard use
-        uint64_t pmon    : 1;      // IOMMU implements a performance-monitoring unit
+        uint64_t hpm     : 1;      // IOMMU implements a hardware performance monitor.
+        uint64_t dbg     : 1;      // IOMMU supports the translation-request interface.
         uint64_t pas     : 6;      // Physical Address Size (value between 32 and 56)
-        uint64_t rsvd3   : 11;     // Reserved for standard use
+        uint64_t rsvd3   : 10;     // Reserved for standard use
         uint64_t custom  : 16;     // _Reserved for custom use_
     };
     uint64_t raw;
@@ -408,7 +409,7 @@ typedef union {
     };
     uint32_t raw;
 } ipsr_t;
-typedef struct {
+typedef union {
     struct {
         uint32_t cy      :1;
         uint32_t hpm     :31;
@@ -445,6 +446,93 @@ typedef union {
     };
     uint64_t raw;
 } iohpmevt_t;
+// The tr_req_iova is a 64-bit WARL register used to 
+// implement a translation-request interface for
+// debug. This register is present when 
+// capabilities.DBG == 1.
+typedef union {
+    struct {
+        uint64_t pgoff:12;     // The IOVA page-offset
+        uint64_t iova_vpn:52;  // The IOVA virtual page number
+    };
+    uint64_t raw;
+} tr_req_iova_t;
+// The tr_req_ctrl is a 64-bit WARL register used to 
+// implement a translation-request interface for
+// debug. This register is present when 
+// capabilities.DBG == 1.
+typedef union {
+    struct {
+        uint64_t go_busy:1;    // This bit is set to indicate a valid request 
+                               // has been setup in the tr_req_iova/tr_req_ctrl 
+                               // registers for the IOMMU to translate.
+                               // The IOMMU indicates completion of the requested 
+                               // translation by clearing this bit to 0. On 
+                               // completion, the results of the translation are 
+                               // in tr_response register.
+
+        uint64_t Priv:1;       // When set to 1 the requests needs Privileged Mode 
+                               // access for this translation.
+        uint64_t Exe:1;        // When set to 1 the request needs execute access 
+                               // for this translation.
+        uint64_t RWn:1;        // When set to 1 the request only needs read-only 
+                               // access for this translation.
+        uint64_t PV:1;         // When set to 1 the PID field of the register is valid.
+        uint64_t reserved:11;  // Reserved for standard use
+        uint64_t DID:24;       // This field provides the device_id for this 
+                               // translation request.
+        uint64_t PID:20;       // When PV is 1 this field provides the process_id for 
+                               // this translation request.
+        uint64_t custom:4;     // Reserved for custom use
+    };
+    uint64_t raw;
+} tr_req_ctrl_t;
+
+// The tr_response is a 64-bit RO register used to hold 
+// the results of a translation requested using the 
+// translation-request interface. This register is present 
+// when capabilities.DBG == 1
+typedef union {
+    struct {
+        uint64_t  PPN:44;      // If the fault bit is 0, then this field provides the PPN determined
+                               // as a result of translating the iova_vpn in tr_req_iova.
+                               // If the fault bit is 1, then the value of this field is UNSPECIFIED.
+                               // If the S bit is 0, then the size of the translation is 4 KiB - a page.
+                               // If the S bit is 1, then the translation resulted in a super-page, and
+                               // the size of the super-page is encoded in the PPN itself. If scanning
+                               // from bit position 0 to bit position 43, the first bit with a value 
+                               // of 0 at position X, then the super-page size is 2X+1 * 4 KiB.
+                               // If X is not 0, then all bits at position 0 through X-1 are each
+                               // encoded with a value of 1.
+                               // .Example of encoding of super page size in `PPN`
+                               //  !           `PPN`          !`S`!   Size
+                               //  !`yyyy....yyyy yyyy yyyy`  !`0`!  4 KiB
+                               //  !`yyyy....yyyy yyyy 0111`  !`1`! 64 KiB
+                               //  !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
+                               //  !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
+
+        uint64_t    S:1;       // Translation range size field, when set to 1
+                               // indicates that the translation applies to a
+                               // range that is larger than 4 KiB and the size
+                               // of the translation range is encoded in the
+                               // `PPN` field. The value of this field is
+                               // `UNSPECIFIED` if the `fault` field is 1.
+        uint64_t PBMT:2;       // Memory type determined for the translation
+                               // using the PBMT fields in the S/VS-stage and/or
+                               // the G-stage page tables used for the
+                               // translation. This value of field is
+                               // `UNSPECIFIED` if the `fault` field is 1.
+        uint64_t fault:1;      // If the process to translate the IOVA detects
+                               // a fault then the `fault` field is set to 1.
+                               // The detected fault may be reported through the
+                               // fault-queue.
+        uint64_t reserved:12;  // Reserved for standard use
+        uint64_t custom:4;     // _Reserved for custom use_
+    };
+    uint64_t raw;
+} tr_response_t;
+
+
 typedef union {
     struct {
         uint64_t civ     :4;
@@ -483,7 +571,7 @@ typedef struct {
 // the size of the access or if the access spans multiple registers is undefined.
 // IOMMU Memory-mapped register layout
 typedef union {                        // |Ofst|Name            |Size|Description
-    struct {
+    struct __attribute__((__packed__)) {
         capabilities_t capabilities;   // |0   |`capabilities`  |8   |Capabilities supported by the IOMMU
         fctrl_t        fctrl;          // |8   |`fctrl`         |4   |Features control>>
         uint32_t       custom0;        // |12  |_custom_        |4   |For custom use_
@@ -506,7 +594,10 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
         iohpmcycles_t  iohpmcycles;    // |96  |`iohpmcycles`   |8   |Performance-monitoring cycles counter
         iohpmctr_t     iohpmctr[31];   // |104 |`iohpmctr1 - 31`|248 |Performance-monitoring event counters
         iohpmevt_t     iohpmevt[31];   // |352 |`iohpmevt1 - 31`|248 |Performance-monitoring event selector
-        uint8_t        reserved0[82];  // |600 |Reserved        |82  |Reserved for future use (`WPRI`)
+        tr_req_iova_t  tr_req_iova;    // |600 |`tr_req_iova`   |8   |Translation-request IOVA
+        tr_req_ctrl_t  tr_req_ctrl;    // |608 |`tr_req_ctrl`   |8   |Translation-request control
+        tr_response_t  tr_response;    // |616 |`tr_response`   |8   |Translation-request response
+        uint8_t        reserved0[58];  // |624 |Reserved        |82  |Reserved for future use (`WPRI`)
         uint8_t        custom1[78];    // |682 |_custom_        |78  |Reserved for custom use (`WARL`)_
         icvec_t        icvec;          // |760 |`icvec`         |4   |Interrupt cause to vector register
         msi_cfg_tbl_t  msi_cfg_tbl[16];// |768 |`msi_cfg_tbl`   |256 |MSI Configuration Table
@@ -602,7 +693,10 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
 #define IOHPMEVT29_OFFSET    576
 #define IOHPMEVT30_OFFSET    584
 #define IOHPMEVT31_OFFSET    592
-#define RESERVED_OFFSET      600
+#define TR_REQ_IOVA_OFFSET   600
+#define TR_REQ_CTRL_OFFSET   608
+#define TR_RESPONSE_OFFSET   616
+#define RESERVED_OFFSET      624
 #define CUSTOM_OFFSET        682
 #define ICVEC_OFFSET         760
 

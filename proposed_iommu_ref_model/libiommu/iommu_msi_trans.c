@@ -128,7 +128,9 @@ msi_address_translation(
         *W = 1;
         *U = 1;
         // Cache the translation in the IOATC
-        cache_ioatc_iotlb(iova, 
+        // In the IOTLB the IOVA & PPN is stored in the NAPOT format
+        // Here the translations are always PAGESIZE translations
+        cache_ioatc_iotlb((iova/PAGESIZE),       // IOVA
                     GV,                          // GV
                     0,                           // PSCV
                     GSCID, 0,                    // GSCID, PSCID tags

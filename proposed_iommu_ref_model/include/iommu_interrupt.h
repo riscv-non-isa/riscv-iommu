@@ -7,7 +7,7 @@
 
 #define COMMAND_QUEUE 0
 #define FAULT_QUEUE   1
-#define PMU           2
+#define HPM           2
 #define PAGE_QUEUE    3
 
 #define MSI_VEC_CTRL_MASK_BIT 1

@@ -19,7 +19,7 @@
 #include "iommu_command_queue.h"
 #include "iommu_ats.h"
 #include "iommu_atc.h"
-#include "iommu_pmu.h"
+#include "iommu_hpm.h"
 #include "iommu_ref_api.h"
 
 

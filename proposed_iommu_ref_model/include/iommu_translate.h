@@ -88,7 +88,8 @@ locate_device_context(device_context_t *DC, uint32_t device_id, uint8_t pid_vali
 
 extern uint8_t 
 locate_process_context(process_context_t *PC, device_context_t *DC, 
-                       uint32_t device_id, uint32_t process_id, uint32_t *cause, uint64_t *iotval2);
+                       uint32_t device_id, uint32_t process_id, uint32_t *cause, 
+                       uint64_t *iotval2, uint8_t TTYP);
 
 extern uint8_t
 s_vs_stage_address_translation(
@@ -97,7 +98,7 @@ s_vs_stage_address_translation(
     uint8_t SUM, iosatp_t iosatp, uint32_t PSCID, iohgatp_t iohgatp, 
     uint32_t *cause, uint64_t *iotval2, uint64_t *resp_pa, uint64_t *page_sz,
     uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT, uint8_t *UNTRANSLATED_ONLY,
-    uint8_t pid_valid, uint32_t process_id, uint32_t device_id);
+    uint8_t pid_valid, uint32_t process_id, uint32_t device_id, uint8_t TTYP, uint8_t T2GPA);
 
 extern uint8_t
 g_stage_address_translation(
@@ -106,7 +107,7 @@ g_stage_address_translation(
     uint64_t *resp_pa, uint64_t *gst_page_sz,
     uint8_t *GR, uint8_t *GW, uint8_t *GX, uint8_t *GD, uint8_t *GPBMT,
     uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID);
+    uint8_t GV, uint32_t GSCID, uint8_t TTYP);
 
 extern uint8_t
 msi_address_translation(

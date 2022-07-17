@@ -342,7 +342,7 @@ do_iotinval_vma(
              (PSCV == 1 && tlb[i].PSCV == 1 && tlb[i].PSCID == PSCID) )
             pscid_match = 1;
         if ( (AV == 0) ||
-             (AV == 1 && match_address_range(ADDR, tlb[i].PPN, tlb[i].S)) )
+             (AV == 1 && match_address_range(ADDR, tlb[i].iova, tlb[i].S)) )
             addr_match = 1;
         if ( (PSCV == 0) || 
              (PSCV == 1 && tlb[i].G == 0) )
@@ -395,7 +395,7 @@ do_iotinval_gvma(
         // it. If PSCV is 0 then it holds a GPA. If AV is 0 then all entries are 
         // eligible else match the address
         if ( (tlb[i].PSCV == 1) || (AV == 0) ||
-             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR, tlb[i].PPN, tlb[i].S)) ) 
+             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR, tlb[i].iova, tlb[i].S)) ) 
             addr_match = 1;
         if ( gscid_match && addr_match )
             tlb[i].valid = 0;

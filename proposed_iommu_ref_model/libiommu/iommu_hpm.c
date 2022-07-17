@@ -12,8 +12,8 @@ count_events(
     uint64_t count;
 
     // IOMMU implements a performance-monitoring unit
-    // if capabilities.pmon == 1
-    if ( g_reg_file.capabilities.pmon == 0 ) return;
+    // if capabilities.hpm == 1
+    if ( g_reg_file.capabilities.hpm == 0 ) return;
 
     for ( i = 0; i < g_num_hpm; i++ ) {
         // The performance-monitoring counter inhibits is a 32-bits WARL 
@@ -98,7 +98,7 @@ count_events(
             // overflows) is and reported through ipsr register.
             if ( g_reg_file.iohpmevt[i].of == 0 ) {
                 g_reg_file.iohpmevt[i].of = 1;
-                generate_interrupt(PMU);
+                generate_interrupt(HPM);
             }
         }
     }

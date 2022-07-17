@@ -6,12 +6,12 @@
 // Match address to a NAPOT range
 uint8_t
 match_address_range(
-    uint64_t ADDR, uint64_t PPN, uint8_t S) {
-    uint64_t mask = PPN * PAGESIZE;
-    mask = (S == 0) ? ~0xFFF : ~(PPN ^ (PPN + 1));
-    if ( (ADDR & mask) == (PPN & mask) ) { 
-        return 1;
-    } else {
-        return 0;
-    }
+    uint64_t ADDR, uint64_t BASE_PN, uint8_t S) {
+
+    uint64_t RANGE_MASK;
+    uint64_t RANGE_BASE = BASE_PN * PAGESIZE;
+
+    RANGE_MASK = (S == 0) ? ~0xFFF : 
+                            ~((RANGE_BASE | 0xFFF) ^ ((RANGE_BASE | 0xFFF) + 1));
+    return ((ADDR & RANGE_MASK) == (RANGE_BASE & RANGE_MASK)) ? 1 : 0;
 }
