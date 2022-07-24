@@ -4,6 +4,5 @@ is intended to be a golden reference model for the specification.
 
 # Files organization
 - libiommu - C files implementing the specification
-- include  - H files 
 - libtables - a support library to build page and directory tables
 - test - a sample test application illustrating how to invoke and use libiommu and libtables
