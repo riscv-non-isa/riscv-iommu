@@ -147,12 +147,12 @@ step_9:
     }
     //11. If any bits or encoding that are reserved for future standard use are set
     //     within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-    if ( PC->ta.reserved != 0 || PC->fsc.reserved != 0 ||
-         ((PC->fsc.MODE != IOSATP_Bare) &&
-          (PC->fsc.MODE != IOSATP_Sv32) &&
-          (PC->fsc.MODE != IOSATP_Sv39) &&
-          (PC->fsc.MODE != IOSATP_Sv48) &&
-          (PC->fsc.MODE != IOSATP_Sv57)) ) {
+    if ( PC->ta.reserved != 0 || PC->fsc.iosatp.reserved != 0 ||
+         ((PC->fsc.iosatp.MODE != IOSATP_Bare) &&
+          (PC->fsc.iosatp.MODE != IOSATP_Sv32) &&
+          (PC->fsc.iosatp.MODE != IOSATP_Sv39) &&
+          (PC->fsc.iosatp.MODE != IOSATP_Sv48) &&
+          (PC->fsc.iosatp.MODE != IOSATP_Sv57)) ) {
         *cause = 267;     // PDT entry not misconfigured
         return 1;
     } 
@@ -162,10 +162,10 @@ step_9:
     //    b. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
     //    c. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
     //    d. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
-    if ( ((PC->fsc.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) &&
-         ((PC->fsc.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) &&
-         ((PC->fsc.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) &&
-         ((PC->fsc.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0)) ) {
+    if ( ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) &&
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) &&
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) &&
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0)) ) {
         *cause = 267;     // PDT entry not misconfigured
         return 1;
     }

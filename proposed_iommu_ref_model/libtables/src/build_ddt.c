@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Author: ved@rivosinc.com
 #include "iommu.h"
+#include "tables_api.h"
 
 uint8_t
 add_dev_context(

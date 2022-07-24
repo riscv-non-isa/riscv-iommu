@@ -1,4 +1,4 @@
-CFLAGS := -fPIE -ftrapv -fstack-protector-all -Wformat-security -D_FORTIFY_SOURCE=2 -O0 -g -Wall -Werror -fcf-protection=full -I../include -I../libtables 
+CFLAGS := -fPIE -ftrapv -fstack-protector-all -Wformat-security -D_FORTIFY_SOURCE=2 -O0 -g -Wall -Werror -fcf-protection=full -I../libiommu/include -I../libtables/include
 CC := gcc
 SRCS_APP = test_app.c
 OBJ_APP = $(SRCS_APP:.c=.o)

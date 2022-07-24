@@ -283,7 +283,7 @@ step_9:
 
     // 13. Locate the process-context (`PC`) as specified in Section 2.4.2
     if ( locate_process_context(&PC, &DC, req.device_id, req.process_id, &cause, &iotval2, TTYP) )
-        return;
+        goto stop_and_report_fault;
 
     // 14. if any of the following conditions hold then stop and report 
     //     "Transaction type disallowed" (cause = 260).  
@@ -301,8 +301,8 @@ step_9:
     //     * If a G-stage page table is not active in the device-context
     //       (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
     //       it is a VS-stage page table.
-    iosatp.MODE = PC.fsc.MODE;
-    iosatp.PPN = PC.fsc.PPN;
+    iosatp.MODE = PC.fsc.iosatp.MODE;
+    iosatp.PPN = PC.fsc.iosatp.PPN;
     PSCID = PC.ta.PSCID;
     SUM = PC.ta.SUM;
     iohgatp = DC.iohgatp;
