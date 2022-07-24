@@ -1,6 +1,6 @@
 # RISC-V IOMMU reference model
 This code implements the RISC-V IOMMU specification - https://github.com/riscv-non-isa/riscv-iommu - and
-is intended to be a golden reference model for the specification.
+is intended to be a reference model for the specification.
 
 # Files organization
 - libiommu - C files implementing the specification
