@@ -1,4 +1,4 @@
-# RISC-V IOMMU golden reference model
+# RISC-V IOMMU reference model
 This code implements the RISC-V IOMMU specification - https://github.com/riscv-non-isa/riscv-iommu - and
 is intended to be a golden reference model for the specification.
 
