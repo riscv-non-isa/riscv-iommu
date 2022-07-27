@@ -16,11 +16,14 @@ main(void) {
     fctrl_t fctrl = {0};
     ddtp_t ddtp;
     device_context_t DC;
-    gpte_t gpte;
+    //gpte_t gpte;
     pte_t pte;
     hb_to_iommu_req_t req; 
     iommu_to_hb_rsp_t rsp_msg;
     uint64_t SPA;
+    tr_req_iova_t tr_req_iova;
+    tr_req_ctrl_t tr_req_ctrl;
+    tr_response_t tr_response;
 
     cap.version = 0x10;
     cap.Sv39 = cap.Sv48 = cap.Sv39x4 = cap.Sv48x4 = 1;
@@ -44,7 +47,7 @@ main(void) {
     ddtp.iommu_mode = DDT_3LVL;
     write_register(DDTP_OFFSET, 8, ddtp.raw);
     printf("DDTP.PPN = %"PRIx64" DDTP MODE = %x\n", (uint64_t)ddtp.ppn, ddtp.iommu_mode);
-
+#if 0
     memset(&DC, 0, sizeof(DC));
     DC.tc.V = 1;
     DC.tc.EN_ATS = 1;
@@ -103,9 +106,6 @@ main(void) {
     printf("  is_mrif_wr = %x\n", rsp_msg.trsp.is_mrif_wr);
     printf("  mrif_nid   = %x\n", rsp_msg.trsp.mrif_nid);
 
-    tr_req_iova_t tr_req_iova;
-    tr_req_ctrl_t tr_req_ctrl;
-    tr_response_t tr_response;
     tr_req_iova.raw = (512 * PAGESIZE);
     tr_req_ctrl.DID = 0x012345;
     tr_req_ctrl.PV = 0;
@@ -196,7 +196,6 @@ main(void) {
     printf("  PBMT       = %x\n", tr_response.PBMT);
     tr_req_ctrl.raw = read_register(TR_REQ_CTRL_OFFSET, 8);
     printf("  busy       = %x\n", tr_req_ctrl.go_busy);
-
 //----------------------------------------
     memset(&DC, 0, sizeof(DC));
     DC.tc.V = 1;
@@ -214,7 +213,7 @@ main(void) {
     pte.V = 1;
     pte.R = 1;
     pte.W = 0;
-    pte.X = 0;
+    pte.X = 1;
     pte.U = 1;
     pte.G = 0;
     pte.A = 1;
@@ -235,6 +234,7 @@ main(void) {
     printf("Sending translation request for VA = 0x100000\n");
     req.device_id = 0x012347;
     req.pid_valid = 0;
+    req.priv_req = 1;
     req.is_cxl_dev = 0;
     req.tr.at = ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST;
     //req.tr.at = ADDR_TYPE_UNTRANSLATED;
@@ -277,6 +277,7 @@ main(void) {
     tr_req_ctrl.raw = read_register(TR_REQ_CTRL_OFFSET, 8);
     printf("  busy       = %x\n", tr_req_ctrl.go_busy);
 
+#endif
 //++++++++++++++++++++++++++++++++++++++++++++
     memset(&DC, 0, sizeof(DC));
     DC.tc.V = 1;
@@ -307,7 +308,7 @@ main(void) {
     pte.R = 1;
     pte.W = 0;
     pte.X = 0;
-    pte.U = 1;
+    pte.U = 0;
     pte.G = 0;
     pte.A = 1;
     pte.D = 1;
@@ -327,6 +328,7 @@ main(void) {
     printf("Sending translation request for VA = 0x100000\n");
     req.device_id = 0x012348;
     req.pid_valid = 1;
+    req.priv_req = 1;
     req.process_id = 0x99;
     req.is_cxl_dev = 0;
     req.tr.at = ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST;
@@ -358,6 +360,7 @@ main(void) {
     tr_req_ctrl.PV = 1;
     tr_req_ctrl.PID = 0x99;
     tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.Priv = 1;
     tr_req_ctrl.go_busy = 1;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
     write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
@@ -369,6 +372,7 @@ main(void) {
     printf("  PBMT       = %x\n", tr_response.PBMT);
     tr_req_ctrl.raw = read_register(TR_REQ_CTRL_OFFSET, 8);
     printf("  busy       = %x\n", tr_req_ctrl.go_busy);
+
     return 0;
 }
 uint64_t

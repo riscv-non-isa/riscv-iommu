@@ -25,12 +25,22 @@ s_vs_stage_address_translation(
     uint8_t GR, GW, GX, GD, GPBMT;
     uint8_t ioatc_status, GV, PSCV;
     uint16_t GSCID;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
     *R = *W = *X = *G = *PBMT = *UNTRANSLATED_ONLY = 0;
     GR = GW = GX = GD = 0;
     GPBMT = PMA;
-    //*page_sz = PAGESIZE;
-    *page_sz = (1UL << g_reg_file.capabilities.pas);
+    
+    // Indicate S/VS-stage page size as largest possible page size
+    if ( g_reg_file.capabilities.Sv57 == 1 ) 
+        *page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+    else if ( g_reg_file.capabilities.Sv48 == 1 ) 
+        *page_sz = 512UL * 512UL * 512UL * PAGESIZE;
+    else if ( g_reg_file.capabilities.Sv39 == 1 ) 
+        *page_sz = 512UL * 512UL * PAGESIZE;
+    else if ( g_reg_file.capabilities.Sv32 == 1 ) 
+        *page_sz = 2UL * 512UL * PAGESIZE;
+
     *iotval2 = 0;
 
     // Lookup IOATC to determine if there is a cached translation
@@ -127,6 +137,10 @@ step_2:
             pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
         return 1;
 
+    //    If the address is beyond the maximum physical address width of the machine
+    //    then an access fault occurs
+    if ( a & ~pa_mask ) goto access_fault;
+
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
 
@@ -139,6 +153,7 @@ step_2:
     if ( (pte.V == 0) || (pte.R == 0 && pte.W == 1) || 
          ((pte.N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
          ((pte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         (pte.PBMT == 3) ||
          (pte.reserved != 0) )
         goto page_fault;
 
@@ -306,7 +321,26 @@ step_5:
     // Set A/D bits if needed
     do_page_fault = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&pte.raw);
+
     if ( status != 0 ) goto access_fault;
+
+    if ( (pte.V == 0) || (pte.R == 0 && pte.W == 1) || 
+         ((pte.N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
+         ((pte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         (pte.PBMT == 3) ||
+         (pte.reserved != 0) )
+        do_page_fault = 1;
+
+    if ( i != 0 && pte.N ) do_page_fault = 1;
+    if ( i != 0 ) {
+        switch ( (i - 1) ) {
+            case 3: if ( ppn[3] ) do_page_fault = 1;
+            case 2: if ( ppn[2] ) do_page_fault = 1;
+            case 1: if ( ppn[1] ) do_page_fault = 1;
+            case 0: if ( ppn[0] ) do_page_fault = 1;
+        }
+    }
+
     if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
         // Determine if the reloaded PTE causes a fault
         // See note about PCIe ATS translation requests in step 5
@@ -317,9 +351,11 @@ step_5:
     if ( (priv == U_MODE) && (pte.U == 0) ) do_page_fault = 1;
     if ( is_exec && (priv == S_MODE) && (pte.U == 1) ) do_page_fault = 1;
     if ( (priv == S_MODE) && !is_exec && SUM == 0 && pte.U == 1 ) do_page_fault = 1;
+
     // If no faults detected then set A and if required D bit
     if ( do_page_fault == 0 ) pte.A = 1;
     if ( do_page_fault == 0 && is_write ) pte.D = 1;
+
     status = write_memory((char *)&pte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
     if ( status != 0 ) goto access_fault;
     if ( do_page_fault == 1) goto page_fault;

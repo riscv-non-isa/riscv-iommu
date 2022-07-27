@@ -19,10 +19,12 @@ g_stage_address_translation(
     uint8_t i, PTESIZE, LEVELS, status, do_guest_page_fault;
     uint64_t a;
     uint64_t gpa_upper_bits;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
     *GR = *GW = *GX = *GPBMT = 0;
-    *gst_page_sz = PAGESIZE;
 
+    *gst_page_sz = PAGESIZE;
+    
     if ( iohgatp.MODE == IOHGATP_Bare ) {
         // No translation or protection.
         gpte.raw = 0;
@@ -30,7 +32,14 @@ g_stage_address_translation(
         gpte.D = gpte.A = gpte.G = gpte.U = gpte.X = gpte.W = gpte.R = gpte.V = 1;
         gpte.PBMT = PMA;
         // Indicate G-stage page size as largest possible page size
-        *gst_page_sz = (uint64_t)512 * (uint64_t)512 * (uint64_t)512 * (uint64_t)512 * PAGESIZE;
+        if ( g_reg_file.capabilities.Sv57x4 == 1 ) 
+            *gst_page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+        else if ( g_reg_file.capabilities.Sv48x4 == 1 ) 
+            *gst_page_sz = 512UL * 512UL * 512UL * PAGESIZE;
+        else if ( g_reg_file.capabilities.Sv39x4 == 1 ) 
+            *gst_page_sz = 512UL * 512UL * PAGESIZE;
+        else if ( g_reg_file.capabilities.Sv32x4 == 1 ) 
+            *gst_page_sz = 2UL * 512UL * PAGESIZE;
         goto step_8;
     }
     // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32, 
@@ -91,6 +100,9 @@ step_2:
     //    Sv32x4 PTESIZE=4. and for all other modes PTESIZE=8). If accessing pte
     //    violates a PMA or PMP check, raise an access-fault exception 
     //    corresponding to the original access type.
+    //    If the address is beyond the maximum physical address width of the machine
+    //    then an access fault occurs
+    if ( a & ~pa_mask ) goto access_fault;
     gpte.raw = 0;
     status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte.raw);
     if ( status != 0 ) goto access_fault;
@@ -100,6 +112,7 @@ step_2:
     //    stop and raise a page-fault exception to the original access type.
     if ( (gpte.V == 0) || (gpte.R == 0 && gpte.W == 1) || 
          ((gpte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         (gpte.PBMT == 3) ||
          (gpte.reserved0 != 0) ||
          (gpte.reserved1 != 0) )
         goto guest_page_fault;
@@ -136,12 +149,13 @@ step_5:
     //   read permission to be granted if the execute permission is granted.
     //   No faults are caused here - the denied permissions will be reported back in
     //   the ATS completion
+    if ( (gpte.PPN * PAGESIZE) & ~pa_mask ) goto access_fault;
     if ( (TTYP != PCIE_ATS_TRANSLATION_REQUEST) && (implicit == 0) ) {
         if ( is_exec  && (gpte.X == 0) ) goto guest_page_fault;
         if ( is_read  && (gpte.R == 0) ) goto guest_page_fault;
         if ( is_write && (gpte.W == 0) ) goto guest_page_fault;
     }
-    if ( gpte.U == 0 )               goto guest_page_fault;
+    if ( gpte.U == 0 ) goto guest_page_fault;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
     if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
@@ -214,7 +228,24 @@ step_5:
     // Set A/D bits if needed
     do_guest_page_fault = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte.raw);
+
     if ( status != 0 ) goto access_fault;
+
+    if ( (gpte.V == 0) || (gpte.R == 0 && gpte.W == 1) || 
+         ((gpte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         (gpte.PBMT == 3) ||
+         (gpte.reserved0 != 0) || (gpte.reserved1 != 0) )
+        do_guest_page_fault = 1;
+
+    if ( i > 0 ) {
+        switch ( (i - 1) ) {
+            case 3: if ( ppn[3] ) do_guest_page_fault = 1;
+            case 2: if ( ppn[2] ) do_guest_page_fault = 1;
+            case 1: if ( ppn[1] ) do_guest_page_fault = 1;
+            case 0: if ( ppn[0] ) do_guest_page_fault = 1;
+        }
+    }
+
     if ( (TTYP != PCIE_ATS_TRANSLATION_REQUEST) && (implicit == 0) ) {
         // Determine if the reloaded PTE causes a fault
         // See note about PCIe ATS translation requests in step 5
@@ -223,9 +254,11 @@ step_5:
         if ( is_write && (gpte.W == 0) ) do_guest_page_fault = 1;
     }
     if ( gpte.U == 0 )               do_guest_page_fault = 1;
+
     // If no faults detected then set A and if required D bit
     if ( do_guest_page_fault == 0 ) gpte.A = 1;
     if ( do_guest_page_fault == 0 && is_write ) gpte.D = 1;
+
     status = write_memory((char *)&gpte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
     if ( status != 0 ) goto access_fault;
     if ( do_guest_page_fault == 1) goto guest_page_fault;
