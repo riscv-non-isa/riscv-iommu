@@ -16,9 +16,9 @@ s_vs_stage_address_translation(
 
     uint16_t vpn[5];
     uint16_t ppn[5];
-    pte_t pte;
+    pte_t pte, amo_pte;
     uint8_t NL_G = 1;
-    uint8_t i, PTESIZE, LEVELS, status, do_page_fault;
+    uint8_t i, PTESIZE, LEVELS, status, pte_changed;
     uint64_t a, masked_upper_bits, mask, napot_ppn, napot_iova, napot_gpa;
     uint8_t is_implicit_write = 0;
     uint64_t gst_page_sz, resp_gpa;
@@ -311,54 +311,36 @@ step_5:
     //    access from the device using the translated address becomes globally visible.
     if ( g_reg_file.capabilities.amo == 0 ) goto step_8;
 
-    // If pte.a = 0, or if the original memory access is a store and pte.d = 0,
-    // then set A/D bits.
+    // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
+    //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
+    //      corresponding to the original access type.
+    //    Perform the following steps atomically:
+    //    – Compare pte to the value of the PTE at address a + va.vpn[i] × PTESIZE.
+    //    – If the values match, set pte.a to 1 and, if the original memory access is a store, 
+    //      also set pte.d to 1.
+    //    – If the comparison fails, return to step 2
+
     if ( (pte.A == 1) && ((pte.D == 1) | (is_write == 0)) ) goto step_8;
 
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
 
-    // Set A/D bits if needed
-    do_page_fault = 0;
-    status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&pte.raw);
+    status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_pte.raw);
 
     if ( status != 0 ) goto access_fault;
 
-    if ( (pte.V == 0) || (pte.R == 0 && pte.W == 1) || 
-         ((pte.N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
-         ((pte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
-         (pte.PBMT == 3) ||
-         (pte.reserved != 0) )
-        do_page_fault = 1;
+    pte_changed = (amo_pte.raw == pte.raw) ? 0 : 1;
 
-    if ( i != 0 && pte.N ) do_page_fault = 1;
-    if ( i != 0 ) {
-        switch ( (i - 1) ) {
-            case 3: if ( ppn[3] ) do_page_fault = 1;
-            case 2: if ( ppn[2] ) do_page_fault = 1;
-            case 1: if ( ppn[1] ) do_page_fault = 1;
-            case 0: if ( ppn[0] ) do_page_fault = 1;
-        }
+    if ( pte_changed == 0 ) {
+        amo_pte.A = 1;
+        if ( is_write ) amo_pte.D = 1;
     }
 
-    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
-        // Determine if the reloaded PTE causes a fault
-        // See note about PCIe ATS translation requests in step 5
-        if ( is_exec  && (pte.X == 0) ) do_page_fault = 1;
-        if ( is_read  && (pte.R == 0) ) do_page_fault = 1;
-        if ( is_write && (pte.W == 0) ) do_page_fault = 1;
-    }
-    if ( (priv == U_MODE) && (pte.U == 0) ) do_page_fault = 1;
-    if ( is_exec && (priv == S_MODE) && (pte.U == 1) ) do_page_fault = 1;
-    if ( (priv == S_MODE) && !is_exec && SUM == 0 && pte.U == 1 ) do_page_fault = 1;
+    status = write_memory((char *)&amo_pte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
 
-    // If no faults detected then set A and if required D bit
-    if ( do_page_fault == 0 ) pte.A = 1;
-    if ( do_page_fault == 0 && is_write ) pte.D = 1;
-
-    status = write_memory((char *)&pte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
     if ( status != 0 ) goto access_fault;
-    if ( do_page_fault == 1) goto page_fault;
+
+    if ( pte_changed == 1) goto step_2;
 
 step_8:
     // 8. The translation is successful.
