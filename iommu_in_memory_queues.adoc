@@ -239,7 +239,7 @@ address-translation entries.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 7, name: 'opcode', attr: 'IOFENCE(0x3)'},
+  {bits: 7, name: 'opcode', attr: 'IOFENCE(0x2)'},
   {bits: 3, name: 'func3',  attr: 'C-0x0'},
   {bits: 1, name: 'PR'},
   {bits: 1, name: 'PW'},
@@ -313,7 +313,7 @@ memory indicating command completion.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 7, name: 'opcode', attr: 'IODIR(0x3)'},
+  {bits: 7, name: 'opcode', attr: 'IODIR(0x2)'},
   {bits: 3, name: 'func3',  attr: ['INVAL_DDT-0x0', 'INVAL_PDT-0x1']},
   {bits: 1, name: 'DV'},
   {bits: 5, name: 'rsvd'},
