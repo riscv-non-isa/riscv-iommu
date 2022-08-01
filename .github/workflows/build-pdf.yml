@@ -83,6 +83,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./example-spec.pdf
-        asset_name: example-spec.pdf
+        asset_path: ./riscv-iommu.pdf
+        asset_name: riscv-iommu.pdf
         asset_content_type: application/pdf
