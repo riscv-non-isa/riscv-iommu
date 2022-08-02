@@ -486,7 +486,7 @@ The `PSCID` field of `ta` provides the process soft-context ID that identifies
 the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
 address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
-`Bare`.
+`Bare`. When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== MSI page table pointer (`msiptp`)
 

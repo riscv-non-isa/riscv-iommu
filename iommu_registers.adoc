@@ -115,6 +115,8 @@ The reset value is 0 for the following registers/fields.
 Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`. The 
 reset value for `ddtp.busy` field must be 0.
 
+Reset value for `tr_req_ctrl.Go/Busy` field must be 0.
+
 [NOTE]
 ====
 The reset value for the `iommu_mode` is recommended to be `Off`.
@@ -280,7 +282,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 |1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wired-interrupts.
 |15:2  |`reserved` |WPRI      | Reserved for standard use.
-|31:16 |_custom_   |          | _Reserved for custom use._
+|31:16 |_custom_   |WPRI      | _Reserved for custom use._
 |===
 
 [[DDTP]]
@@ -776,7 +778,7 @@ status of the command-queue.
                             An IOMMU that can complete these operations 
                             synchronously may hard-wire this bit to 0.
 |27:18 |`reserved`|WPRI  | Reserved for standard use
-|31:28 |_custom_|        | _Reserved for custom use._
+|31:28 |_custom_  |WPRI  | _Reserved for custom use._
 |===
 [NOTE]
 ====
@@ -880,7 +882,7 @@ status of the fault-queue.
                            An IOMMU that can complete controls synchronously 
                            may hard-wire this bit to 0. 
 |27:18 |`reserved`|WPRI  | Reserved for standard use
-|31:28 |_custom_|        | _Reserved for custom use._
+|31:28 |_custom_  |WPRI  | _Reserved for custom use._
 |===
 
 [[PQCSR]]
@@ -910,8 +912,8 @@ status of the page-request-queue.
 [width=100%]
 [%header, cols="^1,1,^1,6"]
 |===
-|Bits   |Field   |Attribute | Description
-|0      |`pqen`  |RW        | The page-request-enable bit enables the
+|Bits  |Field    |Attribute | Description
+|0     |`pqen`   |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. 
 
                               Changing `pqen` from 0 to 1, resets the `pqh` 
@@ -937,11 +939,11 @@ status of the page-request-queue.
                               received when page-request-queue is off or in 
                               the process of being turned off, as specified in
                               <<ATS_PRI>>.
-|1      |`pie`   |RW        | The page-request-queue-interrupt-enable (`pie`) 
+|1     |`pie`     |RW       | The page-request-queue-interrupt-enable (`pie`) 
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
-|7:2    |`reserved`  |WPRI  | Reserved for standard use
-|8      |`pqmf`  |RW1C      | The `pqmf` bit is set to 1 if the IOMMU 
+|7:2   |`reserved`|WPRI     | Reserved for standard use
+|8     |`pqmf`    |RW1C     | The `pqmf` bit is set to 1 if the IOMMU 
                               encounters an access fault when storing a 
                               page-request message to the page-request-queue.
 
@@ -960,7 +962,7 @@ status of the page-request-queue.
                               and all subsequent “Page Request” messages 
                               received while these bits are 1 as specified in
                               <<ATS_PRI>>.
-|9      |`pqof`   |RW1C     | The page-request-queue-overflow bit is set to 1 
+|9     |`pqof`    |RW1C     | The page-request-queue-overflow bit is set to 1 
                               if the page-request queue overflows i.e. IOMMU 
                               needs to queue a page-request message but the 
                               page-request queue is full 
@@ -981,8 +983,8 @@ status of the page-request-queue.
                               and all subsequent “Page Request” messages 
                               received while these bits are 1 as specified in
                               <<ATS_PRI>>.
-|15:10  |`reserved`   |WPRI | Reserved for standard use
-|16     |`pqon`   |RO       | The page-request is active when `pqon` reads 1.
+|15:10 |`reserved`|WPRI     | Reserved for standard use
+|16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1.
 
                               IOMMU behavior on changing `pqb` when `busy` is 1
                               or `pqon` is 1 is `UNSPECIFIED`. The 
@@ -990,7 +992,7 @@ status of the page-request-queue.
                               disable the page-request queue by clearing `pqen`
                               and waiting for both `busy` and `pqon` to be 0 
                               before changing `pqb`.
-|17     |`busy`   |RO       | A write to `pqcsr` may require the IOMMU to 
+|17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to 
                               perform many operations that may not occur 
                               synchronously to the write. When a write is 
                               observed by the `pqcsr`, the `busy` bit is set 
@@ -1005,8 +1007,8 @@ status of the page-request-queue.
 
                               An IOMMU that can complete controls synchronously
                               may hard-wire this bit to 0
-|27:18 |`reserved`   |WPRI  | Reserved for standard use
-|31:28 |_custom_ |          | _Reserved for custom use._
+|27:18 |`reserved`|WPRI     | Reserved for standard use
+|31:28 |_custom_  |WPRI     | _Reserved for custom use._
 |===
 
 [[IPSR]]
@@ -1041,7 +1043,7 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 |2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending
 |3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending
 |7:4    |`reserved`  |WPRI  | Reserved for standard use
-|15:8   |_custom_|          | _Reserved for custom use._
+|15:8   |_custom_    |WPRI  | _Reserved for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use
 |===
 
@@ -1409,7 +1411,7 @@ supported then only bit 0 for each cause could be writable.
                                is the vector number assigned to the
                                page-request-queue-interrupt.
 | 31:16 |`reserved`|WPRI     | Reserved for standard use
-| 63:32 |_custom_ |WARL      | _Reserved for custom use_
+| 63:32 |_custom_  |WPRI     | _Reserved for custom use_
 |===
 
 [[TRR_IOVA]]
@@ -1487,7 +1489,7 @@ translation-request interface for debug. This register is present when
 | 59:40 |`PID`      |WARL      | When `PV` is 1 this field provides the
                                  `process_id` for this translation 
                                  request.
-| 63:60 a|_custom_ |WARL      a| _Reserved for custom use_
+| 63:60 a|_custom_  |WPRI     a| _Reserved for custom use_
 |===
 
 
@@ -1562,8 +1564,8 @@ This register is present when `capabilities.DBG == 1`.
                                 a fault then the `fault` field is set to 1.
                                 The detected fault may be reported through the
                                 fault-queue.
-|59:48 |reserved   |WPRI      | Reserved for standard use
-|63:60 a|_custom_ |WARL      a| _Reserved for custom use_
+|59:48 |reserved |WPRI        | Reserved for standard use
+|63:60 a|_custom_|WPRI       a| _Reserved for custom use_
 |===
 
 [[MSI]]
