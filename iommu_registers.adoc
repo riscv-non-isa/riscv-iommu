@@ -1564,8 +1564,8 @@ This register is present when `capabilities.DBG == 1`.
                                 a fault then the `fault` field is set to 1.
                                 The detected fault may be reported through the
                                 fault-queue.
-|59:48 |reserved |WPRI        | Reserved for standard use
-|63:60 a|_custom_|WPRI       a| _Reserved for custom use_
+|59:48 |reserved |RO          | Reserved for standard use
+|63:60 a|_custom_|RO         a| _Reserved for custom use_
 |===
 
 [[MSI]]
