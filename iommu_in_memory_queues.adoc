@@ -107,6 +107,10 @@ encodings 64 to 127 are designated for custom use.
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
+The commands are interpreted as two 64-bit doublewords. The byte order of each
+of the doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `fctrl.END` (<<FCTRL>>).
+
 ==== IOMMU Page-Table cache invalidation commands
 
 [wavedrom, , ]
@@ -456,6 +460,10 @@ to processing fault record(s) software advances the `fqh` by the count of the
 number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. If
 `fqt` == (`fqh` - 1) the fault-queue is full.
 
+The fault records are interpreted as four 64-bit doublewords. The byte order of 
+each of the doublewords in memory, little-endian or big-endian, is the endianness
+as determined by `fctrl.END` (<<FCTRL>>).
+
 .Fault-queue record
 [wavedrom, , ]
 ....
@@ -630,3 +638,6 @@ otherwise it reports the “Execute Requested” bit from the TLP. All other fie
 are set to 0. The payload of the “Page Request” message (bytes 0x08 through 0x0F
 of the message) is held in the `PAYLOAD` field.
 
+The page-request-queue records are interpreted as two 64-bit doublewords. The byte
+order of each of the doublewords in memory, little-endian or big-endian, is the 
+endianness as determined by `fctrl.END` (<<FCTRL>>).

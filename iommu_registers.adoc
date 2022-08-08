@@ -8,6 +8,17 @@ The IOMMU behavior for register accesses where the address is not aligned to
 the size of the access, or if the access spans multiple registers, of if the
 size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`.
 
+The IOMMU registers have little-endian byte order (even for systems where
+all harts are big-endian-only).
+
+[NOTE]
+====
+Big-endian-configured harts that make use of an IOMMU are expected to implement
+the `REV8` byte-reversal instruction defined by the RISC-V "Bitmanip" extension
+(B extension). If `REV8` is not implemented, then endianness conversion may be
+implemented using a sequence of instructions.
+====
+
 Register fields are assigned one of the attributes described in following 
 table.
 

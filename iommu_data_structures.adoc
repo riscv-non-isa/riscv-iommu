@@ -256,6 +256,11 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 ], config:{lanes: 8, hspace: 1024, fontsize: 16}}
 ....
 
+The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
+64-bit doublewords in extended-format. The byte order of each of the doublewords
+in memory, little-endian or big-endian, is the endianness as determined by
+`fctrl.END` (<<FCTRL>>).
+
 ==== Device-context fields
 ===== Translation control (`tc`)
 
@@ -615,6 +620,10 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
+The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `fctrl.END` (<<FCTRL>>).
+
 ==== Process-context fields
 
 ===== Translation attributes (`ta`)
@@ -717,8 +726,8 @@ unspecified, and any address an IOMMU may compute and use for reading an
 individual MSI PTE from the table is also unspecified.
 
 Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order 
-for each of the two doublewords in memory, little-endian or big-endian, is as 
-the endianness as determined by `fctrl.END` (<<FCTRL>>).
+for each of the two doublewords in memory, little-endian or big-endian, is the 
+endianness as determined by `fctrl.END` (<<FCTRL>>).
 
 Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`, 
 the PTE is invalid, and all other bits of both doublewords are ignored by an 
