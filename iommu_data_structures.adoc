@@ -477,9 +477,9 @@ identified by a VS-stage page table with a `process_id`.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 32, name: 'reserved'},
-  {bits: 20, name: 'PSCID'},
   {bits: 12, name: 'reserved'},
+  {bits: 20, name: 'PSCID'},
+  {bits: 32, name: 'reserved'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
@@ -611,8 +611,8 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 64,  name: 'First-stage-context (fsc)'},
   {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
