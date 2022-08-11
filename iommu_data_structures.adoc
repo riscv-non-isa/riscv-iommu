@@ -971,9 +971,9 @@ harts are big-endian-only).
 [NOTE]
 ====
 Big-endian-configured harts that make use of MRIFs are expected to 
-implement the REV8 byte-reversal instruction defined by the RISC-V 
-“Bitmanip” extension (B extension), or pay the cost of endianness 
-conversion using a sequence of instructions.
+implement the `REV8` byte-reversal instruction defined Zbb extesion.
+If `REV8` is not implemented, then the endianness conversion may be 
+implemented using a sequence of instructions.
 ====
 
 The pairs of doublewords contain the interrupt-pending and 
@@ -1324,7 +1324,7 @@ address and translating the address using the MSI page table is as follows:
 . Extract an interrupt file number `I` from `A` as 
   `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
   to generic bit extract performed by RISC-V instruction `BEXT`, defined by the 
-  Bitmanip extension (B extension). The bit extract function `extract(x, y)` 
+  Zbs extension). The bit extract function `extract(x, y)` 
   discards all bits from `x` whose matching bits in the same positions in the 
   mask `y` are zeros, and packs the remaining bits from `x` contiguously at the 
   least-significant end of the result, keeping the same bit order as `x` and 
