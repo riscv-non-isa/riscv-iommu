@@ -14,9 +14,9 @@ all harts are big-endian-only).
 [NOTE]
 ====
 Big-endian-configured harts that make use of an IOMMU are expected to implement
-the `REV8` byte-reversal instruction defined by the RISC-V "Bitmanip" extension
-(B extension). If `REV8` is not implemented, then endianness conversion may be
-implemented using a sequence of instructions.
+the `REV8` byte-reversal instruction defined by the Zbb extension. If `REV8` is 
+not implemented, then endianness conversion may be implemented using a sequence
+of instructions.
 ====
 
 Register fields are assigned one of the attributes described in following 
