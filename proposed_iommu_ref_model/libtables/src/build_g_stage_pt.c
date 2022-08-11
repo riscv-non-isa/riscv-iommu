@@ -4,7 +4,7 @@
 // Author: ved@rivosinc.com
 #include "iommu.h"
 #include "tables_api.h"
-uint8_t
+uint64_t
 add_g_stage_pte (
     iohgatp_t iohgatp, uint64_t gpa, gpte_t gpte, uint8_t add_level) {
 
@@ -20,7 +20,7 @@ add_g_stage_pte (
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);
@@ -55,5 +55,5 @@ add_g_stage_pte (
         a = nl_gpte.PPN * PAGESIZE;
     }
     write_memory((char *)&gpte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
-    return 0;
+    return (a | (vpn[i] * PTESIZE));
 }

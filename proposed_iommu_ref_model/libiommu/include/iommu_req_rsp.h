@@ -32,14 +32,14 @@ typedef struct {
 // Request to IOMMU from the host bridge
 typedef struct {
     // Device ID input
-    uint32_t          device_id;
+    uint32_t device_id;
     // Process ID input (e.g. PASID present)
-    uint32_t          pid_valid;
-    uint32_t          process_id;
-    uint8_t           no_write;
-    uint8_t           exec_req;
-    uint8_t           priv_req;
-    uint8_t           is_cxl_dev;
+    uint8_t  pid_valid;
+    uint32_t process_id;
+    uint8_t  no_write;
+    uint8_t  exec_req;
+    uint8_t  priv_req;
+    uint8_t  is_cxl_dev;
     // Translation request
     iommu_trans_req_t tr;
 } hb_to_iommu_req_t;

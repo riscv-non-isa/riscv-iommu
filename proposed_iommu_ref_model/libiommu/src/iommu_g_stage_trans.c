@@ -192,14 +192,14 @@ step_5:
         }
         // Determine page size
         if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
-            *gst_page_sz = 4 * 1024 * 1024;  // 4M;
+            *gst_page_sz = 4UL * 1024UL * 1024UL;  // 4M;
         } else {
             *gst_page_sz = PAGESIZE;
             switch (i) {
-                case 4: *gst_page_sz *= 512; // 256TiB
-                case 3: *gst_page_sz *= 512; // 512GiB
-                case 2: *gst_page_sz *= 512; //   1GiB
-                case 1: *gst_page_sz *= 512; //   2MiB
+                case 4: *gst_page_sz *= 512UL; // 256TiB
+                case 3: *gst_page_sz *= 512UL; // 512GiB
+                case 2: *gst_page_sz *= 512UL; //   1GiB
+                case 1: *gst_page_sz *= 512UL; //   2MiB
             }
         }
     }

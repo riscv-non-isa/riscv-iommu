@@ -5,7 +5,7 @@
 #include "iommu.h"
 #include "tables_api.h"
 
-uint8_t
+uint64_t
 add_process_context(
     device_context_t *DC, process_context_t *PC, uint32_t process_id) {
     uint64_t a;
@@ -29,8 +29,27 @@ add_process_context(
         if ( pdte.V == 0 ) {
             pdte.V = 1;
             pdte.reserved0 = pdte.reserved1 = 0;
-            pdte.PPN = (DC->iohgatp.MODE == IOHGATP_Bare) ?
-                       get_free_ppn(1) : get_free_gppn(1, 1, DC->iohgatp);
+            if (DC->iohgatp.MODE != IOHGATP_Bare) {
+                gpte_t gpte;
+
+                pdte.PPN = get_free_gppn(1, DC->iohgatp);
+
+                gpte.raw = 0;
+                gpte.V = 1;
+                gpte.R = 1;
+                gpte.W = 0;
+                gpte.X = 0;
+                gpte.U = 1;
+                gpte.G = 0;
+                gpte.A = 0;
+                gpte.D = 0;
+                gpte.PBMT = PMA;
+                gpte.PPN = get_free_ppn(1);
+
+                add_g_stage_pte(DC->iohgatp, (PAGESIZE * pdte.PPN), gpte, 0);
+            } else {
+                pdte.PPN = get_free_ppn(1);
+            }
             write_memory((char *)&pdte.raw, (a + (PDI[i] * 8)), 8);
         }
         i = i - 1;
@@ -38,5 +57,5 @@ add_process_context(
     }
     if ( translate_gpa(DC->iohgatp, a, &a) != 0 ) return 1;
     write_memory((char *)PC, (a + (PDI[0] * 16)), 16);
-    return 0;
+    return (a + (PDI[0] * 16));
 }

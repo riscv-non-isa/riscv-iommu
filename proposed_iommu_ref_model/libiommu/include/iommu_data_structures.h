@@ -204,6 +204,21 @@ typedef union {
     uint64_t raw;
 } msiptp_t;
 
+typedef union {
+    struct {
+        uint64_t mask:52;
+        uint64_t reserved:12;
+    };
+    uint64_t raw;
+} msi_addr_mask_t;
+typedef union {
+    struct {
+        uint64_t pattern:52;
+        uint64_t reserved:12;
+    };
+    uint64_t raw;
+} msi_addr_pattern_t;
+
 
 // In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 // 
@@ -228,8 +243,8 @@ typedef struct {
     ta_t      ta;
     // Extended Format - additional fields
     msiptp_t  msiptp;
-    uint64_t  msi_addr_mask;
-    uint64_t  msi_addr_pattern;
+    msi_addr_mask_t  msi_addr_mask;
+    msi_addr_pattern_t  msi_addr_pattern;
     uint64_t  reserved;
 } device_context_t;
 #define BASE_FORMAT_DC_SIZE 32

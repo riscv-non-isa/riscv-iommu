@@ -769,10 +769,6 @@ extern uint8_t g_hpmctr_bits;
 extern uint8_t g_eventID_mask;
 extern uint8_t g_num_vec_bits;
 extern uint8_t offset_to_size[4096];
-//extern int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
-//                uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
-//                capabilities_t capabilities, fctrl_t fctrl) {
-//extern uint64_t read_register(uint16_t offset, uint8_t num_bytes);
-//extern void write_register(uint16_t offset, uint8_t num_bytes, uint64_t data);
 
+extern void process_commands(void);
 #endif //_IOMMU_REGS_H_

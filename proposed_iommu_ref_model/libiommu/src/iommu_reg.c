@@ -196,7 +196,6 @@ write_register(
                  (ddtp_temp.iommu_mode == DDT_2LVL) ||
                  (ddtp_temp.iommu_mode == DDT_3LVL) )
                 g_reg_file.ddtp.iommu_mode = ddtp_temp.iommu_mode;
-            printf("DDTP mode = %d-%d\n", ddtp_temp.iommu_mode, DDT_3LVL);
             g_reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
             break;
         case CQB_OFFSET:
@@ -209,19 +208,12 @@ write_register(
             if ( g_reg_file.cqcsr.busy || g_reg_file.cqcsr.cqon )
                 return;
             g_reg_file.cqb.ppn = cqb_temp.ppn & ppn_mask;
+            g_reg_file.cqb.log2szm1 = cqb_temp.log2szm1;
             break;
         case CQH_OFFSET:
             // This register is read only
             break;
         case CQT_OFFSET:
-            // The command-queue is active if cqon is 1. IOMMU behavior on
-            // changing cqb when busy is 1 or cqon is 1 is implementation
-            // defined. The software recommended sequence to change cqb is to
-            // first disable the command-queue by clearing cqen and waiting for
-            // both busy and cqon to be 0 before changing the cqb.
-            // The reference model discards the write
-            if ( g_reg_file.cqcsr.busy || g_reg_file.cqcsr.cqon )
-                return;
             g_reg_file.cqt.index = cqt_temp.index & 
                 ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
             break;
@@ -237,18 +229,9 @@ write_register(
             if ( g_reg_file.fqcsr.busy || g_reg_file.fqcsr.fqon )
                 return;
             g_reg_file.fqb.ppn = fqb_temp.ppn & ppn_mask;
+            g_reg_file.fqb.log2szm1 = fqb_temp.log2szm1;
             break;
         case FQH_OFFSET:
-            // The fault-queue is active if `fqon` reads 1.
-            // IOMMU behavior on changing `fqb` when `busy` is 1
-            // or `fqon` is 1 implementation defined. The
-            // recommended sequence to change `fqb` is to first
-            // disable the fault-queue by clearing `fqen` and
-            // waiting for both `busy` and `fqon` to be 0 before
-            // changing `fqb`.
-            // The reference model discards the write
-            if ( g_reg_file.fqcsr.busy || g_reg_file.fqcsr.fqon )
-                return;
             g_reg_file.fqh.index = fqh_temp.index & 
                 ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1);
             break;
@@ -270,20 +253,11 @@ write_register(
             if ( g_reg_file.pqcsr.busy || g_reg_file.pqcsr.pqon )
                 return;
             g_reg_file.pqb.ppn = pqb_temp.ppn & ppn_mask;
+            g_reg_file.pqb.log2szm1 = pqb_temp.log2szm1;
             break;
         case PQH_OFFSET:
             // This register is read-only 0 if capabilities.ATS is 0.
             if ( g_reg_file.capabilities.ats == 0 )
-                break;
-            // The page-request is active when `pqon` reads 1.
-            // IOMMU behavior on changing `pqb` when `busy` is 1
-            // or `pqon` is 1 implementation defined. The
-            // recommended sequence to change `pqb` is to first
-            // disable the page-request queue by clearing `pqen`
-            // and waiting for both `busy` and `pqon` to be 0
-            // before changing `pqb`.
-            // The reference model discards the write
-            if ( g_reg_file.pqcsr.busy || g_reg_file.pqcsr.pqon )
                 break;
             g_reg_file.pqh.index = pqh_temp.index & 
                 ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1);
@@ -338,6 +312,7 @@ write_register(
                     g_reg_file.cqh.index = 0;
                     g_reg_file.cqt.index = 0;
                     // mark queue as being on
+                    g_reg_file.cqcsr.cqen = 1;
                     g_reg_file.cqcsr.cqon = 1;
                 }
                 if ( cqcsr_temp.cqen == 0 ) {
@@ -349,6 +324,7 @@ write_register(
                     g_reg_file.cqcsr.fence_w_ip = 0;
                     // mark queue as being off
                     g_reg_file.cqcsr.cqon = 0;
+                    g_reg_file.cqcsr.cqen = 0;
                 }
             }
             // Command-queue-interrupt-enable bit enables 
@@ -406,6 +382,7 @@ write_register(
                     g_reg_file.fqt.index = 0;
                     // mark queue as being on
                     g_reg_file.fqcsr.fqon = 1;
+                    g_reg_file.fqcsr.fqen = 1;
                 }
                 if ( fqcsr_temp.fqen == 0 ) {
                     g_reg_file.fqh.index = 0;
@@ -414,6 +391,7 @@ write_register(
                     g_reg_file.fqcsr.fqmf = 0;
                     // mark queue as being off
                     g_reg_file.fqcsr.fqon = 0;
+                    g_reg_file.fqcsr.fqen = 0;
                 }
             }
             // Fault-queue-interrupt-enable bit enables 
@@ -477,6 +455,7 @@ write_register(
                     g_reg_file.pqt.index = 0;
                     // mark queue as being on
                     g_reg_file.pqcsr.pqon = 1;
+                    g_reg_file.pqcsr.pqen = 1;
                 }
                 if ( pqcsr_temp.pqen == 0 ) {
                     g_reg_file.pqh.index = 0;
@@ -485,6 +464,7 @@ write_register(
                     g_reg_file.pqcsr.pqmf = 0;
                     // mark queue as being off
                     g_reg_file.pqcsr.pqon = 0;
+                    g_reg_file.pqcsr.pqen = 0;
                 }
             }
             // page-request-queue-interrupt-enable bit enables 
@@ -691,7 +671,7 @@ write_register(
                     req.tr.length = 1;
                     req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.RWn == 1) ? READ : WRITE;
 
-                    iommu_translate_iova(req, &rsp);
+                    iommu_translate_iova(&req, &rsp);
 
                     g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
                     g_reg_file.tr_response.PPN = rsp.trsp.PPN;

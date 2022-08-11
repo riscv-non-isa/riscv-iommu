@@ -170,6 +170,8 @@ step_8:
     //    within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
     if ( ((g_reg_file.capabilities.msi_flat == 1) && (DC->reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msiptp.reserved != 0)) ||
+         ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_mask.reserved != 0)) ||
+         ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_pattern.reserved != 0)) ||
          (DC->tc.reserved != 0) ||
          (DC->fsc.pdtp.reserved != 0 && DC->tc.PDTV == 1) ||
          (DC->fsc.iosatp.reserved != 0 && DC->tc.PDTV == 0) ||
@@ -230,10 +232,10 @@ step_8:
     //       iii. capabilities.Sv48 is 0 and DC.fsc.iosatp.MODE is Sv48
     //        iv. capabilities.Sv57 is 0 and DC.fsc.iosatp.MODE is Sv57
     if ( (DC->tc.PDTV == 0) && 
-         ((DC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) &&
-         ((DC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) &&
-         ((DC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) &&
-         ((DC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0)) ) {
+         (((DC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ||
+          ((DC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
+          ((DC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
+          ((DC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0))) ) {
         *cause = 259;     // DDT entry misconfigured
         return 1;
     }
@@ -243,9 +245,9 @@ step_8:
     //    i. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
     //    j. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
     //    k. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
-    if ( ((DC->iohgatp.MODE == IOHGATP_Sv32x4) && (g_reg_file.capabilities.Sv32x4 == 0)) &&
-         ((DC->iohgatp.MODE == IOHGATP_Sv39x4) && (g_reg_file.capabilities.Sv39x4 == 0)) &&
-         ((DC->iohgatp.MODE == IOHGATP_Sv48x4) && (g_reg_file.capabilities.Sv48x4 == 0)) &&
+    if ( ((DC->iohgatp.MODE == IOHGATP_Sv32x4) && (g_reg_file.capabilities.Sv32x4 == 0)) ||
+         ((DC->iohgatp.MODE == IOHGATP_Sv39x4) && (g_reg_file.capabilities.Sv39x4 == 0)) ||
+         ((DC->iohgatp.MODE == IOHGATP_Sv48x4) && (g_reg_file.capabilities.Sv48x4 == 0)) ||
          ((DC->iohgatp.MODE == IOHGATP_Sv57x4) && (g_reg_file.capabilities.Sv57x4 == 0)) ) {
         *cause = 259;     // DDT entry misconfigured
         return 1;
@@ -254,7 +256,7 @@ step_8:
     //    "DDT entry misconfigured" (cause = 259).
     //    l. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
     //       and not `Flat`  
-    if ( (g_reg_file.capabilities.msi_flat == 0) && 
+    if ( (g_reg_file.capabilities.msi_flat == 1) && 
          ((DC->msiptp.MODE != MSIPTP_Bare) &&
           (DC->msiptp.MODE != MSIPTP_Flat)) ) {
         *cause = 259;     // DDT entry misconfigured

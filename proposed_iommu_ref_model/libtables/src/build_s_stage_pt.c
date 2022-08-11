@@ -4,7 +4,7 @@
 // Author: ved@rivosinc.com
 #include "iommu.h"
 #include "tables_api.h"
-uint8_t
+uint64_t
 add_s_stage_pte (
     iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level) {
 
@@ -55,5 +55,5 @@ add_s_stage_pte (
         a = nl_pte.PPN * PAGESIZE;
     }
     write_memory((char *)&pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
-    return 0;
+    return (a | (vpn[i] * PTESIZE));
 }

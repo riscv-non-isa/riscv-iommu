@@ -7,7 +7,7 @@
 
 void 
 iommu_translate_iova(
-    hb_to_iommu_req_t req, iommu_to_hb_rsp_t *rsp_msg) {
+    hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg) {
 
     uint8_t DDI[3];
     device_context_t DC;
@@ -26,47 +26,47 @@ iommu_translate_iova(
 
     // Classify transaction type
     iotval2 = 0;
-    iotval = req.tr.iova;
+    iotval = req->tr.iova;
     is_read = is_write = is_exec = 0;
     is_unsup = is_msi = is_mrif_wr = 0;
     priv = U_MODE;
 
     // Count events
-    if ( req.tr.at == ADDR_TYPE_UNTRANSLATED )
-        count_events(req.pid_valid, req.process_id, 0 /* PSCV */, 0 /*PSCID*/,
-                     req.device_id, 0 /* GSCV */, 0 /* GSCID */, UNTRANSLATED_REQUEST);
-    if ( req.tr.at == ADDR_TYPE_TRANSLATED )
-        count_events(req.pid_valid, req.process_id, 0 /* PSCV */, 0 /*PSCID*/,
-                     req.device_id, 0 /* GSCV */, 0 /* GSCID */, TRANSLATED_REQUEST);
-    if ( req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST )
-        count_events(req.pid_valid, req.process_id, 0 /* PSCV */, 0 /*PSCID*/,
-                     req.device_id, 0 /* GSCV */, 0 /* GSCID */, TRANSLATION_REQUEST);
+    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED )
+        count_events(req->pid_valid, req->process_id, 0 /* PSCV */, 0 /*PSCID*/,
+                     req->device_id, 0 /* GSCV */, 0 /* GSCID */, UNTRANSLATED_REQUEST);
+    if ( req->tr.at == ADDR_TYPE_TRANSLATED )
+        count_events(req->pid_valid, req->process_id, 0 /* PSCV */, 0 /*PSCID*/,
+                     req->device_id, 0 /* GSCV */, 0 /* GSCID */, TRANSLATED_REQUEST);
+    if ( req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST )
+        count_events(req->pid_valid, req->process_id, 0 /* PSCV */, 0 /*PSCID*/,
+                     req->device_id, 0 /* GSCV */, 0 /* GSCID */, TRANSLATION_REQUEST);
     TTYP = TTYPE_NONE;
-    if ( req.tr.at == ADDR_TYPE_UNTRANSLATED && req.tr.read_writeAMO == READ ) {
-        if ( req.pid_valid && req.exec_req )
+    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.read_writeAMO == READ ) {
+        if ( req->pid_valid && req->exec_req )
             TTYP = UNTRANSLATED_READ_FOR_EXECUTE_TRANSACTION;
         else
             TTYP = UNTRANSLATED_READ_TRANSACTION;
     }
-    if ( req.tr.at == ADDR_TYPE_UNTRANSLATED && req.tr.read_writeAMO == WRITE )
+    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.read_writeAMO == WRITE )
         TTYP = UNTRANSLATED_WRITE_AMO_TRANSACTION;
-    if ( req.tr.at == ADDR_TYPE_TRANSLATED && req.tr.read_writeAMO == READ ) {
-        if ( req.pid_valid && req.exec_req )
+    if ( req->tr.at == ADDR_TYPE_TRANSLATED && req->tr.read_writeAMO == READ ) {
+        if ( req->pid_valid && req->exec_req )
             TTYP = TRANSLATED_READ_FOR_EXECUTE_TRANSACTION;
         else
             TTYP = TRANSLATED_READ_TRANSACTION;
     }
-    if ( req.tr.at == ADDR_TYPE_TRANSLATED && req.tr.read_writeAMO == WRITE )
+    if ( req->tr.at == ADDR_TYPE_TRANSLATED && req->tr.read_writeAMO == WRITE )
         TTYP = TRANSLATED_WRITE_AMO_TRANSACTION;
 
-    if ( req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST )
+    if ( req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST )
         TTYP = PCIE_ATS_TRANSLATION_REQUEST;
 
     // Has to be one of the valid ttypes - this only for debug - not architectural
     if ( TTYP == TTYPE_NONE ) *((char *)0) = 0;
 
-    if ( req.tr.read_writeAMO == READ ) is_read = 1;
-    if ( req.tr.read_writeAMO == WRITE ) is_write = 1;
+    if ( req->tr.read_writeAMO == READ ) is_read = 1;
+    if ( req->tr.read_writeAMO == WRITE ) is_write = 1;
 
     // The No Write flag, when Set, indicates that the Function is requesting read-only 
     // access for this translation.
@@ -79,7 +79,7 @@ iommu_translate_iova(
     // mark the associated pages dirty. Functions MUST not issue such Requests 
     // unless they have been given explicit write permission.
     // Note ATS Translation requests are read - so read_writeAMO is READ for these requests
-    if ( (req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) && (req.no_write == 0) ) 
+    if ( (req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) && (req->no_write == 0) ) 
         is_write = 1;
     // If a Translation Request has a PASID, the Untranslated Address Field is an address 
     // within the process address space indicated by the PASID field.
@@ -87,10 +87,10 @@ iommu_translate_iova(
     // or Execute Requested bit Set, these may be used in constructing the Translation 
     // Completion Data Entry.  The PASID Extended Capability indicates whether a Function
     // supports and is enabled to send and receive TLPs with the PASID.
-    if ( req.tr.read_writeAMO == READ && req.pid_valid && req.exec_req &&
-         (req.tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) 
+    if ( req->tr.read_writeAMO == READ && req->pid_valid && req->exec_req &&
+         (req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) 
         is_exec = 1;
-    if ( req.pid_valid && req.priv_req ) priv = S_MODE;
+    if ( req->pid_valid && req->priv_req ) priv = S_MODE;
 
     // The process to translate an `IOVA` is as follows:
     // 1. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
@@ -108,13 +108,13 @@ iommu_translate_iova(
     //    c. Transaction has a valid `process_id`
     //    d. Transaction type is not supported by the IOMMU in `Bare` mode.
     if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
-        if ( req.tr.at == ADDR_TYPE_TRANSLATED || 
-             req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) {
+        if ( req->tr.at == ADDR_TYPE_TRANSLATED || 
+             req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         } 
 
-        if ( req.pid_valid ) {
+        if ( req->pid_valid ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         } 
@@ -123,17 +123,17 @@ iommu_translate_iova(
     //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
     //    `DDI[2]` be `device_id[23:16]`.
     if ( g_reg_file.capabilities.msi_flat == 0 ) {
-        DDI[0] = get_bits(6,  0, req.device_id);
-        DDI[1] = get_bits(15, 7, req.device_id);
-        DDI[2] = get_bits(23, 16, req.device_id);
+        DDI[0] = get_bits(6,  0, req->device_id);
+        DDI[1] = get_bits(15, 7, req->device_id);
+        DDI[2] = get_bits(23, 16, req->device_id);
     }
     // 4. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses extended-format device
     //    context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
     //    `DDI[2]` be `device_id[23:15]`.
     if ( g_reg_file.capabilities.msi_flat == 1 ) {
-        DDI[0] = get_bits(5,  0, req.device_id);
-        DDI[1] = get_bits(14, 6, req.device_id);
-        DDI[2] = get_bits(23, 15, req.device_id);
+        DDI[0] = get_bits(5,  0, req->device_id);
+        DDI[1] = get_bits(14, 6, req->device_id);
+        DDI[2] = get_bits(23, 15, req->device_id);
     }
     // 5. The `device_id` is wider than that supported by the IOMMU mode if any of the
     //    following conditions hold. If the following conditions hold then stop and
@@ -152,7 +152,7 @@ iommu_translate_iova(
 
     // 6. Use `device_id` to then locate the device-context (`DC`) as specified in
     //    section 2.4.1 of IOMMU specification.
-    if ( locate_device_context(&DC, req.device_id, req.pid_valid, req.process_id, &cause) )
+    if ( locate_device_context(&DC, req->device_id, req->pid_valid, req->process_id, &cause) )
         goto stop_and_report_fault;
 
     // 7. if any of the following conditions hold then stop and report
@@ -164,27 +164,27 @@ iommu_translate_iova(
     //   * Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the
     //     `process_id` is wider than supported by `pdtp.MODE`.
     //   * Transaction type is not supported by the IOMMU.
-    if ( DC.tc.EN_ATS == 0 && ( req.tr.at == ADDR_TYPE_TRANSLATED || 
-                                req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) {
+    if ( DC.tc.EN_ATS == 0 && ( req->tr.at == ADDR_TYPE_TRANSLATED || 
+                                req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) {
         cause = 260; // "Transaction type disallowed" 
         goto stop_and_report_fault;
     } 
 
-    if ( req.pid_valid && DC.tc.PDTV == 0 ) {
+    if ( req->pid_valid && DC.tc.PDTV == 0 ) {
         cause = 260; // "Transaction type disallowed" 
         goto stop_and_report_fault;
     } 
 
-    if ( req.pid_valid && DC.tc.PDTV == 1 ) {
-        if ( DC.fsc.pdtp.MODE == PD20 && req.process_id > ((1UL << 20) - 1) ) {
+    if ( req->pid_valid && DC.tc.PDTV == 1 ) {
+        if ( DC.fsc.pdtp.MODE == PD20 && req->process_id > ((1UL << 20) - 1) ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         } 
-        if ( DC.fsc.pdtp.MODE == PD17 && req.process_id > ((1UL << 17) - 1) ) {
+        if ( DC.fsc.pdtp.MODE == PD17 && req->process_id > ((1UL << 17) - 1) ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         }
-        if ( DC.fsc.pdtp.MODE == PD8 && req.process_id > ((1UL << 8) - 1) ) {
+        if ( DC.fsc.pdtp.MODE == PD8 && req->process_id > ((1UL << 8) - 1) ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         }
@@ -207,16 +207,16 @@ iommu_translate_iova(
     //    If the `IOVA` is determined to be not an MSI then the process continues at
     //    step 9.
     if ( (g_reg_file.capabilities.msi_flat == 1) &&
-         ((req.tr.iova & 0x3) == 0) &&
-         ((req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ||
-          (req.tr.at == ADDR_TYPE_TRANSLATED && req.tr.length == 4) ||
-          (req.tr.at == ADDR_TYPE_UNTRANSLATED && req.tr.length == 4)) &&
-         (req.pid_valid == 0) &&
+         ((req->tr.iova & 0x3) == 0) &&
+         ((req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ||
+          (req->tr.at == ADDR_TYPE_TRANSLATED && req->tr.length == 4) ||
+          (req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.length == 4)) &&
+         (req->pid_valid == 0) &&
          (DC.msiptp.MODE != MSIPTP_Bare) ) {
 
-        if ( msi_address_translation( req.tr.iova, req.tr.msi_wr_data, req.tr.at, &DC,
+        if ( msi_address_translation( req->tr.iova, req->tr.msi_wr_data, req->tr.at, &DC,
               &cause, &pa, &R, &W, &UNTRANSLATED_ONLY, &is_msi, &is_unsup, &is_mrif_wr, &mrif_nid,
-              0, 0, 0, 0, req.device_id, 
+              0, 0, 0, 0, req->device_id, 
               ((DC.iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), DC.iohgatp.GSCID) ) {
             goto stop_and_report_fault;
         }
@@ -234,8 +234,8 @@ iommu_translate_iova(
 step_9:
     // 9. If request is a Translated request and DC.tc.T2GPA is 0 then the translation 
     //    process is complete.  Go to step 18
-    if ( (req.tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 0) ) {
-        pa = req.tr.iova;
+    if ( (req->tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 0) ) {
+        pa = req->tr.iova;
         page_sz = PAGESIZE;
         goto step_18;
     }
@@ -245,7 +245,7 @@ step_9:
     //    ◦ Let iosatp.MODE be Bare
     //    ◦ Let PSCID be 0
     //    ◦ Let iohgatp be value in DC.iohgatp field
-    if ( (req.tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 1) ) {
+    if ( (req->tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 1) ) {
         iosatp.MODE = IOSATP_Bare;
         PSCID = 0;
         SUM = 0;
@@ -273,7 +273,7 @@ step_9:
 
     //12. If there is no `process_id` associated with the transaction then go 
     //    to step 16 with the following page table information:
-    if ( req.pid_valid == 0 ) {
+    if ( req->pid_valid == 0 ) {
         iosatp.MODE = IOSATP_Bare;
         PSCID = 0;
         SUM = 0;
@@ -282,13 +282,13 @@ step_9:
     }
 
     // 13. Locate the process-context (`PC`) as specified in Section 2.4.2
-    if ( locate_process_context(&PC, &DC, req.device_id, req.process_id, &cause, &iotval2, TTYP) )
+    if ( locate_process_context(&PC, &DC, req->device_id, req->process_id, &cause, &iotval2, TTYP) )
         goto stop_and_report_fault;
 
     // 14. if any of the following conditions hold then stop and report 
     //     "Transaction type disallowed" (cause = 260).  
     //     a. The transaction requests supervisor privilege but PC.ta.ENS is not set.
-    if ( PC.ta.ENS == 0 && req.pid_valid && req.priv_req ) {
+    if ( PC.ta.ENS == 0 && req->pid_valid && req->priv_req ) {
         cause = 260; // "Transaction type disallowed" 
         goto stop_and_report_fault;
     }
@@ -319,9 +319,9 @@ step_16:
     //     two-stage address translation process specified in Section 8.5 of the RISC-V
     //     privileged specification. If a fault is detecting by the single stage address
     //     translation process then stop and report the fault.
-    if ( s_vs_stage_address_translation(req.tr.iova, priv, is_read, is_write, is_exec,
+    if ( s_vs_stage_address_translation(req->tr.iova, priv, is_read, is_write, is_exec,
                         SUM, iosatp, PSCID, iohgatp, &cause, &iotval2, &pa, &page_sz, &R, &W, &X, &G, 
-                        &PBMT, &UNTRANSLATED_ONLY, req.pid_valid, req.process_id, req.device_id,
+                        &PBMT, &UNTRANSLATED_ONLY, req->pid_valid, req->process_id, req->device_id,
                         TTYP, DC.tc.T2GPA) )
         goto stop_and_report_fault;
 
@@ -337,7 +337,7 @@ step_18:
     rsp_msg->trsp.mrif_nid   = mrif_nid;
     rsp_msg->trsp.PBMT       = PBMT;
 
-    if ( req.tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
+    if ( req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
         // When a Success response is generated for a ATS translation request, the setting
         // of the Priv, N, CXL.io, and AMA fields is as follows:
         // * Priv field of the ATS translation completion is always set to 0 if the request
@@ -401,8 +401,8 @@ step_18:
         // in MRIF mode then a Success response is generated with R, W, and U bit set to
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
-        rsp_msg->trsp.Priv   = (req.pid_valid && req.priv_req) ? 1 : 0;
-        rsp_msg->trsp.CXL_IO = (req.is_cxl_dev && ((PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
+        rsp_msg->trsp.Priv   = (req->pid_valid && req->priv_req) ? 1 : 0;
+        rsp_msg->trsp.CXL_IO = (req->is_cxl_dev && ((PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
         rsp_msg->trsp.Global = G;
@@ -423,9 +423,9 @@ return_completer_abort:
 
 stop_and_report_fault:
     // No faults are logged in the fault queue for PCIe ATS Translation Requests.
-    if ( req.tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
+    if ( req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
         report_fault(cause, iotval, iotval2, TTYP, DC.tc.DTF,
-                     req.device_id, req.pid_valid, req.process_id, req.priv_req);
+                     req->device_id, req->pid_valid, req->process_id, req->priv_req);
         // Translated and Untranslated requests get UR response
         goto return_unsupported_request;
     }

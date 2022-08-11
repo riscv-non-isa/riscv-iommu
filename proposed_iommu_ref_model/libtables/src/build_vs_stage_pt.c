@@ -4,7 +4,7 @@
 // Author: ved@rivosinc.com
 #include "iommu.h"
 #include "tables_api.h"
-uint8_t
+uint64_t
 add_vs_stage_pte (
     iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level,
     iohgatp_t iohgatp) {
@@ -48,8 +48,25 @@ add_vs_stage_pte (
         if ( translate_gpa(iohgatp, a, &a) != 0) return 1;
         read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw);
         if ( nl_pte.V == 0 ) {
+            gpte_t gpte;
+
             nl_pte.V = 1;
-            nl_pte.PPN = get_free_gppn(1, 1, iohgatp);
+            nl_pte.PPN = get_free_gppn(1, iohgatp);
+
+            gpte.raw = 0;
+            gpte.V = 1;
+            gpte.R = 1;
+            gpte.W = 1;
+            gpte.X = 0;
+            gpte.U = 1;
+            gpte.G = 0;
+            gpte.A = 0;
+            gpte.D = 0;
+            gpte.PBMT = PMA;
+            gpte.PPN = get_free_ppn(1);
+
+            add_g_stage_pte(iohgatp, (PAGESIZE * nl_pte.PPN), gpte, 0);
+
             write_memory((char *)&nl_pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
         }
         i = i - 1;
@@ -58,5 +75,5 @@ add_vs_stage_pte (
     }
     if ( translate_gpa(iohgatp, a, &a) != 0) return 1;
     write_memory((char *)&pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
-    return 0;
+    return (a | (vpn[i] * PTESIZE));
 }

@@ -5,7 +5,7 @@
 #include "iommu.h"
 #include "tables_api.h"
 
-uint8_t
+uint64_t
 add_dev_context(
     device_context_t *DC, uint32_t device_id) {
     uint64_t a;
@@ -43,5 +43,5 @@ add_dev_context(
         a = ddte.PPN * PAGESIZE;
     }
     write_memory((char *)DC, (a + (DDI[0] * DC_SIZE)), DC_SIZE);
-    return 0;
+    return (a + (DDI[0] * DC_SIZE));
 }

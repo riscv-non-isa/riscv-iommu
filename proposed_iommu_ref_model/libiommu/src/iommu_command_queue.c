@@ -118,10 +118,9 @@ process_commands(
         case IODIR:
             DV       = get_bits(10, 10, command.low);
             PID      = get_bits(35, 16, command.low);
-            DID      = get_bits(55, 40, command.low);
+            DID      = get_bits(63, 40, command.low);
             reserved = get_bits(15, 11, command.low);
             reserved|= get_bits(39, 36, command.low);
-            reserved|= get_bits(63, 56, command.low);
             reserved|= command.high;
             if ( reserved ) 
                 goto command_illegal;
@@ -143,10 +142,11 @@ process_commands(
             AV       = get_bits(12, 12, command.low);
             WIS_BIT  = get_bits(13, 13, command.low);
             DATA     = get_bits(63, 32, command.low);
-            ADDR     = command.high;
+            ADDR     = get_bits(63,  2, command.high);
             reserved = get_bits(31, 14, command.low);
             reserved|= get_bits(1,   0, command.high);
             if ( reserved ) goto command_illegal;
+            ADDR = ADDR << 2;
             // The wired-interrupt-signaling (WIS) bit when set to 1 
             // causes a wired-interrupt from the command
             // queue to be generated on completion of IOFENCE.C. This
@@ -155,7 +155,11 @@ process_commands(
                 goto command_illegal;
             switch ( func3 ) {
                 case IOFENCE_C:
-                    do_iofence_c(PR, PW, AV, WIS_BIT, ADDR, DATA);
+                    if ( do_iofence_c(PR, PW, AV, WIS_BIT, ADDR, DATA) ) {
+                        // If IOFENCE encountered a memory fault or timeout
+                        // then do not advance the CQH
+                        return;
+                    }
                     // If IOFENCE is waiting for invalidation requests
                     // to complete then do not advance the CQ head
                     if ( g_iofence_wait_pending_inv != 0 ) {
@@ -434,7 +438,7 @@ do_ats_msg(
     send_msg_iommu_to_hb(&msg);
     return;
 }
-void
+uint8_t
 do_iofence_c(
     uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_BIT, uint64_t ADDR, uint32_t DATA) {
 
@@ -454,7 +458,7 @@ do_iofence_c(
         g_iofence_pending_WIS_BIT = WIS_BIT; 
         g_iofence_pending_ADDR = ADDR; 
         g_iofence_pending_DATA = DATA;
-        return;
+        return 1;
     }
     // All previous pending invalidation requests completed or timed out
     g_iofence_wait_pending_inv = 0;
@@ -465,6 +469,7 @@ do_iofence_c(
             generate_interrupt(COMMAND_QUEUE);
         }
         g_ats_inv_req_timeout = 0;
+        return 1;
     }
     // The commands may be used to order memory accesses from I/O devices connected to the IOMMU
     // as viewed by the IOMMU, other RISC-V harts, and external devices or co-processors. The 
@@ -490,9 +495,10 @@ do_iofence_c(
                 g_reg_file.cqcsr.cqmf = 1;
                 generate_interrupt(COMMAND_QUEUE);
             }
+            return 1;
         }
     }
-    return;
+    return 0;
 }
 // Retry a pending IOFENCE if all invalidations received
 void

@@ -76,7 +76,8 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // |272   | Internal datapath error             | No
     // |273   | IOMMU MSI write access fault        | Yes
     if ( (dtf == 1) && (cause != 256) &&  (cause != 257) && 
-         (cause != 258) && (cause != 259) && (cause != 273) ) {
+         (cause != 258) && (cause != 259) && (cause != 273) && 
+         (cause != 268) ) {
         return;
     }
 
@@ -99,6 +100,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     frec.iotval = iotval;
     frec.iotval2 = iotval2;
     frec.TTYP = TTYP;
+    frec.CAUSE = cause;
 
     // Fault/Event queue is an in-memory queue data structure used to report events
     // and faults raised when processing transactions. Each fault record is 32 bytes.

@@ -69,8 +69,8 @@ print_dev_context(
     }
     printf("    TA        :  PSCID:%x\n", DC->ta.PSCID);
     printf("    MSIPTP    :  MODE:%d, PPN:%"PRIx64"\n", DC->msiptp.MODE, (uint64_t)DC->msiptp.PPN);
-    printf("    MSI       :  MASK:%"PRIx64"\n", DC->msi_addr_mask);
-    printf("    MSI       :  PAT:%"PRIx64"\n", DC->msi_addr_pattern);
+    printf("    MSI       :  MASK:%"PRIx64"\n", (uint64_t)DC->msi_addr_mask.mask);
+    printf("    MSI       :  PAT:%"PRIx64"\n", (uint64_t)DC->msi_addr_pattern.pattern);
 }
 void
 print_process_context(

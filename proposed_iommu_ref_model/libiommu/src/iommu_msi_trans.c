@@ -38,7 +38,8 @@ msi_address_translation(
     // 2. Let `DC` be the device-context located using the `device_id` of the device
     //    using the process outlined in <<GET_DC>>.
     // 3. Determine if the address `A` is an MSI address as specified in <<MSI_ID>>.
-    *is_msi = (((A >> 12) & ~DC->msi_addr_mask) == ((DC->msi_addr_pattern & ~DC->msi_addr_mask)));
+    *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask) == 
+               ((DC->msi_addr_pattern.pattern & ~DC->msi_addr_mask.mask)));
     // 4. If the address is not determined to be an MSI then stop this process and
     //    instead use the regular translation data structures to do the address
     //    translation.
@@ -56,7 +57,7 @@ msi_address_translation(
     //    ** `x = a b c d e f g h`
     //    ** `y = 1 0 1 0 0 1 1 0`
     //    ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
-    I = extract((A >> 12), DC->msi_addr_mask);
+    I = extract((A >> 12), DC->msi_addr_mask.mask);
     // 6. If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. The IOMMU
     //    capable of big-endian access to memory if the `END` bit in the `capabilities`
     //    register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation,

@@ -4,7 +4,7 @@
 // Author: ved@rivosinc.com
 #include "iommu.h"
 
-itag_tracker_t itag_tracker[MAX_ITAGS];
+itag_tracker_t itag_tracker[MAX_ITAGS] = {0};
 
 uint8_t
 allocate_itag(
@@ -28,7 +28,7 @@ uint8_t
 any_ats_invalidation_requests_pending() {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].free == 0 ) 
+        if ( itag_tracker[i].free != 0 ) 
             return 1;
     return 0;
 }
