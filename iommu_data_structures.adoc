@@ -1111,8 +1111,9 @@ The process to translate an `IOVA` is as follows:
 .. If a G-stage page table is not active in the device-context
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
-. If there is no `process_id` associated with the transaction then go to step 16
-  with the following page table information:
+. If there is no `process_id` associated with the transaction or if 
+  `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table 
+   information:
 .. Let `iosatp.MODE` be `Bare`
 .. Let `PSCID` be 0
 .. Let `iohgatp` be value in `DC.iohgatp` field
