@@ -6,4 +6,4 @@ iommu: $(OBJ_APP)
 	$(CC) -static -o $@ $^ $(CFLAGS) ../libiommu/libiommu.a ../libtables/libtables.a
 
 clean:
-	$(RM) src/*.o *.a* tags log src/*.gc* src/*.gcov *.gcov
+	$(RM) *.o *.a* tags log *.gc* src/*.gcov iommu
