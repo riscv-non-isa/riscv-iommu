@@ -614,6 +614,7 @@ main(void) {
             if ( rsp.trsp.U != 0 ) return -1;
             if ( rsp.trsp.R != 1 ) return -1;
             if ( rsp.trsp.W != 1 ) return -1;
+            if ( rsp.trsp.Exe != 1 ) return -1;
             if ( rsp.trsp.PBMT != PMA ) return -1;
             if ( rsp.trsp.is_msi != 0 ) return -1;
             if ( rsp.trsp.S == 1 )  {
@@ -629,6 +630,28 @@ main(void) {
             if ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) return -1; 
         }
     }
+    DC.iohgatp.MODE = IOHGATP_Bare;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012345, 0);
+    gpa = 512UL * 512UL * PAGESIZE;
+    req.tr.iova = gpa;
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    if ( rsp.trsp.U != 0 ) return -1;
+    if ( rsp.trsp.R != 1 ) return -1;
+    if ( rsp.trsp.W != 1 ) return -1;
+    if ( rsp.trsp.Exe != 1 ) return -1;
+    if ( rsp.trsp.PBMT != PMA ) return -1;
+    if ( rsp.trsp.is_msi != 0 ) return -1;
+    if ( rsp.trsp.S != 1 ) return -1;
+    temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
+    temp = temp  * PAGESIZE | 0xFFF;
+    if ( ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) return -1; 
+    printf("PASS\n");
+
+    printf("Test 9: Test G-stage translation sizes:");
+
+
     printf("PASS\n");
 
 

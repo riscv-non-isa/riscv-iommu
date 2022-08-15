@@ -243,11 +243,10 @@ step_9:
     //10. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA. 
     //    Go to step 16 with following page table information:
     //    ◦ Let iosatp.MODE be Bare
-    //    ◦ Let PSCID be 0
+    //       * The `PSCID` value is not used when first-stage mode is `Bare`.
     //    ◦ Let iohgatp be value in DC.iohgatp field
     if ( (req->tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 1) ) {
         iosatp.MODE = IOSATP_Bare;
-        PSCID = 0;
         SUM = 0;
         iohgatp = DC.iohgatp;
         goto step_16;
@@ -271,11 +270,14 @@ step_9:
         goto step_16;
     }
 
-    //12. If there is no `process_id` associated with the transaction then go 
-    //    to step 16 with the following page table information:
-    if ( req->pid_valid == 0 ) {
+    //12. If there is no `process_id` associated with the transaction or if
+    //    `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table
+    //    information:
+    //    ◦ Let iosatp.MODE be Bare
+    //       * The `PSCID` value is not used when first-stage mode is `Bare`.
+    //    ◦ Let iohgatp be value in DC.iohgatp field
+    if ( req->pid_valid == 0 || DC.fsc.pdtp.MODE == PDTP_Bare ) {
         iosatp.MODE = IOSATP_Bare;
-        PSCID = 0;
         SUM = 0;
         iohgatp = DC.iohgatp;
         goto step_16;
