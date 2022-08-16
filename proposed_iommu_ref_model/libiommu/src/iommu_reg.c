@@ -657,29 +657,29 @@ write_register(
                     g_reg_file.tr_req_ctrl.raw = data8;
                     g_reg_file.tr_req_ctrl.reserved = 0;
                     g_reg_file.tr_req_ctrl.custom = 0;
-                }
-                // On a g_busy 0->1 transition kick off a translation
-                if ( g_reg_file.tr_req_ctrl.go_busy == 1 ) {
-                    req.device_id = g_reg_file.tr_req_ctrl.DID;
-                    req.pid_valid = g_reg_file.tr_req_ctrl.PV;
-                    req.process_id = g_reg_file.tr_req_ctrl.PID;
-                    req.exec_req = g_reg_file.tr_req_ctrl.Exe;
-                    req.priv_req = g_reg_file.tr_req_ctrl.Priv;
-                    req.is_cxl_dev = 0;
-                    req.tr.at = ADDR_TYPE_UNTRANSLATED;
-                    req.tr.iova = g_reg_file.tr_req_iova.raw;
-                    req.tr.length = 1;
-                    req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.RWn == 1) ? READ : WRITE;
+                    // On a g_busy 0->1 transition kick off a translation
+                    if ( g_reg_file.tr_req_ctrl.go_busy == 1 ) {
+                        req.device_id = g_reg_file.tr_req_ctrl.DID;
+                        req.pid_valid = g_reg_file.tr_req_ctrl.PV;
+                        req.process_id = g_reg_file.tr_req_ctrl.PID;
+                        req.exec_req = g_reg_file.tr_req_ctrl.Exe;
+                        req.priv_req = g_reg_file.tr_req_ctrl.Priv;
+                        req.is_cxl_dev = 0;
+                        req.tr.at = ADDR_TYPE_UNTRANSLATED;
+                        req.tr.iova = g_reg_file.tr_req_iova.raw;
+                        req.tr.length = 1;
+                        req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.RWn == 1) ? READ : WRITE;
 
-                    iommu_translate_iova(&req, &rsp);
+                        iommu_translate_iova(&req, &rsp);
 
-                    g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
-                    g_reg_file.tr_response.PPN = rsp.trsp.PPN;
-                    g_reg_file.tr_response.S = rsp.trsp.S;
-                    g_reg_file.tr_response.PBMT = rsp.trsp.PBMT;
-                    g_reg_file.tr_response.reserved = 0;
-                    g_reg_file.tr_response.custom = 0;
-                    g_reg_file.tr_req_ctrl.go_busy = 0;
+                        g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
+                        g_reg_file.tr_response.PPN = rsp.trsp.PPN;
+                        g_reg_file.tr_response.S = rsp.trsp.S;
+                        g_reg_file.tr_response.PBMT = rsp.trsp.PBMT;
+                        g_reg_file.tr_response.reserved = 0;
+                        g_reg_file.tr_response.custom = 0;
+                        g_reg_file.tr_req_ctrl.go_busy = 0;
+                    }
                 }
             }
             break;
