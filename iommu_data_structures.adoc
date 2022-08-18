@@ -1054,7 +1054,8 @@ The process to translate an `IOVA` is as follows:
 . If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
   disallowed" (cause = 256).
 . If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
-  stop and report "Transaction type disallowed" (cause = 260).
+  stop and report "Transaction type disallowed" (cause = 260); else go to step
+  18 with translated address same as the `IOVA`.
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
 ..  Transaction type is a PCIe "Page Request" Message.
