@@ -23,7 +23,7 @@ process_commands(
     uint8_t status, opcode, func3, GV, AV, PSCV, DV, DSV, PV, DSEG, PR, PW, WIS_BIT, itag;
     uint16_t RID;
     uint32_t GSCID, PSCID, PID, DID, DATA;
-    uint64_t a, ADDR, PAYLOAD, reserved;
+    uint64_t a, ADDR_63_12, PAYLOAD, reserved, ADDR;
     command_t command;
 
     // Command queue is used by software to queue commands to be processed by 
@@ -95,7 +95,7 @@ process_commands(
             GV       = get_bits(12, 12, command.low);
             PSCID    = get_bits(35, 16, command.low);
             GSCID    = get_bits(55, 40, command.low);
-            ADDR     = get_bits(52,  0, command.high);
+            ADDR_63_12 = get_bits(52,  0, command.high);
             reserved = get_bits(15, 13, command.low);
             reserved|= get_bits(39, 36, command.low);
             reserved|= get_bits(63, 56, command.low);
@@ -104,13 +104,13 @@ process_commands(
                 goto command_illegal;
             switch ( func3 ) {
                 case VMA:
-                    do_iotinval_vma(GV, AV, PSCV, GSCID, PSCID, ADDR);
+                    do_iotinval_vma(GV, AV, PSCV, GSCID, PSCID, ADDR_63_12);
                     break;
                 case GVMA:
                     // Setting PSCV to 1 with IOTINVAL.GVMA is illegal.
                     if ( PSCV ) 
                         goto command_illegal;
-                    do_iotinval_gvma(GV, AV, GSCID, ADDR);
+                    do_iotinval_gvma(GV, AV, GSCID, ADDR_63_12);
                     break;
                 default: goto command_illegal;
             }
@@ -281,7 +281,7 @@ do_inval_pdt(
 
 void 
 do_iotinval_vma(
-    uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t ADDR) {
+    uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t ADDR_63_12) {
 
     // IOMMU operations cause implicit reads to PDT, first-stage and second-stage 
     // page tables. To reduce latency of such reads, the IOMMU may cache entries 
@@ -346,7 +346,7 @@ do_iotinval_vma(
              (PSCV == 1 && tlb[i].PSCV == 1 && tlb[i].PSCID == PSCID) )
             pscid_match = 1;
         if ( (AV == 0) ||
-             (AV == 1 && match_address_range(ADDR, tlb[i].iova, tlb[i].S)) )
+             (AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) )
             addr_match = 1;
         if ( (PSCV == 0) || 
              (PSCV == 1 && tlb[i].G == 0) )
@@ -358,7 +358,7 @@ do_iotinval_vma(
 }
 void
 do_iotinval_gvma(
-    uint8_t GV, uint8_t AV, uint32_t GSCID, uint64_t ADDR) {
+    uint8_t GV, uint8_t AV, uint32_t GSCID, uint64_t ADDR_63_12) {
 
     uint8_t i, gscid_match, addr_match;
     // Conceptually, an implementation might contain two address-translation
@@ -392,6 +392,7 @@ do_iotinval_gvma(
     //                   `ADDR` operand, for only for VM address spaces identified
     //                   `GSCID` operand.
     for ( i = 0; i < TLB_SIZE; i++ ) {
+        if ( tlb[i].valid == 0 ) continue;
         if ( (GV == 0 && tlb[i].GV == 1) ||
              (GV == 1 && tlb[i].GV == 1 && tlb[i].GSCID == GSCID) )
             gscid_match = 1;
@@ -399,7 +400,7 @@ do_iotinval_gvma(
         // it. If PSCV is 0 then it holds a GPA. If AV is 0 then all entries are 
         // eligible else match the address
         if ( (tlb[i].PSCV == 1) || (AV == 0) ||
-             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR, tlb[i].iova, tlb[i].S)) ) 
+             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) ) 
             addr_match = 1;
         if ( gscid_match && addr_match )
             tlb[i].valid = 0;

@@ -16,6 +16,7 @@ int8_t enable_fq(uint32_t nppn);
 int8_t enable_pq(uint32_t nppn);
 int8_t enable_iommu(uint8_t iommu_mode);
 void iodir(uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID);
+void iotinval( uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address);
 void iofence(uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_bit, uint64_t addr, uint32_t data);
 void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
              uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
@@ -732,6 +733,8 @@ main(void) {
     req.tr.read_writeAMO = READ;
     iommu_translate_iova(&req, &rsp);
     if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa >> 2) << 2)) < 0 ) return -1;
+    gpte.PPN = 512UL * 512UL * 512UL * 512UL;
+    write_memory((char *)&gpte, gpte_addr, 8);
 
     access_viol_addr = gpte_addr;
     req.tr.read_writeAMO = WRITE;
@@ -752,10 +755,47 @@ main(void) {
     if ( tr_response.fault == 0 ) return -1;
     if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) return -1;
 
+    access_viol_addr = -1;
 
     printf("PASS\n");
 
     printf("Test 9: Test IOTINVAL.GVMA:");
+
+    req.device_id = 0x012345;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_UNTRANSLATED;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    gpte.PPN = 512UL * 512UL * 512UL ;
+    write_memory((char *)&gpte, gpte_addr, 8);
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    iotinval(GVMA, 1, 0, 0, 1, 0, 0);
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa >> 2) << 2)) < 0 ) return -1;
+    gpte.PPN = 512UL * 512UL * 512UL * 512UL;
+    write_memory((char *)&gpte, gpte_addr, 8);
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    iotinval(GVMA, 1, 1, 0, 1, 0, req.tr.iova);
+
+    gpte.W = 0;
+    write_memory((char *)&gpte, gpte_addr, 8);
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, ((gpa >> 2) << 2)) < 0 ) return -1;
+    gpte.W = 1;
+    write_memory((char *)&gpte, gpte_addr, 8);
+    iotinval(GVMA, 1, 1, 0, 1, 0, req.tr.iova);
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+
+
 
     printf("PASS\n");
 

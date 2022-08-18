@@ -92,7 +92,7 @@ lookup_ioatc_pc(
 // Cache a translation in the IOATC
 void
 cache_ioatc_iotlb(
-    uint64_t iova, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
+    uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
     uint8_t  VS_R, uint8_t  VS_W, uint8_t  VS_X, uint8_t U, uint8_t  G, uint8_t VS_D, uint8_t  PBMT,
     uint8_t  G_R, uint8_t  G_W, uint8_t  G_X, uint8_t G_D,
     uint64_t PPN, uint8_t  S) {
@@ -108,7 +108,7 @@ cache_ioatc_iotlb(
     }
 
     // Fill the tags
-    tlb[replace].iova  = iova;
+    tlb[replace].vpn   = vpn;
     tlb[replace].GV    = GV;
     tlb[replace].PSCV  = PSCV;
     tlb[replace].GSCID = GSCID;
@@ -141,13 +141,14 @@ lookup_ioatc_iotlb(
     uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT) {
 
     uint8_t i, hit;
+    uint64_t vpn = iova / PAGESIZE;
 
     hit = 0xFF;
     for ( i = 0; i < 1; i++ ) {
         if ( tlb[i].valid == 1 && 
              tlb[i].GV == GV && tlb[i].GSCID == GSCID && 
              tlb[i].PSCV == PSCV && tlb[i].PSCID == PSCID &&
-             match_address_range(iova, tlb[i].iova, tlb[i].S) ) {
+             match_address_range(vpn, tlb[i].vpn, tlb[i].S) ) {
             hit = i;
             break;
         }
@@ -181,10 +182,8 @@ lookup_ioatc_iotlb(
         return IOATC_MISS;
     }
     // If memory access is a store and VS/S or G stage D bit is 0 then mark
-    // TLB entry as invalid so it returns a miss to trigger a page walk and refill.
-    // A/D bit updates are supported only if capabilities.AMO is 1
-    if ( (tlb[hit].VS_D == 0 || tlb[hit].G_D == 0) && is_write == 1 &&
-         g_reg_file.capabilities.amo == 0 ) {
+    // TLB entry as invalid so it returns a miss to trigger a page walk
+    if ( (tlb[hit].VS_D == 0 || tlb[hit].G_D == 0) && is_write == 1 ) {
         tlb[hit].valid = 0;
         return IOATC_MISS;
     }
