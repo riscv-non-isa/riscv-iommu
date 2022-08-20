@@ -178,7 +178,6 @@ step_2:
     //    the address space identified in satp as loaded by step 0.
     if ( i != 0 && pte.N ) goto page_fault;
 
-
     // 4. Otherwise, the PTE is valid. If pte.r = 1 or pte.x = 1, go to step 5. 
     //    Otherwise, this PTE is a pointer to the next level of the page table. 
     //    Let i = i − 1. If i < 0, stop and raise a page-fault exception 
@@ -262,24 +261,20 @@ step_5:
     // 6. If i > 0 and pte.ppn[i − 1 : 0] = 0, this is a misaligned superpage; 
     // stop and raise a page-fault exception corresponding to the original 
     // access type.
+    *page_sz = PAGESIZE;
     if ( i > 0 ) {
-        switch ( (i - 1) ) {
-            case 3: if ( ppn[3] ) goto page_fault;
-            case 2: if ( ppn[2] ) goto page_fault;
-            case 1: if ( ppn[1] ) goto page_fault;
-            case 0: if ( ppn[0] ) goto page_fault;
-        }
-        // Determine page size
-        if ( iosatp.MODE == IOSATP_Sv32 ) {
-            *page_sz = 4 * 1024 * 1024;  // 4M;
-        } else {
-            *page_sz = PAGESIZE;
-            switch (i) {
-                case 4: *page_sz *= 512; // 256TiB
-                case 3: *page_sz *= 512; // 512GiB
-                case 2: *page_sz *= 512; //   1GiB
-                case 1: *page_sz *= 512; //   2MiB
-            }
+        switch ( i ) {
+            case 4: if ( ppn[3] ) goto page_fault;
+                    *page_sz *= 512UL; // 256TiB
+            case 3: if ( ppn[2] ) goto page_fault;
+                    *page_sz *= 512UL; // 512GiB
+            case 2: if ( ppn[1] ) goto page_fault;
+                    *page_sz *= 512UL; // 1GiB
+            case 1: if ( ppn[0] ) goto page_fault;
+                    *page_sz *= 512UL; // 2MiB
+                    if ( iosatp.MODE == IOSATP_Sv32 ) {
+                        *page_sz *= 2UL; // 4MiB
+                    }
         }
     }
 

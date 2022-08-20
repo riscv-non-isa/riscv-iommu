@@ -30,6 +30,7 @@ g_stage_address_translation(
         gpte.raw = 0;
         gpte.PPN = gpa / PAGESIZE;
         gpte.D = gpte.A = gpte.G = gpte.U = gpte.X = gpte.W = gpte.R = gpte.V = 1;
+        gpte.N = 0;
         gpte.PBMT = PMA;
         // Indicate G-stage page size as largest possible page size
         if ( g_reg_file.capabilities.Sv57x4 == 1 ) 
@@ -111,11 +112,32 @@ step_2:
     //    encodings that are reserved for future standard use are set within pte,
     //    stop and raise a page-fault exception to the original access type.
     if ( (gpte.V == 0) || (gpte.R == 0 && gpte.W == 1) || 
+         ((gpte.N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
          ((gpte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (gpte.PBMT == 3) ||
-         (gpte.reserved0 != 0) ||
-         (gpte.reserved1 != 0) )
+         (gpte.reserved != 0) )
         goto guest_page_fault;
+
+    // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
+    // algorithm in Section 4.3.2, except that:
+    // a. If the encoding in pte is valid according to Table 5.1, then instead of 
+    //    returning the original value of pte, implicit reads of a NAPOT PTE 
+    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced 
+    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved 
+    //    according to Table 5.1, then a page-fault exception must be raised.
+    //    i     pte.ppn[i]     Description                   pte.napot bits
+    //    0    x xxxx xxx1      Reserved                           −
+    //    0    x xxxx xx1x      Reserved                           −
+    //    0    x xxxx x1xx      Reserved                           −
+    //    0    x xxxx 1000      64 KiB contiguous region           4
+    //    0    x xxxx 0xxx      Reserved                           −
+    //    ≥ 1  x xxxx xxxx      Reserved                           −
+    // b. Implicit reads of NAPOT page table entries may create address-translation
+    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which 
+    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
+    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
+    //    the address space identified in satp as loaded by step 0.
+    if ( i != 0 && gpte.N ) goto guest_page_fault;
 
     // 4. Otherwise, the PTE is valid. If gpte.r = 1 or gpte.x = 1, go to step 5. 
     //    Otherwise, this PTE is a pointer to the next level of the page table. 
@@ -183,26 +205,36 @@ step_5:
     // 6. If i > 0 and gpte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; 
     // stop and raise a page-fault exception corresponding to the original 
     // access type.
+    *gst_page_sz = PAGESIZE;
     if ( i > 0 ) {
-        switch ( (i - 1) ) {
-            case 3: if ( ppn[3] ) goto guest_page_fault;
-            case 2: if ( ppn[2] ) goto guest_page_fault;
-            case 1: if ( ppn[1] ) goto guest_page_fault;
-            case 0: if ( ppn[0] ) goto guest_page_fault;
-        }
-        // Determine page size
-        if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
-            *gst_page_sz = 4UL * 1024UL * 1024UL;  // 4M;
-        } else {
-            *gst_page_sz = PAGESIZE;
-            switch (i) {
-                case 4: *gst_page_sz *= 512UL; // 256TiB
-                case 3: *gst_page_sz *= 512UL; // 512GiB
-                case 2: *gst_page_sz *= 512UL; //   1GiB
-                case 1: *gst_page_sz *= 512UL; //   2MiB
-            }
+        switch ( i ) {
+            case 4: if ( ppn[3] ) goto guest_page_fault;
+                    *gst_page_sz *= 512UL; // 256TiB
+            case 3: if ( ppn[2] ) goto guest_page_fault;
+                    *gst_page_sz *= 512UL; // 512GiB
+            case 2: if ( ppn[1] ) goto guest_page_fault;
+                    *gst_page_sz *= 512UL; // 1GiB
+            case 1: if ( ppn[0] ) goto guest_page_fault;
+                    *gst_page_sz *= 512UL; // 2MiB
+                    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+                        *gst_page_sz *= 2UL; // 4MiB
+                    }
         }
     }
+
+    // a. If the encoding in pte is valid according to Table 5.1, then instead of 
+    //    returning the original value of pte, implicit reads of a NAPOT PTE 
+    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced 
+    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved 
+    //    according to Table 5.1, then a page-fault exception must be raised.
+    //    i     pte.ppn[i]     Description                   pte.napot bits
+    //    0    x xxxx xxx1      Reserved                           −
+    //    0    x xxxx xx1x      Reserved                           −
+    //    0    x xxxx x1xx      Reserved                           −
+    //    0    x xxxx 1000      64 KiB contiguous region           4
+    //    0    x xxxx 0xxx      Reserved                           −
+    //    ≥ 1  x xxxx xxxx      Reserved                           −
+    if ( i == 0 && gpte.N && ((gpte.PPN & 0xF) != 0x8) ) goto guest_page_fault;
 
     // IOMMU A/D bit behavior:
     //    When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
@@ -251,6 +283,15 @@ step_5:
 
 step_8:
     // 8. The translation is successful.
+
+    // b. Implicit reads of NAPOT page table entries may create address-translation
+    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which 
+    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
+    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
+    //    the address space identified in satp as loaded by step 0.
+    if ( gpte.N ) 
+        gpte.PPN = (gpte.PPN & ~0xF) | ((gpa / PAGESIZE) & 0xF);
+
     // The translated physical address is given as follows:
     // pa.pgoff = va.pgoff.
     // If i > 0, then this is a superpage translation and pa.ppn[i − 1 : 0] = va.vpn[i − 1 : 0].

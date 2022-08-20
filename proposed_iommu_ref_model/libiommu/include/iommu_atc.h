@@ -8,7 +8,7 @@
 // IOMMU TLB
 typedef struct {
     // Tags
-    uint64_t iova;
+    uint64_t vpn;
     uint8_t  GV;
     uint8_t  PSCV;
     uint32_t GSCID;

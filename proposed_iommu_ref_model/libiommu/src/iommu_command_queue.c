@@ -342,15 +342,15 @@ do_iotinval_vma(
         if ( (GV == 0 && tlb[i].GV == 0 ) ||
              (GV == 1 && tlb[i].GV == 1 && tlb[i].GSCID == GSCID) )
             gscid_match = 1;
-        if ( (PSCV == 0 && tlb[i].PSCV == 0) ||
+        if ( (PSCV == 0) ||
              (PSCV == 1 && tlb[i].PSCV == 1 && tlb[i].PSCID == PSCID) )
             pscid_match = 1;
-        if ( (AV == 0) ||
-             (AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) )
-            addr_match = 1;
         if ( (PSCV == 0) || 
              (PSCV == 1 && tlb[i].G == 0) )
             global_match = 1;
+        if ( (AV == 0) ||
+             (AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) )
+            addr_match = 1;
         if ( gscid_match && pscid_match && addr_match && global_match )
             tlb[i].valid = 0;
     }

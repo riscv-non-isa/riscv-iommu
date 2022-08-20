@@ -20,7 +20,7 @@ iommu_translate_iova(
     uint32_t cause;
     uint64_t iotval2, iotval;
     uint64_t pa;
-    uint8_t is_unsup, is_msi, is_mrif_wr;
+    uint8_t is_unsup, is_msi, is_mrif_wr, DTF;
     uint32_t mrif_nid;
     uint32_t PSCID;
 
@@ -30,6 +30,7 @@ iommu_translate_iova(
     is_read = is_write = is_exec = 0;
     is_unsup = is_msi = is_mrif_wr = 0;
     priv = U_MODE;
+    DTF = 0;
 
     // Count events
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED )
@@ -101,23 +102,23 @@ iommu_translate_iova(
     }
 
     // 2. If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
-    //    stop and report "Transaction type disallowed" (cause = 260).
+    //    stop and report "Transaction type disallowed" (cause = 260); else go to step
+    //    18 with translated address same as the `IOVA`.
     //    a. Transaction type is a Translated request (read, write/AMO, read-for-execute)
     //       or is a PCIe ATS Translation request.
     //    b. Transaction type is a PCIe "Page Request" Message.
-    //    c. Transaction has a valid `process_id`
-    //    d. Transaction type is not supported by the IOMMU in `Bare` mode.
     if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
         if ( req->tr.at == ADDR_TYPE_TRANSLATED || 
              req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         } 
-
-        if ( req->pid_valid ) {
-            cause = 260; // "Transaction type disallowed" 
-            goto stop_and_report_fault;
-        } 
+        pa = req->tr.iova;
+        page_sz = PAGESIZE;
+        R = W = X = 1;
+        G = 0;
+        PBMT = PMA;
+        goto step_18;
     }
     // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
     //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
@@ -154,6 +155,7 @@ iommu_translate_iova(
     //    section 2.4.1 of IOMMU specification.
     if ( locate_device_context(&DC, req->device_id, req->pid_valid, req->process_id, &cause) )
         goto stop_and_report_fault;
+    DTF = DC.tc.DTF;
 
     // 7. if any of the following conditions hold then stop and report
     //    "Transaction type disallowed" (cause = 260).
@@ -426,7 +428,7 @@ return_completer_abort:
 stop_and_report_fault:
     // No faults are logged in the fault queue for PCIe ATS Translation Requests.
     if ( req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
-        report_fault(cause, iotval, iotval2, TTYP, DC.tc.DTF,
+        report_fault(cause, iotval, iotval2, TTYP, DTF,
                      req->device_id, req->pid_valid, req->process_id, req->priv_req);
         // Translated and Untranslated requests get UR response
         goto return_unsupported_request;

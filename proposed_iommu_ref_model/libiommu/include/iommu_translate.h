@@ -41,9 +41,9 @@ typedef union {
         uint64_t D:1;
         uint64_t RSW:2;
         uint64_t PPN:44;
-        uint64_t reserved0:7;
+        uint64_t reserved:7;
         uint64_t PBMT:2;
-        uint64_t reserved1:1;
+        uint64_t N:1;
     };
     uint64_t raw;
 } gpte_t;

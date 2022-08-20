@@ -20,7 +20,7 @@ add_s_stage_pte (
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( satp.MODE == IOSATP_Sv32 ) {
+    if ( satp.MODE == IOSATP_Sv39 ) {
         vpn[0] = get_bits(20, 12, va);
         vpn[1] = get_bits(29, 21, va);
         vpn[2] = get_bits(40, 30, va);

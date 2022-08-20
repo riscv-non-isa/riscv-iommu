@@ -51,11 +51,12 @@ main(void) {
     fctrl_t fctrl = {0};
     uint8_t at, pid_valid, exec_req, priv_req, no_write, PR, PW, AV;
     uint32_t i, j;
-    uint64_t DC_addr, exp_iotval2, iofence_PPN, iofence_data, gpa, temp, gpte_addr;
+    uint64_t DC_addr, exp_iotval2, iofence_PPN, iofence_data, gpa, gva, temp, gpte_addr, pte_addr;
     device_context_t DC;
     ddte_t ddte;
     ddtp_t ddtp;
     gpte_t gpte;
+    pte_t  pte;
     fqcsr_t fqcsr;
     cqcsr_t cqcsr;
     cqb_t cqb;
@@ -107,6 +108,26 @@ main(void) {
             if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 256, 0) < 0 ) return -1;
         }
     });
+    printf("PASS\n");
+
+    printf("Test 1: Bare mode tests: ");
+    // Enable IOMMU in Bare mode
+    if ( enable_iommu(DDT_Bare) < 0 ) return -1;
+    FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
+        send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                                 priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+        if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
+            if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) return -1;
+        } 
+        if ( at == ADDR_TYPE_TRANSLATED ) {
+            if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) return -1;
+        } 
+        if ( at == ADDR_TYPE_UNTRANSLATED ) {
+                if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+        }
+    });
+    // Turn it off
+    if ( enable_iommu(Off) < 0 ) return -1;
     printf("PASS\n");
 
     // Enable IOMMU
@@ -476,8 +497,6 @@ main(void) {
     pw_go_requested = 0;
     write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
 
-
-
     // Set WIS - not supported in this config
     iofence(IOFENCE_C, 1, 0, 1, 1, (iofence_PPN * PAGESIZE), 0xDEADBEEF);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -760,7 +779,6 @@ main(void) {
     printf("PASS\n");
 
     printf("Test 9: Test IOTINVAL.GVMA:");
-
     req.device_id = 0x012345;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -781,7 +799,6 @@ main(void) {
     iommu_translate_iova(&req, &rsp);
     if ( rsp.status != SUCCESS ) return -1; 
     iotinval(GVMA, 1, 1, 0, 1, 0, req.tr.iova);
-
     gpte.W = 0;
     write_memory((char *)&gpte, gpte_addr, 8);
     iommu_translate_iova(&req, &rsp);
@@ -794,12 +811,290 @@ main(void) {
     iotinval(GVMA, 1, 1, 0, 1, 0, req.tr.iova);
     iommu_translate_iova(&req, &rsp);
     if ( rsp.status != SUCCESS ) return -1; 
+    printf("PASS\n");
 
+    printf("Test 99: Test S-stage translation sizes:");
+    DC_addr = add_device(0x012349, 1, 1, 1, 1, 0, 1, IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
+                         MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
+    read_memory(DC_addr, 64, (char *)&DC);
+    DC.ta.PSCID = 10;
+    write_memory((char *)&DC, DC_addr, 64);
+    req.device_id = 0x012349;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = WRITE;
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    for ( j = 0; j < 3; j++ ) {
+        if ( j == 2 ) {
+            DC.fsc.iosatp.MODE = IOSATP_Sv57;
+            gva = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+            gva = gva * 8;
+        } else if ( j == 1 ) {
+            DC.fsc.iosatp.MODE = IOSATP_Sv48;
+            gva = 512UL * 512UL * 512UL * PAGESIZE;
+            gva = gva * 4;
+        } else {
+            DC.fsc.iosatp.MODE = IOSATP_Sv39;
+            gva = 512UL * 512UL * PAGESIZE;
+        }
+        write_memory((char *)&DC, DC_addr, 64);
+        iodir(INVAL_DDT, 1, 0x012349, 0);
+        for ( i = 0; i < 5; i++ ) {
+            if ( (i == 4) && DC.fsc.iosatp.MODE != IOSATP_Sv57 ) continue;
+            if ( (i == 3) && DC.fsc.iosatp.MODE != IOSATP_Sv48 && 
+                             DC.fsc.iosatp.MODE != IOSATP_Sv57 ) continue;
+            gva = gva | ((1 << (i * 9)) * PAGESIZE) | 2048;
+            req.tr.iova = gva;
+            pte.PPN = 512UL * 512UL * 512UL * 512UL;
+            pte.PPN |= (1UL << (i * 9UL));
+            add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
+            iommu_translate_iova(&req, &rsp);
+            if ( rsp.status != SUCCESS ) return -1; 
+            if ( rsp.trsp.S == 1 && i == 0 ) return -1; 
+            if ( rsp.trsp.S == 0 && i != 0 ) return -1; 
+            if ( rsp.trsp.U != 0 ) return -1;
+            if ( rsp.trsp.R != 1 ) return -1;
+            if ( rsp.trsp.W != 1 ) return -1;
+            if ( rsp.trsp.Exe != 1 ) return -1;
+            if ( rsp.trsp.PBMT != PMA ) return -1;
+            if ( rsp.trsp.is_msi != 0 ) return -1;
+            if ( rsp.trsp.S == 1 )  {
+                temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
+                temp = temp  * PAGESIZE | 0xFFF;
+            } else {
+                temp = 0xFFF;
+            }
+            if ( ((rsp.trsp.PPN * PAGESIZE) & ~temp) != (pte.PPN * PAGESIZE) ) return -1;
+            if ( ((temp + 1) != PAGESIZE) && i == 0 ) return -1; 
+            if ( ((temp + 1) != 512UL * PAGESIZE) && i == 1 ) return -1; 
+            if ( ((temp + 1) != 512UL * 512UL * PAGESIZE) && i == 2 ) return -1; 
+            if ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) return -1; 
+        }
+    }
+    g_reg_file.capabilities.Sv57 = 0;
+    g_reg_file.capabilities.Sv48 = 0;
+    g_reg_file.capabilities.Sv39 = 0;
+    g_reg_file.capabilities.Sv32 = 0;
+    for ( i = 0; i < 4; i++ ) {
+        if ( i == 0 ) g_reg_file.capabilities.Sv32 = 1;
+        if ( i == 1 ) g_reg_file.capabilities.Sv39 = 1;
+        if ( i == 2 ) g_reg_file.capabilities.Sv48 = 1;
+        if ( i == 3 ) g_reg_file.capabilities.Sv57 = 1;
+        DC.fsc.iosatp.MODE = IOSATP_Bare;
+        write_memory((char *)&DC, DC_addr, 64);
+        iodir(INVAL_DDT, 1, 0x012349, 0);
+        gva = 512UL * 512UL * PAGESIZE;
+        req.tr.iova = gva;
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        if ( rsp.trsp.U != 0 ) return -1;
+        if ( rsp.trsp.R != 1 ) return -1;
+        if ( rsp.trsp.W != 1 ) return -1;
+        if ( rsp.trsp.Exe != 1 ) return -1;
+        if ( rsp.trsp.PBMT != PMA ) return -1;
+        if ( rsp.trsp.is_msi != 0 ) return -1;
+        if ( rsp.trsp.S != 1 ) return -1;
+        temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
+        temp = temp  * PAGESIZE | 0xFFF;
+        if ( i == 0 && ((temp + 1) != 2 * 512UL * PAGESIZE) ) return -1; 
+        if ( i == 1 && ((temp + 1) != 512UL * 512UL * PAGESIZE) ) return -1; 
+        if ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) return -1; 
+        if ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) return -1; 
+    }
+    printf("PASS\n");
 
+    printf("Test 100: Test S-stage permission faults:");
+    req.device_id = 0x012349;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_UNTRANSLATED;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = WRITE;
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    DC.fsc.iosatp.MODE = IOSATP_Sv57;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012349, 0);
+    gva = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+    gva = gpa * 16;
+    gva = gpa | ((1 << (i * 9)) * PAGESIZE) | 2048;
+    req.tr.iova = gva;
+    pte.PPN = 512UL * 512UL * 512UL * 512UL;
+    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
+    read_memory(pte_addr, 8, (char *)&pte);
+
+    pte.U = 1;
+    pte.W = 1;
+    pte.R = 0;
+    write_memory((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 15, 0) < 0 ) return -1;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+
+    pte.X = 1;
+    pte.W = 0;
+    pte.R = 0;
+    write_memory((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 15, 0) < 0 ) return -1;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+
+    pte.PPN = 512UL * 512UL * 512UL ;
+    pte.X = 1;
+    pte.W = 1;
+    pte.R = 1;
+    write_memory((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+    pte.PPN = 512UL * 512UL * 512UL * 512UL;
+    write_memory((char *)&pte, pte_addr, 8);
+
+    access_viol_addr = pte_addr;
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 7, 0) < 0 ) return -1;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) return -1;
+
+    tr_req_ctrl.DID = 0x012349;
+    tr_req_ctrl.PV = 0;
+    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.go_busy = 1;
+    tr_req_iova.raw = req.tr.iova;
+    write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
+    write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
+    tr_response.raw = read_register(TR_RESPONSE_OFFSET, 8);
+    if ( tr_response.fault == 0 ) return -1;
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) return -1;
+
+    access_viol_addr = -1;
 
     printf("PASS\n");
 
+    printf("Test 9: Test IOTINVAL.VMA:");
+    req.device_id = 0x012349;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_UNTRANSLATED;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = READ;
 
+    for ( int g = 0; g < 1; g++ ) {
+        pte.G = g;
+        // AV=0, PSCV=0
+        // Fill TLB
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Corrupt PTE
+        pte.PPN = 512UL * 512UL * 512UL ;
+        write_memory((char *)&pte, pte_addr, 8);
+        // Hit in TLB
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Inv TLB
+        iotinval(VMA, 0, 0, 0, 1, 10, 0);
+        // Check fault observed - invalidate success
+        iommu_translate_iova(&req, &rsp);
+        if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+        // Correct fault
+        pte.PPN = 512UL * 512UL * 512UL * 512UL;
+        write_memory((char *)&pte, pte_addr, 8);
+
+        // AV=0, PSCV=1
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Corrupt PTE
+        pte.PPN = 512UL * 512UL * 512UL ;
+        write_memory((char *)&pte, pte_addr, 8);
+        // Hit in TLB
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Inv TLB - globals dont get flushed
+        iotinval(VMA, 0, 0, 1, 1, 10, 0);
+        // Check fault observed - invalidate success
+        iommu_translate_iova(&req, &rsp);
+        if ( g == 1 && rsp.status != SUCCESS ) return -1;
+        if ( g == 0 && check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+        if ( g == 1) {
+            // Inv TLB - by address - flush globals
+            // AV=1, PSCV=1
+            iotinval(VMA, 0, 1, 1, 1, 10, req.tr.iova);
+            // Check fault observed - invalidate success
+            iommu_translate_iova(&req, &rsp);
+            if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+        }
+        // Correct fault
+        pte.PPN = 512UL * 512UL * 512UL * 512UL;
+        write_memory((char *)&pte, pte_addr, 8);
+
+        // AV=1, PSCV=0
+        // Fill TLB
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Corrupt PTE
+        pte.PPN = 512UL * 512UL * 512UL ;
+        write_memory((char *)&pte, pte_addr, 8);
+        // Hit in TLB
+        iommu_translate_iova(&req, &rsp);
+        if ( rsp.status != SUCCESS ) return -1; 
+        // Inv TLB
+        iotinval(VMA, 0, 1, 0, 1, 10, req.tr.iova);
+        // Check fault observed - invalidate success
+        iommu_translate_iova(&req, &rsp);
+        if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) return -1;
+        // Correct fault
+        pte.PPN = 512UL * 512UL * 512UL * 512UL;
+        write_memory((char *)&pte, pte_addr, 8);
+    }
+    pte.W = 0;
+    write_memory((char *)&pte, pte_addr, 8);
+    // Fill TLB
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    // Fault from TLB
+    pte.W = 1;
+    write_memory((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 15, 0) < 0 ) return -1;
+    // Inv TLB
+    iotinval(VMA, 0, 0, 0, 1, 10, 0);
+    iommu_translate_iova(&req, &rsp);
+    if ( rsp.status != SUCCESS ) return -1; 
+    printf("PASS\n");
+
+    printf("Test 9: Test HPM filtering:");
+    write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
+
+
+    printf("PASS\n");
 
 
 
