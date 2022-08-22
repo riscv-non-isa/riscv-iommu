@@ -268,6 +268,8 @@ send_prgr:
     prgr.RID = pr->RID;
     prgr.DSV = pr->DSV;
     prgr.DSEG = pr->DSEG;
+    prgr.PRIV = 0;
+    prgr.EXEC_REQ = 0;
 
     // For IOMMU generated "Page Request Group Response" messages that have status 
     // Invalid Request or Success, the PRG-response-PASID-required (PRPR) bit when 
@@ -281,6 +283,7 @@ send_prgr:
             prgr.PID = pr->PID;
         } else {
             prgr.PV = 0;
+            prgr.PID = 0;
         }
     } else {
         prgr.PV = pr->PV;
@@ -292,7 +295,9 @@ send_prgr:
     // 0Ch|      Destination device ID        |  Resp  |RSVD | PRGI              |
     //    |                                   |  Code                            |
     // 08h|                  Reserved                                            |
-    prgr.PAYLOAD = (pr->RID << 16) | (response_code << 9) | PRGI;
+    prgr.PAYLOAD = ((uint64_t)pr->RID << 48UL) | 
+                   ((uint64_t)response_code << 44UL) | 
+                   ((uint64_t)PRGI << 32UL);
     send_msg_iommu_to_hb(&prgr);
     return;
 }

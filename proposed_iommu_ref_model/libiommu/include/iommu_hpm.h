@@ -27,5 +27,5 @@
 #define G_PT_WALKS           8
 
 void count_events(uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID, 
-    uint8_t DID, uint8_t GSCV, uint32_t GSCID, uint16_t eventID);
+    uint32_t DID, uint8_t GSCV, uint32_t GSCID, uint16_t eventID);
 #endif // __IOMMU_PMU_H__

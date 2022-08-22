@@ -178,15 +178,11 @@ iommu_translate_iova(
     } 
 
     if ( req->pid_valid && DC.tc.PDTV == 1 ) {
-        if ( DC.fsc.pdtp.MODE == PD20 && req->process_id > ((1UL << 20) - 1) ) {
-            cause = 260; // "Transaction type disallowed" 
-            goto stop_and_report_fault;
-        } 
         if ( DC.fsc.pdtp.MODE == PD17 && req->process_id > ((1UL << 17) - 1) ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         }
-        if ( DC.fsc.pdtp.MODE == PD8 && req->process_id > ((1UL << 8) - 1) ) {
+        if ( DC.fsc.pdtp.MODE == PD8 && (req->process_id > ((1UL << 8) - 1)) ) {
             cause = 260; // "Transaction type disallowed" 
             goto stop_and_report_fault;
         }
@@ -422,7 +418,7 @@ return_unsupported_request:
     return;
 
 return_completer_abort:
-    rsp_msg->status = UNSUPPORTED_REQUEST;
+    rsp_msg->status = COMPLETER_ABORT;
     return;
 
 stop_and_report_fault:

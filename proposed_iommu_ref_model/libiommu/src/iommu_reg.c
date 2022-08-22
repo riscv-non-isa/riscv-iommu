@@ -620,7 +620,7 @@ write_register(
         case IOHPMEVT31_OFFSET:
             // These register are read-only 0 if capabilities.HPM is 0
             if ( g_reg_file.capabilities.hpm == 1 ) { 
-                ctr_num = ((offset - IOHPMCTR1_OFFSET)/8);
+                ctr_num = ((offset - IOHPMEVT1_OFFSET)/8);
                 iohpmevt_temp.eventID &= g_eventID_mask;
                 // Writes discarded to non implemented HPM counters
                 if ( ctr_num < (g_num_hpm - 1) )  {

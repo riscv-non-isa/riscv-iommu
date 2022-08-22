@@ -24,7 +24,7 @@ add_process_context(
     a = DC->fsc.pdtp.PPN * PAGESIZE;
     i = LEVELS - 1;
     while ( i > 0 ) {
-        if ( translate_gpa(DC->iohgatp, a, &a) != 0 ) return 1;
+        if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return 1;
         read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw);
         if ( pdte.V == 0 ) {
             pdte.V = 1;
@@ -55,7 +55,7 @@ add_process_context(
         i = i - 1;
         a = pdte.PPN * PAGESIZE;
     }
-    if ( translate_gpa(DC->iohgatp, a, &a) != 0 ) return 1;
+    if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return 1;
     write_memory((char *)PC, (a + (PDI[0] * 16)), 16);
     return (a + (PDI[0] * 16));
 }

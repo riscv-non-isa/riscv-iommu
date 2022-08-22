@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Author: ved@rivosinc.com
 #include "iommu.h"
-uint8_t
+uint64_t
 translate_gpa (
     iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa) {
 
@@ -59,12 +59,12 @@ translate_gpa (
             *spa = *spa * PAGESIZE;
             *spa = *spa & ~(gst_page_sz - 1);
             *spa = *spa | (gpa & (gst_page_sz - 1));
-            return 0;
+            return (a | (vpn[i] * PTESIZE));
         }
         i = i - 1;
-        if ( i < 0 ) return 1;
+        if ( i < 0 ) return -11;
         gst_page_sz = ( i == 0 ) ? PAGESIZE : (gst_page_sz / 512);
         a = nl_gpte.PPN * PAGESIZE;
     }
-    return 0;
+    return -1;
 }

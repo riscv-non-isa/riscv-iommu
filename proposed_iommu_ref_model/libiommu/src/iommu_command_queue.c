@@ -249,6 +249,7 @@ do_inval_ddt(
     // entry for the device identified by `DID` operand and all associated PDT entries.
     // The `PID` operand is reserved for `IODIR.INVAL_DDT`.
     for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
+        if ( ddt_cache[i].valid == 0 ) continue;
         if ( DV == 0 ) ddt_cache[i].valid = 0;
         if ( DV == 1 && (ddt_cache[i].DID == DID) ) 
             ddt_cache[i].valid = 0;
@@ -274,7 +275,7 @@ do_inval_pdt(
     // The command invalidates cached leaf PDT entry for the specified `PID` and `DID`.
 
     for ( i = 0; i < PDT_CACHE_SIZE; i++ )
-        if ( pdt_cache[i].DID == DID && pdt_cache[i].PID == PID ) 
+        if ( pdt_cache[i].DID == DID && pdt_cache[i].PID == PID && pdt_cache[i].valid == 1) 
             pdt_cache[i].valid = 0;
     return;
 }
@@ -436,6 +437,8 @@ do_ats_msg(
     msg.PV      = PV;
     msg.PID     = PID;
     msg.PAYLOAD = PAYLOAD;
+    msg.PRIV    = 0;
+    msg.EXEC_REQ= 0;
     send_msg_iommu_to_hb(&msg);
     return;
 }

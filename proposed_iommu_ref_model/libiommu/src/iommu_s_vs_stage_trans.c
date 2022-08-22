@@ -124,6 +124,7 @@ step_2:
     //    violates a PMA or PMP check, raise an access-fault exception 
     //    corresponding to the original access type.
     pte.raw = 0;
+    a = a + vpn[i] * PTESIZE;
 
     // Invoke G-stage page table to translate the PTE address if G-stage page
     // table is active.
@@ -144,7 +145,7 @@ step_2:
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
 
-    status = read_memory((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&pte.raw);
+    status = read_memory(a, PTESIZE, (char *)&pte.raw);
     if ( status != 0 ) goto access_fault;
 
     // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or 
@@ -320,7 +321,7 @@ step_5:
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
 
-    status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_pte.raw);
+    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw);
 
     if ( status != 0 ) goto access_fault;
 
@@ -331,7 +332,7 @@ step_5:
         if ( is_write ) amo_pte.D = 1;
     }
 
-    status = write_memory((char *)&amo_pte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
+    status = write_memory((char *)&amo_pte.raw, a, PTESIZE);
 
     if ( status != 0 ) goto access_fault;
 

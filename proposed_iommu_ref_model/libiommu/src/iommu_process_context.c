@@ -71,6 +71,7 @@ locate_process_context(
     i = LEVELS - 1;
 
 step_2:
+    a = a + ((i == 0) ? (PDI[i] * 16) : (PDI[i] * 8));
     // 2. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
     //    to translate `a` to a SPA as an implicit memory access. If faults 
     //    occur during G-stage address translation of `a` then stop and the fault
@@ -91,7 +92,7 @@ step_2:
     // 4. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
     //    accessing `pdte` violates a PMA or PMP check, then stop and report
     //    "PDT entry load access fault" (cause = 265).
-    status = read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw);
+    status = read_memory(a, 8, (char *)&pdte.raw);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
@@ -131,7 +132,7 @@ step_9:
     //    fault" (cause = 265).If `PC` access detects a data corruption
     //    (a.k.a. poisoned data), then stop and report "PDT data corruption"
     //    (cause = 269).
-    status = read_memory((a + (PDI[0] * 16)), 16, (char *)PC);
+    status = read_memory(a, 16, (char *)PC);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
@@ -162,9 +163,9 @@ step_9:
     //    b. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
     //    c. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
     //    d. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
-    if ( ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) &&
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) &&
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) &&
+    if ( ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ||
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
          ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0)) ) {
         *cause = 267;     // PDT entry not misconfigured
         return 1;
