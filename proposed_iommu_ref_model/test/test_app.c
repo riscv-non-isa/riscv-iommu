@@ -9,13 +9,14 @@
 #include "tables_api.h"
 ats_msg_t exp_msg;
 char exp_msg_received;
+char message_received;
 char *memory;
 uint64_t next_free_page;
 uint64_t next_free_gpage[65536];
 int8_t reset_system(uint8_t mem_gb, uint16_t num_vms);
 int8_t enable_cq(uint32_t nppn);
 int8_t enable_fq(uint32_t nppn);
-int8_t enable_pq(uint32_t nppn);
+int8_t enable_disable_pq(uint32_t nppn, uint8_t enable_disable);
 int8_t enable_iommu(uint8_t iommu_mode);
 void iodir(uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID);
 void iotinval( uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address);
@@ -27,6 +28,8 @@ void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uin
              hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp);
 int8_t check_rsp_and_faults(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp, status_t status,
           uint16_t cause, uint64_t exp_iotval2);
+int8_t check_msg_faults(uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, 
+          uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval);
 uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 uint64_t access_viol_addr = -1;
 uint64_t data_corruption_addr = -1;
@@ -101,7 +104,7 @@ main(void) {
     // Enable fault queue
     if ( enable_fq(4) < 0 ) return -1;
     // Enable page queue
-    if ( enable_pq(4) < 0 ) return -1;
+    if ( enable_disable_pq(4, 1) < 0 ) return -1;
 
     printf("Test 1: All inbound transactions disallowed: ");
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
@@ -1548,7 +1551,7 @@ main(void) {
     if ( exp_msg_received == 0 ) return -1;
     printf("PASS\n");
    
-    printf("Test 10: ATS page request:");
+    printf("Test 105: ATS page request:");
 
     // Invalid device_id
     pr.MSGCODE = PAGE_REQ_MSG_CODE;
@@ -1573,6 +1576,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     if ( exp_msg_received == 0 ) return -1;
+    if ( check_msg_faults(258, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) return -1;
 
     // ATS disabled
     pr.RID = 0x2233;
@@ -1588,8 +1592,52 @@ main(void) {
     exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     if ( exp_msg_received == 0 ) return -1;
+    if ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE) < 0 ) return -1;
+
+    // ATS enabled PRI disabled
+    pr.RID = 0x2233;
+    pr.DSEG = 0x11;
+    DC.tc.EN_ATS = 1;
+    DC.tc.EN_PRI = 0;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    exp_msg.RID = 0x2233;
+    exp_msg.DSEG = 0x11;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
+    handle_page_request(&pr);
+    if ( exp_msg_received == 0 ) return -1;
+    if ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE) < 0 ) return -1;
 
 
+    // ATS, PRI enabled - Page request queue disabled
+    if ( enable_disable_pq(4, 0) < 0 ) return -1;
+    DC.tc.EN_ATS = 1;
+    DC.tc.EN_PRI = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    exp_msg.RID = 0x2233;
+    exp_msg.DSEG = 0x11;
+    exp_msg.PV = 1;
+    exp_msg.PID = 0xBABEC;
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    handle_page_request(&pr);
+    if ( exp_msg_received == 0 ) return -1;
+    if ( ((read_register(PQH_OFFSET, 4)) != read_register(PQT_OFFSET, 4)) ) return -1;
+    if ( enable_disable_pq(4, 1) < 0 ) return -1;
+
+
+    // PRI enabled
+    pr.RID = 0x2233;
+    pr.DSEG = 0x11;
+    DC.tc.EN_ATS = 1;
+    DC.tc.EN_PRI = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    message_received = 0;
+    handle_page_request(&pr);
+    if ( message_received == 1 ) return -1;
 
     printf("PASS\n");
 
@@ -2005,33 +2053,40 @@ int8_t enable_fq(
     return 0;
 }
 
-int8_t enable_pq(
-    uint32_t nppn) {
+int8_t enable_disable_pq(
+    uint32_t nppn, uint8_t enable_disable) {
     pqb_t pqb;
     pqcsr_t pqcsr;
 
-    pqb.raw = 0;
-    pqb.ppn = get_free_ppn(4);
-    pqb.log2szm1 = 9;
-    write_register(PQB_OFFSET, 8, pqb.raw);
+    if ( enable_disable == 1 ) {
+        pqb.raw = 0;
+        pqb.ppn = get_free_ppn(4);
+        pqb.log2szm1 = 9;
+        write_register(PQB_OFFSET, 8, pqb.raw);
+    }
     do {
         pqcsr.raw = read_register(PQCSR_OFFSET, 4);
     } while ( pqcsr.busy == 1 );
     pqcsr.raw = 0;
     pqcsr.pie = 1;
-    pqcsr.pqen = 1;
+    pqcsr.pqen = enable_disable;
     pqcsr.pqmf = 1;
     pqcsr.pqof = 1;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
     do {
         pqcsr.raw = read_register(PQCSR_OFFSET, 4);
     } while ( pqcsr.busy == 1 );
-    if ( pqcsr.pqon != 1 ) {
+    if ( pqcsr.pqon != 1 && enable_disable == 1) {
         printf("PQ enable failed\n");
+        return -1;
+    }
+    if ( pqcsr.pqon == 1 && enable_disable == 0 ) {
+        printf("PQ disable failed\n");
         return -1;
     }
     return 0;
 }
+
 int8_t
 enable_iommu(
     uint8_t iommu_mode) {
@@ -2077,6 +2132,46 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     req->tr.msi_wr_data   = msi_wr_data;
     iommu_translate_iova(req, rsp);
     return;
+}
+int8_t
+check_msg_faults(
+    uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval) {
+    fault_rec_t fault_rec;
+    fqb_t fqb;
+    fqh_t fqh;
+
+    fqh.raw = read_register(FQH_OFFSET, 4);
+    if ( (fqh.raw >= read_register(FQT_OFFSET, 4)) && (cause != 0) ) {
+        printf("No faults logged\n");
+        return -1;
+    }
+    if ( (fqh.raw < read_register(FQT_OFFSET, 4)) && (cause == 0) ) {
+        printf("Unexpected fault logged\n");
+        return -1;
+    }
+
+    fqb.raw = read_register(FQB_OFFSET, 8);
+    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * 32)), 32, (char *)&fault_rec);
+
+    // pop the fault record
+    fqh.index++;
+    write_register(FQH_OFFSET, 4, fqh.raw);
+
+    if ( fault_rec.CAUSE != cause || fault_rec.DID != exp_DID ||
+         fault_rec.iotval != exp_iotval ||
+         fault_rec.iotval2 != 0 ||
+         fault_rec.TTYP != MESSAGE_REQUEST ||
+         fault_rec.reserved != 0 ) {
+        printf("Bad fault record\n");
+        return -1;
+    }
+    if ( (exp_PV != fault_rec.PV) ||
+         (exp_PV && ((fault_rec.PID != exp_PID) ||
+         (fault_rec.PRIV != exp_PRIV))) ) {
+        printf("Bad fault record\n");
+        return -1;
+    }
+    return 0;
 }
 int8_t
 check_rsp_and_faults(
@@ -2385,4 +2480,5 @@ void send_msg_iommu_to_hb(ats_msg_t *msg){
         exp_msg_received = 0;
     else
         exp_msg_received = 1;
+    message_received = 1;
 }

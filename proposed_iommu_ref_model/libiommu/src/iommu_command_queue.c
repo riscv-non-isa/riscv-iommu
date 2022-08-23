@@ -206,6 +206,7 @@ process_commands(
                     break;
                 default: goto command_illegal;
             }
+            break;
         default: goto command_illegal;
     }
     // The head of the command-queue resides in a read-only memory-mapped IOMMU
