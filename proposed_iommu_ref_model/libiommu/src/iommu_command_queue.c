@@ -158,11 +158,8 @@ process_commands(
                     if ( do_iofence_c(PR, PW, AV, WIS_BIT, ADDR, DATA) ) {
                         // If IOFENCE encountered a memory fault or timeout
                         // then do not advance the CQH
-                        return;
-                    }
-                    // If IOFENCE is waiting for invalidation requests
-                    // to complete then do not advance the CQ head
-                    if ( g_iofence_wait_pending_inv != 0 ) {
+                        // If IOFENCE is waiting for invalidation requests
+                        // to complete then do not advance the CQ head
                         return;
                     }
                     break;
@@ -508,12 +505,9 @@ do_iofence_c(
 // Retry a pending IOFENCE if all invalidations received
 void
 do_pending_iofence() {
-    if ( g_iofence_wait_pending_inv == 1 ) {
-        do_iofence_c(g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, 
-                     g_iofence_pending_WIS_BIT, g_iofence_pending_ADDR, g_iofence_pending_DATA);
-    }
-    // If not still pending then advance the CQH
-    if ( g_iofence_wait_pending_inv == 1 ) {
+    if ( do_iofence_c(g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, 
+                 g_iofence_pending_WIS_BIT, g_iofence_pending_ADDR, g_iofence_pending_DATA) == 0 ) {
+        // If not still pending then advance the CQH
         g_reg_file.cqh.index =  
             (g_reg_file.cqh.index + 1) & ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
     }
@@ -522,7 +516,7 @@ do_pending_iofence() {
 void 
 queue_any_blocked_ats_inval_req() {
     uint8_t itag;
-    if ( g_command_queue_stall_for_itag == 0 ) {
+    if ( g_command_queue_stall_for_itag == 1 ) {
         // Allocate a ITAG for the request
         if ( allocate_itag(g_pending_inval_req_DSV, g_pending_inval_req_DSEG, 
                            g_pending_inval_req_RID, &itag) )

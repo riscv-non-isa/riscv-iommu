@@ -35,16 +35,19 @@ msi_address_translation(
 
     // 1. Let `A` be the 32-bit aligned `IOVA`
     A = iova;
+
     // 2. Let `DC` be the device-context located using the `device_id` of the device
     //    using the process outlined in <<GET_DC>>.
     // 3. Determine if the address `A` is an MSI address as specified in <<MSI_ID>>.
     *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask) == 
                ((DC->msi_addr_pattern.pattern & ~DC->msi_addr_mask.mask)));
+
     // 4. If the address is not determined to be an MSI then stop this process and
     //    instead use the regular translation data structures to do the address
     //    translation.
     if ( *is_msi == 0 ) 
         return 0;
+
     // 5. Extract an interrupt file number `I` from `A` as
     //    `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
     //    to generic bit extract performed by RISC-V instruction `BEXT`, defined by the
@@ -58,6 +61,7 @@ msi_address_translation(
     //    ** `y = 1 0 1 0 0 1 1 0`
     //    ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
     I = extract((A >> 12), DC->msi_addr_mask.mask);
+
     // 6. If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. The IOMMU
     //    capable of big-endian access to memory if the `END` bit in the `capabilities`
     //    register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation,
@@ -65,7 +69,7 @@ msi_address_translation(
     //    bit that may be set to 1 to enable big-endian access to memory. If the IOMMU
     //    is not capable or has not been configured for big-endian access to memory,
     //    then stop this process and treat the transaction as an unsupported request.
-    if ( (I & (1UL << 2) ) && (g_reg_file.fctrl.end == 0) ) {
+    if ( (A & (1UL << 2) ) && (g_reg_file.fctrl.end == 0) ) {
         *is_unsup = 1;
         return 0;
     }
@@ -93,6 +97,7 @@ msi_address_translation(
         *cause = 261;     // MSI PTE load access fault
         return 1;
     }
+
     // 9. If `msipte` access detects a data corruption (a.k.a. poisoned data), then
     //    stop and report "MSI PT data corruption" (cause = 270). This fault is reported
     //    if the IOMMU supports RAS (i.e., capabilities.RAS == 1)
@@ -100,11 +105,13 @@ msi_address_translation(
         *cause = 270;     // MSI PTE load access fault
         return 1;
     }
+
     //10. If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
     if ( msipte.V == 0 ) {
         *cause = 262;     // MSI PTE not valid
         return 1;
     }
+
     //11. If `msipte.C == 1`, then further process is to interpret the PTE is
     //    implementation defined. No custom implementation in reference model
     //    so this case causes "MSI PTE misconfigured" (cause = 263).
@@ -112,6 +119,7 @@ msi_address_translation(
         *cause = 263;
         return 1;
     }
+
     //12. If `msipte.C == 0` then the process is outlined in subsequent steps.
     //13. If `msipte.W == 1` the PTE is write-through mode PTE and the translation
     //    process is as follows:
@@ -124,10 +132,10 @@ msi_address_translation(
             *cause = 263;
             return 1;
         }
-        *resp_pa = (msipte.write_through.PPN * PAGESIZE) | (A * 0xFFF);
+        *resp_pa = ((msipte.write_through.PPN * PAGESIZE) | (A & 0xFFF));
         *R = 1;
         *W = 1;
-        *U = 1;
+        *U = 0;
         // Cache the translation in the IOATC
         // In the IOTLB the IOVA & PPN is stored in the NAPOT format
         // Here the translations are always PAGESIZE translations
@@ -142,6 +150,7 @@ msi_address_translation(
                    );
                    return 0;
     }
+
     //14. If `msipte.W == 0` the PTE is in MRIF mode and the translation process
     //    is as follows:
     //    a. If `capabilities.MSI_MRIF == 0`, stop and report "MSI PTE misconfigured"
@@ -150,6 +159,7 @@ msi_address_translation(
         *cause = 263;
         return 1;
     }
+
     //    c. If any bits or encoding that are reserved for future standard use are
     //       set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
     if ( msipte.mrif.reserved0 != 0 || msipte.mrif.reserved1 != 0 ||
@@ -158,6 +168,7 @@ msi_address_translation(
         *cause = 263;
         return 1;
     }
+
     //    b. If the transaction is a PCIe ATS translation request then return a Success
     //       response with R, W, and U bit set to 1. See <<ATS_FAULTS>> for further
     //       details on this processing.
@@ -173,6 +184,7 @@ msi_address_translation(
         *U = 1;
         return 0;
     }
+
     //    d. Let `D` be the 32-bit data associated with the write. The byte order of
     //       `D` is determined by bit 2 of `A`.
     D = msi_write_data;

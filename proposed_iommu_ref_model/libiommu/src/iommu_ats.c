@@ -5,18 +5,19 @@
 #include "iommu.h"
 
 itag_tracker_t itag_tracker[MAX_ITAGS] = {0};
+extern uint8_t g_iofence_wait_pending_inv;
 
 uint8_t
 allocate_itag(
     uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag) { 
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].free == 1 ) break;
+        if ( itag_tracker[i].busy == 0 ) break;
 
     if ( i == MAX_ITAGS )
         return 1;
 
-    itag_tracker[i].free = 0;
+    itag_tracker[i].busy = 1;
     itag_tracker[i].DSV = DSV;
     itag_tracker[i].DSEG = DSEG;
     itag_tracker[i].RID = RID;
@@ -28,9 +29,31 @@ uint8_t
 any_ats_invalidation_requests_pending() {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].free != 0 ) 
+        if ( itag_tracker[i].busy == 1 ) 
             return 1;
     return 0;
+}
+void
+do_pending_iofence_inval_reqs() {
+    uint8_t i, itags_busy;
+
+    itags_busy = 0;
+    // Check if there are more pending invalidations
+    for ( i = 0; i < MAX_ITAGS; i++ ) {
+        if ( itag_tracker[i].busy == 1 ) 
+            itags_busy = 1;
+    }
+    // No more pending invalidations - continue any pending IOFENCE.C
+    if ( g_iofence_wait_pending_inv == 1 && itags_busy == 0 ) {
+        do_pending_iofence();
+    }
+    if ( g_iofence_wait_pending_inv == 0 ) {
+        // If there were ATS.INVAL_REQ waiting on free
+        // itags then unblock them if any itag is now
+        // available unless a IOFENCE is blocking
+        queue_any_blocked_ats_inval_req();
+    }
+    return;
 }
 uint8_t
 handle_invalidation_completion(
@@ -42,7 +65,7 @@ handle_invalidation_completion(
     cc = get_bits(34, 32, inv_cc->PAYLOAD);
     for ( i = 0; i < MAX_ITAGS; i++ ) {
         if ( itag_vector & (1UL << i) ) {
-            if ( itag_tracker[i].free == 1 ) 
+            if ( itag_tracker[i].busy == 0 ) 
                 return 1; // Unexpected completion
             if ( (itag_tracker[i].DSV == 1) &&
                  (inv_cc->DSV != 1 || inv_cc->DSEG != itag_tracker[i].DSEG) )
@@ -52,22 +75,11 @@ handle_invalidation_completion(
             itag_tracker[i].num_rsp_rcvd = 
                 (itag_tracker[i].num_rsp_rcvd + 1) & 0x07;
             if ( itag_tracker[i].num_rsp_rcvd == cc )  {
-                itag_tracker[i].free = 1;
+                itag_tracker[i].busy = 0;
             }
         }
     }
-    // If there were ATS.INVAL_REQ waiting on free
-    // itags then unblock them if any itag is now
-    // available
-    queue_any_blocked_ats_inval_req();
-
-    // Check if there are more pending invalidations
-    for ( i = 0; i < MAX_ITAGS; i++ ) {
-        if ( itag_tracker[i].free == 0 ) 
-            return 0;
-    }
-    // No more pending invalidations - continue any pending IOFENCE.C
-    do_pending_iofence();
+    do_pending_iofence_inval_reqs();
     return 0;
 }
 void
@@ -75,18 +87,11 @@ do_ats_timer_expiry(uint32_t itag_vector) {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ ) {
         if ( itag_vector & (1UL << i) ) {
-            itag_tracker[i].free = 1;
+            itag_tracker[i].busy = 0;
         }
     }
     g_ats_inv_req_timeout = 1;
-
-    // Check if there are more pending invalidations
-    for ( i = 0; i < MAX_ITAGS; i++ ) {
-        if ( itag_tracker[i].free == 0 ) 
-            return;
-    }
-    // No more pending invalidations - continue any pending IOFENCE.C
-    do_pending_iofence();
+    do_pending_iofence_inval_reqs();
     return;
 }
 void
@@ -113,8 +118,11 @@ handle_page_request(
         response_code = RESPONSE_FAILURE;
         goto send_prgr;
     }
-    if ( DC.tc.EN_ATS == 0 || DC.tc.EN_PRI == 0 ) {
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, MESSAGE_REQUEST, 0, 
+    if ( DC.tc.EN_PRI == 0 ) {
+        // 7. if any of the following conditions hold then stop and report
+        //    "Transaction type disallowed" (cause = 260).
+        //   * Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
+        report_fault(260, PAGE_REQ_MSG_CODE, 0, MESSAGE_REQUEST, 0, 
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = INVALID_REQUEST;
         goto send_prgr;
@@ -211,8 +219,8 @@ handle_page_request(
     prec.DID      = device_id;
     prec.PID      = pr->PID;
     prec.PV       = pr->PV;
-    prec.PRIV     = (pr->PV == 1) ? 0 : pr->PRIV;
-    prec.X        = (pr->PV == 1) ? 0 : pr->EXEC_REQ;
+    prec.PRIV     = (pr->PV == 0) ? 0 : pr->PRIV;
+    prec.X        = (pr->PV == 0) ? 0 : pr->EXEC_REQ;
     prec.PAYLOAD  = pr->PAYLOAD;
     prec.reserved = 0;
     prec_addr = ((pqb * 4096) | (pqt * 16));

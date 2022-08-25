@@ -8,6 +8,7 @@
 #include "iommu.h"
 #include "tables_api.h"
 ats_msg_t exp_msg;
+ats_msg_t rcvd_msg;
 char exp_msg_received;
 char message_received;
 char *memory;
@@ -30,6 +31,7 @@ int8_t check_rsp_and_faults(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp, stat
           uint16_t cause, uint64_t exp_iotval2);
 int8_t check_msg_faults(uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, 
           uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval);
+int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X, uint16_t reserved, uint64_t PAYLOAD);
 uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 uint64_t access_viol_addr = -1;
 uint64_t data_corruption_addr = -1;
@@ -78,6 +80,8 @@ main(void) {
     iohpmevt_t event;
     pdte_t pdte;
     ats_msg_t pr;
+    ats_msg_t inv_cc;
+    pqb_t pqb;
 
     // reset system
     if ( reset_system(1, 2) < 0 ) return -1;
@@ -837,7 +841,7 @@ main(void) {
 
     printf("Test 99: Test S-stage translation sizes:");
     DC_addr = add_device(0x012349, 1, 1, 1, 1, 0, 1, IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
-                         MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
+                         MSIPTP_Flat, 1, 0xF0F00FF0FF, 0x1903020124);
     read_memory(DC_addr, 64, (char *)&DC);
     DC.ta.PSCID = 10;
     write_memory((char *)&DC, DC_addr, 64);
@@ -1552,7 +1556,6 @@ main(void) {
     printf("PASS\n");
    
     printf("Test 105: ATS page request:");
-
     // Invalid device_id
     pr.MSGCODE = PAGE_REQ_MSG_CODE;
     pr.TAG = 0;
@@ -1627,8 +1630,7 @@ main(void) {
     if ( ((read_register(PQH_OFFSET, 4)) != read_register(PQT_OFFSET, 4)) ) return -1;
     if ( enable_disable_pq(4, 1) < 0 ) return -1;
 
-
-    // PRI enabled
+    // PRI enabled - should queue in PQ
     pr.RID = 0x2233;
     pr.DSEG = 0x11;
     DC.tc.EN_ATS = 1;
@@ -1638,6 +1640,348 @@ main(void) {
     message_received = 0;
     handle_page_request(&pr);
     if ( message_received == 1 ) return -1;
+   
+    // Create a overflow case
+    write_register(PQH_OFFSET, 4, read_register(PQT_OFFSET, 4)+1);
+    pr.RID = 0x2233;
+    pr.DSEG = 0x11;
+    DC.tc.EN_ATS = 1;
+    DC.tc.EN_PRI = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    message_received = 0;
+    exp_msg.RID = 0x2233;
+    exp_msg.DSEG = 0x11;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (SUCCESS << 44UL);
+    handle_page_request(&pr);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    // Set PRPR
+    DC.tc.PRPR = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    exp_msg.PV = 1;
+    exp_msg.PID = 0xBABEC;
+    handle_page_request(&pr);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    // PR without LPIG
+    pr.PAYLOAD = 0xdeadbeef00000003; // Set last = 0, PRG index = 0
+    message_received = 0;
+    handle_page_request(&pr);
+    if ( message_received == 1 ) return -1;
+
+    // Clear overflow - and observe logging
+    write_register(PQH_OFFSET, 4, read_register(PQT_OFFSET, 4));
+    write_register(PQCSR_OFFSET, 4, read_register(PQCSR_OFFSET, 4));
+    message_received = 0;
+    handle_page_request(&pr);
+    if ( message_received == 1 ) return -1;
+    if ( read_register(PQH_OFFSET, 4) == read_register(PQT_OFFSET, 4) ) return -1;
+    if ( check_exp_pq_rec(0x112233, 0xBABEC, 1, 1, 0, 0, pr.PAYLOAD) < 0 ) return -1;
+
+    // cause memory fault
+    pqb.raw = read_register(PQB_OFFSET, 8);
+    access_viol_addr = (pqb.ppn * PAGESIZE);
+    access_viol_addr += (read_register(PQT_OFFSET, 4) * 16);
+    pr.PAYLOAD = 0xdeadbeef00000007; // Set last = 1, PRG index = 0
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    message_received = 0;
+    handle_page_request(&pr);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+    // Send another
+    message_received = 0;
+    handle_page_request(&pr);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+    printf("PASS\n");
+
+    printf("Test 105: ATS inval request:");
+    // Send a spurious completion
+    inv_cc.MSGCODE = INVAL_COMPL_MSG_CODE;
+    inv_cc.TAG = 0;
+    inv_cc.RID = 0x9988;
+    inv_cc.PV = 0;
+    inv_cc.PID = 0;
+    inv_cc.PRIV = 0;
+    inv_cc.EXEC_REQ = 0;
+    inv_cc.DSV = 1;
+    inv_cc.DSEG = 0x43;
+    inv_cc.PAYLOAD = (0x9988UL << 48UL) | (3UL << 32UL) | 0x00000001UL;
+    if ( handle_invalidation_completion(&inv_cc) == 0 ) return -1;
+
+    // send one - itag should be 0
+    exp_msg.MSGCODE = INVAL_REQ_MSG_CODE;
+    exp_msg.TAG = 0;
+    exp_msg.RID = 0x1234;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PRIV = 0;
+    exp_msg.EXEC_REQ = 0;
+    exp_msg.DSV = 1;
+    exp_msg.DSEG = 0x43;
+    exp_msg.PAYLOAD = 0x1234000000000000;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+    // send another - itag should be 1
+    exp_msg.TAG = 1;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    // Fence it - fence should block
+    iofence_PPN = get_free_ppn(1);
+    iofence_data = 0x1234567812345678;
+    write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
+    pr_go_requested = 0;
+    pw_go_requested = 0;
+    iofence(IOFENCE_C, 1, 1, 1, 0, (iofence_PPN * PAGESIZE), 0xDEADBEEF);
+    // Fence should not complete
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    if ( iofence_data != 0x1234567812345678 )  return -1;
+    if ( pr_go_requested == 1) return -1;
+    if ( pw_go_requested == 1) return -1;
+
+    // Send one more - this should get stuck behind the IOFENCE
+    exp_msg.TAG = 2;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 1 ) return -1;
+    // Fence should still not complete
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    if ( iofence_data != 0x1234567812345678 )  return -1;
+    if ( pr_go_requested == 1 ) return -1;
+    if ( pw_go_requested == 1 ) return -1;
+ 
+    // Send a invalid completion with itag of first inval
+    inv_cc.MSGCODE = INVAL_COMPL_MSG_CODE;
+    inv_cc.TAG = 0;
+    inv_cc.RID = 0x9988;
+    inv_cc.PV = 0;
+    inv_cc.PID = 0;
+    inv_cc.PRIV = 0;
+    inv_cc.EXEC_REQ = 0;
+    inv_cc.DSV = 1;
+    inv_cc.DSEG = 0x43;
+    inv_cc.PAYLOAD = (0x9988UL << 48UL) | (3UL << 32UL) | 0x00000001UL;
+    if ( handle_invalidation_completion(&inv_cc) != 1 ) return -1;
+    inv_cc.RID = 0x1234;
+    inv_cc.DSEG = 0x99;
+    // Send a invalid completion with itag of second inval
+    inv_cc.PAYLOAD = (0x9988UL << 48UL) | (3UL << 32UL) | 0x00000002UL;
+    if ( handle_invalidation_completion(&inv_cc) != 1 ) return -1;
+
+    // Send completion for second itag with 3 completions
+    inv_cc.RID = 0x1234;
+    inv_cc.DSEG = 0x43;
+    inv_cc.PAYLOAD = (0x9988UL << 48UL) | (3UL << 32UL) | 0x00000002UL;
+    for ( i = 0; i < 3; i++ ) {
+        if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+        // Fence should still not complete
+        read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+        if ( iofence_data != 0x1234567812345678 )  return -1;
+        if ( pr_go_requested == 1 ) return -1;
+        if ( pw_go_requested == 1 ) return -1;
+    }
+
+    // Send completion for second itag with 8 completions
+    inv_cc.RID = 0x1234;
+    inv_cc.DSEG = 0x43;
+    inv_cc.PAYLOAD = (0x9988UL << 48UL) | (0UL << 32UL) | 0x00000001UL;
+    for ( i = 0; i < 7; i++ ) {
+        if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+        // Fence should still not complete
+        read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+        if ( iofence_data != 0x1234567812345678 )  return -1;
+        if ( pr_go_requested == 1 ) return -1;
+        if ( pw_go_requested == 1 ) return -1;
+    }
+
+    // Send the 8th one
+    if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+    // Fence should complete
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    if ( iofence_data != 0x12345678deadbeef )  return -1;
+    if ( pr_go_requested != 1 ) return -1;
+    if ( pw_go_requested != 1 ) return -1;
+    if ( message_received != 0 ) return -1;
+
+    // The pending one should come out and with tag of 0 on next clock
+    exp_msg.TAG = 0;
+    message_received = 0;
+    process_commands();
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    // Fence it - fence should block
+    iofence_data = 0x1234567812345678;
+    write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
+    pr_go_requested = 0;
+    pw_go_requested = 0;
+    iofence(IOFENCE_C, 1, 1, 1, 0, (iofence_PPN * PAGESIZE), 0xDEADBEEF);
+    // Fence should not complete
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    if ( iofence_data != 0x1234567812345678 )  return -1;
+    if ( pr_go_requested == 1) return -1;
+    if ( pw_go_requested == 1) return -1;
+
+    i = read_register(CQH_OFFSET, 4);
+
+    // Make it timeout
+    do_ats_timer_expiry(0x00000001);
+    // Command queue should timeout
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cmd_to != 1 ) return -1;
+    // Queue a command - should not be picked up
+    // head register must not move
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    if ( i != read_register(CQH_OFFSET, 4) ) return -1;
+
+    // clear the cmd_to bit
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    // clean up the command queue
+    write_register(CQT_OFFSET, 4, i);
+
+    // test running out of itags
+    exp_msg.TAG = 0;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+    exp_msg.TAG = 1;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+    // Next two should block
+    exp_msg.TAG = 1;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 1 ) return -1;
+    exp_msg.TAG = 0;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    if ( message_received == 1 ) return -1;
+
+    // Complete first two
+    inv_cc.PAYLOAD = (0x1234UL << 48UL) | (2UL << 32UL) | 0x00000003UL;
+    if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+    if ( message_received == 1 ) return -1;
+    if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    message_received = 0;
+    exp_msg.TAG = 1;
+    process_commands();
+    if ( message_received == 0 ) return -1;
+    if ( exp_msg_received == 0 ) return -1;
+
+    // Complete next two
+    inv_cc.PAYLOAD = (0x1234UL << 48UL) | (1UL << 32UL) | 0x00000003UL;
+    if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
+    printf("PASS\n");
+
+    printf("Test 106: MSI translation:");
+    DC_addr = add_device(0x042874, 0x1974, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+                         MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
+    read_memory(DC_addr, 64, (char *)&DC);
+    gpa = 0x280000003000;
+
+    // Cause a access violation
+    access_viol_addr = (DC.msiptp.PPN * PAGESIZE) + 3 * 16;
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 261, 0) < 0 ) return -1;
+    access_viol_addr = -1;
+
+    data_corruption_addr = (DC.msiptp.PPN * PAGESIZE) + 3 * 16;
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 270, 0) < 0 ) return -1;
+    data_corruption_addr = -1;
+
+    // Not present
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 262, 0) < 0 ) return -1;
+
+    // Misconfigured
+    msipte_t msipte;
+    msipte.V = 1;
+    msipte.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+
+    msipte.C = 1;
+    msipte.reserved0 = 0x0;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+
+    msipte.C = 0;
+    msipte.W = 1;
+    msipte.write_through.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+    msipte.write_through.reserved0 = 0x0;
+    msipte.write_through.reserved1 = 0x4;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+
+    // Write through PTE
+    msipte.write_through.reserved0 = 0x0;
+    msipte.write_through.reserved1 = 0x0;
+    msipte.write_through.PPN = 0xdeadbeef;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.PPN != 0xdeadbeef ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.S != 0 ) return  -1;
+    if ( rsp.trsp.PBMT != PMA ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.is_mrif_wr != 0 ) return -1;
+
+    // corrupt but hit from cache
+    msipte.write_through.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.PPN != 0xdeadbeef ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.S != 0 ) return  -1;
+    if ( rsp.trsp.PBMT != PMA ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.is_mrif_wr != 0 ) return -1;
+
+    // Invalidate TLB
+    iotinval(GVMA, 1, 1, 0, 0x1974, 0, gpa);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+    msipte.write_through.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+
+
+
 
     printf("PASS\n");
 
@@ -2134,6 +2478,26 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     return;
 }
 int8_t
+check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X, uint16_t reserved, uint64_t PLOAD)
+{
+    page_rec_t page_rec;
+    pqb_t pqb;
+    pqh_t pqh;
+    if ( read_register(PQH_OFFSET, 4) == read_register(PQT_OFFSET, 4) ) return -1;
+    pqh.raw = read_register(PQH_OFFSET, 4);
+    pqb.raw = read_register(PQB_OFFSET, 8);
+    read_memory(((pqb.ppn * PAGESIZE) | (pqh.index * 16)), 16, (char *)&page_rec);
+    if ( page_rec.DID != DID ) return -1; 
+    if ( page_rec.PID != PID ) return -1; 
+    if ( page_rec.PV != PV ) return -1; 
+    if ( page_rec.PRIV != PRIV ) return -1; 
+    if ( page_rec.X != X ) return -1; 
+    if ( page_rec.reserved != reserved ) return -1; 
+    if ( page_rec.PAYLOAD != PLOAD ) return -1; 
+    write_register(PQH_OFFSET, 4, pqh.raw + 1);
+    return 0;
+}
+int8_t
 check_msg_faults(
     uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval) {
     fault_rec_t fault_rec;
@@ -2309,6 +2673,8 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     DC.msiptp.MODE = msiptp_mode;
     if ( msiptp_mode != MSIPTP_Bare ) {
        DC.msiptp.PPN = get_free_ppn(msiptp_pages);
+       DC.msi_addr_mask.mask = msi_addr_mask;
+       DC.msi_addr_pattern.pattern = msi_addr_pattern;
     }
     return add_dev_context(&DC, device_id);
 }
@@ -2481,4 +2847,5 @@ void send_msg_iommu_to_hb(ats_msg_t *msg){
     else
         exp_msg_received = 1;
     message_received = 1;
+    memcpy(&rcvd_msg, msg, sizeof(ats_msg_t));
 }

@@ -117,6 +117,7 @@ cache_ioatc_iotlb(
     tlb[replace].VS_R  = VS_R;
     tlb[replace].VS_W  = VS_W;
     tlb[replace].VS_X  = VS_X;
+    tlb[replace].VS_D  = VS_D;
     tlb[replace].U     = U;
     tlb[replace].G     = G;
     tlb[replace].PBMT  = PBMT;
@@ -124,6 +125,7 @@ cache_ioatc_iotlb(
     tlb[replace].G_R   = G_R;
     tlb[replace].G_W   = G_W;
     tlb[replace].G_X   = G_X;
+    tlb[replace].G_D   = G_D;
     // PPN and size
     tlb[replace].PPN   = PPN;
     tlb[replace].S     = S;
