@@ -10,8 +10,8 @@ typedef union {
         uint64_t PID:20;
         uint64_t PV:1;
         uint64_t PRIV:1;
-        uint64_t X:5;
-        uint64_t reserved:16;
+        uint64_t X:1;
+        uint64_t reserved:17;
         uint64_t PAYLOAD;
     };
     uint64_t raw[2];
@@ -67,14 +67,14 @@ typedef struct {
 #define RESPONSE_FAILURE 0xFUL
 
 typedef struct {
-    uint8_t  free;
+    uint8_t  busy;
     uint8_t  DSV;
     uint8_t  DSEG;
     uint16_t RID;
     uint8_t  num_rsp_rcvd;
 } itag_tracker_t;
 
-#define MAX_ITAGS 32
+#define MAX_ITAGS 2
 extern uint8_t allocate_itag(uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag);
 extern void send_msg_iommu_to_hb(ats_msg_t *msg);
 extern uint8_t any_ats_invalidation_requests_pending(void);
