@@ -44,6 +44,7 @@ add_g_stage_pte (
     i = LEVELS - 1;
     a = iohgatp.PPN * PAGESIZE;
     while ( i > add_level ) {
+        nl_gpte.raw = 0;
         read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw);
         if ( nl_gpte.V == 0 ) {
             nl_gpte.V = 1;

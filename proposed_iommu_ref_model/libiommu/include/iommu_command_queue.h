@@ -66,6 +66,12 @@ typedef union {
         uint64_t payload;
     } ats;
     struct {
+        uint64_t opcode:7;
+        uint64_t func3:3;
+        uint64_t low:54;
+        uint64_t high:64;
+    } any;
+    struct {
         uint64_t low;
         uint64_t high;
     };

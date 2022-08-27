@@ -23,6 +23,7 @@ void iodir(uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID);
 void iotinval( uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address);
 void iofence(uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_bit, uint64_t addr, uint32_t data);
 void ats_command( uint8_t f3, uint8_t DSV, uint8_t PV, uint32_t PID, uint8_t DSEG, uint16_t RID, uint64_t payload);
+void generic_any(command_t cmd);
 void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
              uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
              uint32_t length, uint8_t read_writeAMO, uint32_t msi_wr_data,
@@ -56,6 +57,7 @@ uint64_t add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t 
 int
 main(void) {
     capabilities_t cap = {0};
+    uint32_t offset;
     fctrl_t fctrl = {0};
     uint8_t at, pid_valid, exec_req, priv_req, no_write, PR, PW, AV;
     uint32_t i, j;
@@ -68,6 +70,7 @@ main(void) {
     pte_t  pte;
     fqcsr_t fqcsr;
     cqcsr_t cqcsr;
+    pqcsr_t pqcsr;
     cqb_t cqb;
     cqt_t cqt;
     cqh_t cqh;
@@ -82,6 +85,10 @@ main(void) {
     ats_msg_t pr;
     ats_msg_t inv_cc;
     pqb_t pqb;
+    ipsr_t ipsr;
+    fqb_t fqb;
+    fqh_t fqh;
+    fault_rec_t fault_rec;
 
     // reset system
     if ( reset_system(1, 2) < 0 ) return -1;
@@ -92,7 +99,23 @@ main(void) {
     cap.amo = cap.ats = cap.t2gpa = cap.hpm = cap.msi_flat = cap.msi_mrif = 1;
     cap.dbg = 1;
     cap.pas = 50;
-    if ( reset_iommu(8, 40, 0xff, 4, Off, cap, fctrl) < 0 ) return -1;
+    if ( reset_iommu(8, 40, 0xff, 3, Off, cap, fctrl) < 0 ) return -1;
+
+    for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
+        write_register(i, 8, 0xFF);
+        if ( read_register(i, 8) != 0xFc ) return -1;
+        write_register(i, 8, 0x00);
+    }
+    for ( i = MSI_DATA_0_OFFSET; i <= MSI_DATA_7_OFFSET; i += 16 ) {
+        write_register(i, 4, 0);
+        if ( read_register(i, 4) != 0 ) return -1;
+    }
+    for ( i = MSI_VEC_CTRL_0_OFFSET; i <= MSI_VEC_CTRL_7_OFFSET; i += 16 ) {
+        write_register(i, 4, 1);
+        if ( read_register(i, 4) != 1 ) return -1;
+    }
+
+
 
     // When Fault queue is not enabled, no logging should occur
     pid_valid = exec_req = priv_req = no_write = 1;
@@ -217,7 +240,25 @@ main(void) {
     ddte.raw  = 0;
     write_memory((char *)&ddte, (ddtp.ppn * PAGESIZE) | (get_bits(23, 15, 0x012345) * 8), 8);
 
-    printf("Test 4: Fault queue overflow : ");
+    printf("Test 4: Fault queue overflow and memory fault: ");
+    // Clear IPSR
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip == 1 ) return -1;
+
+
+    // Initialize fault queue MSI vector
+    // Map fault queue to vector 5
+    write_register(ICVEC_OFFSET, 8, 0x0000000000000050);
+    temp = get_free_ppn(1) * PAGESIZE;
+    j = 0;
+    write_memory((char *)&j, temp, 4);
+    write_register(MSI_ADDR_5_OFFSET, 8, temp);
+    write_register(MSI_DATA_5_OFFSET, 4, 0xDEADBEEF);
+    write_register(MSI_VEC_CTRL_5_OFFSET, 4, 0);
+    write_register(IPSR_OFFSET, 4, read_register(IPSR_OFFSET, 4));
+
     // Trigger a fault queue overflow
     // The queue should be empty now
     if ( (read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4)) ) return -1;
@@ -227,6 +268,19 @@ main(void) {
         send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                  priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
     }
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip == 0 ) return -1;
+    read_memory(temp, 4, (char *)&j);
+    if ( j != 0xDEADBEEF ) return -1;
+    j = 0;
+    write_memory((char *)&j, temp, 4);
+    // Clear IPSR
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 0 ) return -1;
+
     // The queue should be be full
     if ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) return -1;
     // No overflow should be set
@@ -238,17 +292,127 @@ main(void) {
     if ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) return -1;
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     if ( fqcsr.fqof == 0 ) return -1;
+
+    // Overflow should have triggered a MSI
+    read_memory(temp, 4, (char *)&j);
+    if ( j != 0xDEADBEEF ) return -1;
+    j = 0;
+    write_memory((char *)&j, temp, 4);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    // Clear IPSR
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    // Should retrigger since fqof is still set
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    read_memory(temp, 4, (char *)&j);
+    if ( j != 0xDEADBEEF ) return -1;
+    j = 0;
+    write_memory((char *)&j, temp, 4);
+
     // Overflow should remain
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
     if ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) return -1;
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     if ( fqcsr.fqof == 0 ) return -1;
-    // Drain the fault queue, clear fqof
-    write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
+
+    // disable and re-enable fault queue
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    fqcsr.fqen = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
-    if ( fqcsr.fqof != 0 ) return -1;
+    if (fqcsr.fqen == 1) return -1;
+    if (fqcsr.fqon == 1) return -1;
+    if (fqcsr.busy == 1) return -1;
+    if (fqcsr.fqmf == 1) return -1;
+    if (fqcsr.fqof == 1) return -1;
+    if ( ((read_register(FQH_OFFSET, 4)) != read_register(FQT_OFFSET, 4)) ) return -1;
+    if ( read_register(FQH_OFFSET, 4) != 0 ) return - 1;
+
+    // Clear IPSR
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 0 ) return -1;
+
+    fqcsr.fqen = 1;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if (fqcsr.fqen == 0) return -1;
+    if (fqcsr.fqon == 0) return -1;
+    if (fqcsr.busy == 1) return -1;
+    if (fqcsr.fqmf == 1) return -1;
+    if (fqcsr.fqof == 1) return -1;
+
+    // Create a memory fault
+    fqb.raw = read_register(FQB_OFFSET, 8);
+    access_viol_addr = fqb.ppn * PAGESIZE;
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+    if ( read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4) ) return -1;
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if ( fqcsr.fqmf != 1 ) return -1;
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+    if ( read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4) ) return -1;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if ( fqcsr.fqmf == 1 ) return -1;
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 0 ) return -1;
+
+    // Memory fault with inbterrupts inhibited
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    fqcsr.fie = 0;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if ( fqcsr.fqmf != 1 ) return -1;
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip == 1 ) return -1;
+    fqcsr.fie = 1;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+
+
+    access_viol_addr = -1;
+    fqcsr.fqen = 0;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    fqcsr.fqen = 1;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    // memory fault on MSI write
+    access_viol_addr = temp;
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if ( fqcsr.fqmf != 0 ) return -1;
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.fip != 1 ) return -1;
+    fqh.raw = read_register(FQH_OFFSET, 4);
+    fqb.raw = read_register(FQB_OFFSET, 8);
+    read_memory(((fqb.ppn * PAGESIZE) | ((fqh.index + 1) * 32)), 32, (char *)&fault_rec);
+    if ( fault_rec.TTYP != 0 ) return -1;
+    if ( fault_rec.iotval != temp ) return -1;
+    if ( fault_rec.CAUSE != 273 ) return -1;
+    if ( fault_rec.DID != 0 ) return -1;
+    if ( fault_rec.PID != 0 ) return -1;
+    if ( fault_rec.PV != 0 ) return -1;
+    if ( fault_rec.PRIV != 0 ) return -1;
+    access_viol_addr = -1;
+    fqcsr.fqen = 0;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    fqcsr.fqen = 1;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+
+
+
     printf("PASS\n");
 
     // Add a device 0x012345 to guest with GSCID=1
@@ -613,6 +777,53 @@ main(void) {
     pw_go_requested = 0;
     write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
 
+    // Cause memory fault on completion buffer
+    access_viol_addr = iofence_PPN * PAGESIZE;
+    iofence(IOFENCE_C, 1, 0, 1, 0, (iofence_PPN * PAGESIZE), 0xDEADBEE1);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqmf != 1 ) return -1;
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    if ( iofence_data != 0x1234567812345678 )  return -1;
+    if ( (read_register(CQH_OFFSET, 4) + 1) != read_register(CQT_OFFSET, 4) ) return -1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqen == 1 ) return -1;
+    if ( cqcsr.cqon == 1 ) return -1;
+    if ( cqcsr.cqmf == 1 ) return -1;
+    if ( cqcsr.busy == 1 ) return -1;
+    if ( cqcsr.cmd_ill == 1 ) return -1;
+    if ( cqcsr.cmd_to == 1 ) return -1;
+    cqcsr.cqen = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqen == 0 ) return -1;
+    if ( cqcsr.cqon == 0 ) return -1;
+    if ( cqcsr.cqmf == 1 ) return -1;
+    if ( cqcsr.busy == 1 ) return -1;
+    if ( cqcsr.cmd_ill == 1 ) return -1;
+    if ( cqcsr.cmd_to == 1 ) return -1;
+
+    // DIsable CQ interrupts
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    write_register(IPSR_OFFSET, 4, ipsr.raw);
+    cqcsr.cie = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    access_viol_addr = iofence_PPN * PAGESIZE;
+    iofence(IOFENCE_C, 1, 0, 1, 0, (iofence_PPN * PAGESIZE), 0xDEADBEE1);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqmf != 1 ) return -1;
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.cip != 0 ) return -1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.cqen = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+
+
+    access_viol_addr = -1;
+
+
     printf("PASS\n");
 
     printf("Test 8: Test G-stage translation sizes:");
@@ -938,6 +1149,17 @@ main(void) {
         if ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) return -1; 
         if ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) return -1; 
     }
+
+    // IOTINVAL not allowed to set PSCV
+    iotinval(GVMA, 1, 1, 1, 1, 0, req.tr.iova);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cmd_ill != 1 ) return -1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.cqen = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+
+
     printf("PASS\n");
 
     printf("Test 100: Test S-stage permission faults:");
@@ -1008,6 +1230,23 @@ main(void) {
     req.tr.read_writeAMO = READ;
     iommu_translate_iova(&req, &rsp);
     if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) return -1;
+
+
+    // Check DTF
+    temp = read_register(FQT_OFFSET, 4);
+    DC.tc.DTF = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012349, 0);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) return -1;
+    if ( temp != read_register(FQT_OFFSET, 4) ) return -1;
+    DC.tc.DTF = 0;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012349, 0);
+
+
+
 
     tr_req_ctrl.DID = 0x012349;
     tr_req_ctrl.PV = 0;
@@ -1157,6 +1396,11 @@ main(void) {
     if ( read_register(IOHPMCTR1_OFFSET, 8) != 1 ) return -1;
     if ( read_register(IOHPMCTR2_OFFSET, 8) != 1 ) return -1;
     if ( read_register(IOHPMCTR3_OFFSET, 8) != 0 ) return -1;
+    if ( (read_register(IOCNTOVF_OFFSET, 4) & 0xFFFFFFFF) != 0xE ) return -1;
+    event.raw = read_register(IOHPMEVT1_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT1_OFFSET, 8, event.raw);
+    if ( (read_register(IOCNTOVF_OFFSET, 4) & 0xFFFFFFFF) != 0xC ) return -1;
 
     pte.raw = 0;
     pte.V = 1;
@@ -1211,7 +1455,7 @@ main(void) {
     if ( read_register(IOHPMCTR4_OFFSET, 8) != 1 ) return -1;
     printf("PASS\n");
 
-    printf("Test 9: Test PDT filtering:");
+    printf("Test 9: Test PDT :");
     // collapse fault queue
     write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
     DC_addr = add_device(0x112233, 1, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PD20,
@@ -1535,7 +1779,55 @@ main(void) {
     DC.fsc.pdtp.MODE = PD20;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
+
+    // Do a napot PTE
+    g_reg_file.capabilities.Svnapot = 1;
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.N = 1;
+    pte.PBMT = PMA;
+    pte.PPN = get_free_gppn(16, DC.iohgatp);
+    gpa = pte.PPN * PAGESIZE;
+    pte.PPN |= 0x8;
+
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.N = 1;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(16);
+    spa = gpte.PPN * PAGESIZE;
+    gpte.PPN |= 0x8;
+    gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
+    gva = 0x900000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    send_translation_request(0x112233, 1, 0xBABEC, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
+             1, WRITE, 0, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.S != 0 ) return -1;
+    if ( rsp.trsp.PPN != (gpte.PPN & ~0x8)) return -1;
+
+
+
+
+
     printf("PASS\n");
+
+
 
     printf("Test 10: ATS page request group response:");
     exp_msg.MSGCODE = PRGR_MSG_CODE;
@@ -1699,6 +1991,24 @@ main(void) {
     handle_page_request(&pr);
     if ( message_received == 0 ) return -1;
     if ( exp_msg_received == 0 ) return -1;
+    access_viol_addr = -1;
+
+    // disable page queue interrupt
+    pqcsr.raw = read_register(PQCSR_OFFSET, 4);
+    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    write_register(IPSR_OFFSET,4, ipsr.raw);
+
+    pqcsr.pie = 0;
+    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    handle_page_request(&pr);
+    ipsr.raw = read_register(IPSR_OFFSET, 4);
+    if ( ipsr.pip == 1 ) return -1;
+    pqcsr.pqen = 0;
+    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    pqcsr.pqen = 1;
+    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+
     printf("PASS\n");
 
     printf("Test 105: ATS inval request:");
@@ -1890,7 +2200,8 @@ main(void) {
     if ( handle_invalidation_completion(&inv_cc) != 0 ) return -1;
     printf("PASS\n");
 
-    printf("Test 106: MSI translation:");
+    printf("Test 106: MSI write-through mode:");
+
     DC_addr = add_device(0x042874, 0x1974, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
     read_memory(DC_addr, 64, (char *)&DC);
@@ -1979,11 +2290,629 @@ main(void) {
     if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
     msipte.write_through.reserved0 = 0x1;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    msipte.write_through.reserved0 = 0x0;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
 
+    // Access seteipbe - on little endian system
+    gpa = gpa ^ 0x4;
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) return -1;
 
 
 
     printf("PASS\n");
+
+    printf("Test 106: MSI MFIF mode:");
+    DC_addr = add_device(0x121679, 0x1979, 1, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+                         MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
+    read_memory(DC_addr, 64, (char *)&DC);
+    msipte.mrif.V = 1;
+    msipte.mrif.reserved0 = 0;
+    msipte.mrif.W = 0;
+    msipte.mrif.reserved1 = 0;
+    msipte.mrif.MRIF_ADDR = ((get_free_ppn(1) * PAGESIZE) / 512);
+    msipte.mrif.reserved2 = 0;
+    msipte.mrif.C = 0;
+    msipte.mrif.N90 = 0x12;
+    msipte.mrif.NPPN = 0xdeadbeef;
+    msipte.mrif.reserved3 = 0;
+    msipte.mrif.N10 = 0x1;
+    msipte.mrif.reserved4 = 0;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 0x23 * 16), 16);
+
+    gpa = 0x280000023000;
+
+    // Disable MRIF
+    g_reg_file.capabilities.msi_mrif = 0;
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+    g_reg_file.capabilities.msi_mrif = 1;
+
+    // misconfigured
+    msipte.mrif.reserved0 = 1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 0x23 * 16), 16);
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) return -1;
+    msipte.mrif.reserved0 = 0;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 0x23 * 16), 16);
+
+    // Unsupported
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gpa, 4, READ, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.U != 1 ) return -1; 
+    if ( rsp.trsp.R != 1 ) return -1; 
+    if ( rsp.trsp.W != 1 ) return -1; 
+
+    // Success
+    temp = msipte.mrif.MRIF_ADDR * 512;
+    temp += ((0x34 / 32) * 4);
+    i = 0;
+    write_memory((char *)&i, temp, 4);
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.PPN != 0xdeadbeef ) return  -1;
+    if ( rsp.trsp.S != 0 ) return  -1;
+    if ( rsp.trsp.PBMT != PMA ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.is_mrif_wr != 1 ) return  -1;
+    if ( rsp.trsp.mrif_nid != 0x412 ) return  -1;
+    read_memory(temp, 4, (char *)&i);
+    if ( (i & ( 1 << (0x34 & 0x1f))) == 0 ) return -1;
+
+    // redo without AMO
+    g_reg_file.capabilities.amo = 0;
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    if ( rsp.trsp.PPN != 0xdeadbeef ) return  -1;
+    if ( rsp.trsp.S != 0 ) return  -1;
+    if ( rsp.trsp.PBMT != PMA ) return  -1;
+    if ( rsp.trsp.is_msi != 1 ) return  -1;
+    if ( rsp.trsp.is_mrif_wr != 1 ) return  -1;
+    if ( rsp.trsp.mrif_nid != 0x412 ) return  -1;
+    read_memory(temp, 4, (char *)&i);
+    if ( (i & ( 1 << (0x39 & 0x1f))) == 0 ) return -1;
+    g_reg_file.capabilities.amo = 1;
+
+    // Cause access violation on MRIF
+    access_viol_addr = temp;
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 264, 0) < 0 ) return -1;
+    access_viol_addr = -1;
+    data_corruption_addr = temp;
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 271, 0) < 0 ) return -1;
+    data_corruption_addr = -1;
+
+    // bad vector
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x1039, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) return -1;
+
+    // bad address
+    gpa |= 0x700;
+    send_translation_request(0x121679, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x1039, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) return -1;
+
+    printf("PASS\n");
+
+    printf("Test 106: Illegal commands and CQ mem faults:");
+    
+    // illegal command
+    cmd.any.opcode = 9;
+    cmd.any.func3 = 0;
+    generic_any(cmd);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cmd_ill != 1 ) return -1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.cqen = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqon != 1 ) return -1;
+    if ( cqcsr.cmd_ill != 0 ) return -1;
+    
+    for ( i = 0; i < 64; i++ ) {
+        cmd.high = 0;
+        cmd.low = 0;
+        for ( j = 1; j < 64; j++ ) {
+            cmd.low = 1 << i;
+            cmd.high = 1 << j;
+            if ( cmd.any.opcode == IOTINVAL ) {
+                if ( cmd.iotinval.rsvd == 0 &&
+                     cmd.iotinval.rsvd1 == 0 &&
+                     cmd.iotinval.rsvd2 == 0 &&
+                     cmd.iotinval.rsvd3 == 0 )
+                    cmd.iotinval.func3 = 0x7;
+            }
+            if ( cmd.any.opcode == IOFENCE ) {
+                if ( cmd.iofence.reserved == 0 &&
+                     cmd.iofence.reserved1 == 0 )
+                    cmd.iofence.func3 = 0x7;
+            }
+            if ( cmd.any.opcode == IODIR ) {
+                if ( cmd.iodir.rsvd == 0 &&
+                     cmd.iodir.rsvd1 == 0 &&
+                     cmd.iodir.rsvd2 == 0 )
+                    cmd.iodir.func3 = 0x7;
+            }
+            if ( cmd.any.opcode == ATS && cmd.ats.reserved == 0 ) 
+                cmd.ats.func3 = 0x7;
+            generic_any(cmd);
+            cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+            if ( cqcsr.cmd_ill != 1 ) return -1;
+            cqcsr.cqen = 0;
+            write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+            cqcsr.cqen = 1;
+            write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+            cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+            if ( cqcsr.cqon != 1 ) return -1;
+            if ( cqcsr.cmd_ill != 0 ) return -1;
+        }
+    }
+    cmd.high = 0;
+    cmd.low = 0;
+    cmd.any.opcode = IODIR;
+    cmd.any.func3 = 7;
+    generic_any(cmd);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cmd_ill != 1 ) return -1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.cqen = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqon != 1 ) return -1;
+    if ( cqcsr.cmd_ill != 0 ) return -1;
+
+    // idle 
+    process_commands();
+
+    printf("PASS\n");
+
+
+
+
+    printf("Test 10: Sv32 mode:");
+    // Change IOMMU mode to base device context
+    g_reg_file.capabilities.msi_flat = 0;
+
+    DC_addr = add_device(0x000000, 1, 0, 0, 0, 0, 0, IOHGATP_Sv32x4, IOSATP_Bare, PD20,
+                         MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
+    read_memory(DC_addr, 64, (char *)&DC);
+
+    // Add process context
+    memset(&PC, 0, 16);
+    PC.fsc.iosatp.MODE = IOSATP_Sv32;
+    PC.fsc.iosatp.PPN = get_free_gppn(1, DC.iohgatp);
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    add_g_stage_pte(DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), gpte, 0);
+    PC.ta.V = 1;
+    PC.ta.PSCID = 10;
+    PC.ta.ENS = 1;
+    PC.ta.SUM = 1;
+    PC_addr = add_process_context(&DC, &PC, 0xBABEC);
+    read_memory(PC_addr, 16, (char *)&PC);
+
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    pte.PPN = get_free_gppn(1, DC.iohgatp);
+
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    gpa = pte.PPN * PAGESIZE;
+    spa = gpte.PPN * PAGESIZE;
+    gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
+    gva = 0x100000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    send_translation_request(0x000000, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
+             1, WRITE, 0, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+
+
+    // Make a large page PTE
+    pte.PPN = get_free_gppn(1024, DC.iohgatp);
+    gpte.PPN = get_free_ppn(1024);
+    gpa = pte.PPN * PAGESIZE;
+    spa = gpte.PPN * PAGESIZE;
+    gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 1);
+    gva = 0x19000000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 1, DC.iohgatp);
+    send_translation_request(0x000000, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
+             1, WRITE, 0, &req, &rsp);
+    if ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) return -1;
+    printf("PASS\n");
+
+    
+    printf("Test 10: Misc. Register Access tests:");
+   
+    // Write read-only registers 
+    for ( offset = 0; offset < 4096; ) {
+        i = offset;
+        switch (offset) {
+            case CAPABILITIES_OFFSET:
+                // This register is read only
+                temp = read_register(i, 8);
+                write_register(i, 8, 0xFF);
+                if ( temp != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case FCTRL_OFFSET:
+                fctrl.raw = read_register(i, 4);
+                fctrl.end = 1;
+                fctrl.wis = 1;
+                write_register(i, 4, fctrl.raw);
+                fctrl.raw = read_register(i, 4);
+                if ( fctrl.end != 0 ) return -1;
+                if ( fctrl.wis != 0 ) return -1;
+                g_reg_file.capabilities.end = BOTH_END;
+                fctrl.raw = read_register(i, 4);
+                temp = fctrl.raw;
+                if ( fctrl.end != 0 ) return -1;
+                if ( fctrl.wis != 0 ) return -1;
+                // IOMMU is on - this register should not be writeable 
+                fctrl.end = 1;
+                fctrl.wis = 1;
+                write_register(i, 4, fctrl.raw);
+                if ( temp != read_register(i, 4) ) return -1;
+                if ( enable_iommu(Off) < 0 ) return -1;
+                // QUeues are On - register must not be writeable
+                write_register(i, 4, fctrl.raw);
+                if ( temp != read_register(i, 4) ) return -1;
+                pqcsr.raw = read_register(PQCSR_OFFSET, 4);
+                pqcsr.pqen = 0;
+                write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+                write_register(i, 4, fctrl.raw);
+                if ( temp != read_register(i, 4) ) return -1;
+                fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+                fqcsr.fqen = 0;
+                write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+                write_register(i, 4, fctrl.raw);
+                if ( temp != read_register(i, 4) ) return -1;
+                cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+                cqcsr.cqen = 0;
+                write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+                write_register(i, 4, fctrl.raw);
+                fctrl.raw = read_register(i, 4);
+                if ( fctrl.end != 1 ) return -1; 
+                if ( fctrl.wis != 0 ) return -1; 
+                g_reg_file.capabilities.igs = IGS_BOTH;
+                fctrl.wis = 1;
+                write_register(i, 4, fctrl.raw);
+                fctrl.raw = read_register(i, 4);
+                if ( fctrl.wis != 1 ) return -1; 
+
+                fctrl.end = 0;
+                fctrl.wis = 0;
+                write_register(i, 4, fctrl.raw);
+                pqcsr.pqen = 1;
+                write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+                cqcsr.cqen = 1;
+                write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+                fqcsr.fqen = 1;
+                write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+                if ( enable_iommu(DDT_3LVL) < 0 ) return -1;
+                offset += 4;
+                break;
+            case DDTP_OFFSET:
+                ddtp.raw = read_register(DDTP_OFFSET, 8);
+                if (ddtp.iommu_mode != DDT_3LVL ) return -1;
+                offset += 8;
+                break;
+            case CQB_OFFSET:
+            case FQB_OFFSET:
+            case PQB_OFFSET:
+                temp = read_register(i, 8);
+                write_register(i, 8, 0xFF);
+                if ( temp != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case FQT_OFFSET:
+            case CQH_OFFSET:
+            case PQT_OFFSET:
+            case IOCNTOVF_OFFSET:
+                temp = read_register(i, 4);
+                write_register(i, 4, 0xFF);
+                if ( temp != read_register(i, 4) ) return -1;
+                offset += 4;
+                break;
+            case FQH_OFFSET:
+            case PQH_OFFSET:
+            case CQT_OFFSET:
+                offset += 4;
+                break;
+            case CQCSR_OFFSET:
+            case FQCSR_OFFSET:
+            case PQCSR_OFFSET:
+            case IPSR_OFFSET:
+            case IOCNTINH_OFFSET:
+                offset += 4;
+                break;
+            case IOHPMCYCLES_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.hpm = 0;
+                write_register(i, 8, temp + 1);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.hpm = 1;
+                write_register(i, 8, temp + 1);
+                if ( (temp + 1) != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case IOHPMCTR1_OFFSET:
+            case IOHPMCTR2_OFFSET:
+            case IOHPMCTR3_OFFSET:
+            case IOHPMCTR4_OFFSET:
+            case IOHPMCTR5_OFFSET:
+            case IOHPMCTR6_OFFSET:
+            case IOHPMCTR7_OFFSET:
+            case IOHPMCTR8_OFFSET:
+            case IOHPMCTR9_OFFSET:
+            case IOHPMCTR10_OFFSET:
+            case IOHPMCTR11_OFFSET:
+            case IOHPMCTR12_OFFSET:
+            case IOHPMCTR13_OFFSET:
+            case IOHPMCTR14_OFFSET:
+            case IOHPMCTR15_OFFSET:
+            case IOHPMCTR16_OFFSET:
+            case IOHPMCTR17_OFFSET:
+            case IOHPMCTR18_OFFSET:
+            case IOHPMCTR19_OFFSET:
+            case IOHPMCTR20_OFFSET:
+            case IOHPMCTR21_OFFSET:
+            case IOHPMCTR22_OFFSET:
+            case IOHPMCTR23_OFFSET:
+            case IOHPMCTR24_OFFSET:
+            case IOHPMCTR25_OFFSET:
+            case IOHPMCTR26_OFFSET:
+            case IOHPMCTR27_OFFSET:
+            case IOHPMCTR28_OFFSET:
+            case IOHPMCTR29_OFFSET:
+            case IOHPMCTR30_OFFSET:
+            case IOHPMCTR31_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.hpm = 0;
+                write_register(i, 8, temp + 1);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.hpm = 1;
+                write_register(i, 8, temp + 1);
+                if ( offset < IOHPMCTR8_OFFSET ) {
+                    if ( (temp + 1) != read_register(i, 8) ) return -1;
+                } else {
+                    if ( (temp) != read_register(i, 8) ) return -1;
+                }
+                offset += 8;
+                break;
+            case IOHPMEVT1_OFFSET:
+            case IOHPMEVT2_OFFSET:
+            case IOHPMEVT3_OFFSET:
+            case IOHPMEVT4_OFFSET:
+            case IOHPMEVT5_OFFSET:
+            case IOHPMEVT6_OFFSET:
+            case IOHPMEVT7_OFFSET:
+            case IOHPMEVT8_OFFSET:
+            case IOHPMEVT9_OFFSET:
+            case IOHPMEVT10_OFFSET:
+            case IOHPMEVT11_OFFSET:
+            case IOHPMEVT12_OFFSET:
+            case IOHPMEVT13_OFFSET:
+            case IOHPMEVT14_OFFSET:
+            case IOHPMEVT15_OFFSET:
+            case IOHPMEVT16_OFFSET:
+            case IOHPMEVT17_OFFSET:
+            case IOHPMEVT18_OFFSET:
+            case IOHPMEVT19_OFFSET:
+            case IOHPMEVT20_OFFSET:
+            case IOHPMEVT21_OFFSET:
+            case IOHPMEVT22_OFFSET:
+            case IOHPMEVT23_OFFSET:
+            case IOHPMEVT24_OFFSET:
+            case IOHPMEVT25_OFFSET:
+            case IOHPMEVT26_OFFSET:
+            case IOHPMEVT27_OFFSET:
+            case IOHPMEVT28_OFFSET:
+            case IOHPMEVT29_OFFSET:
+            case IOHPMEVT30_OFFSET:
+            case IOHPMEVT31_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.hpm = 0;
+                write_register(i, 8, temp + 1);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.hpm = 1;
+                write_register(i, 8, temp + 1);
+                if ( offset < IOHPMEVT8_OFFSET ) {
+                    if ( (temp + 1) != read_register(i, 8) ) return -1;
+                } else {
+                    if ( (temp) != read_register(i, 8) ) return -1;
+                }
+                offset += 8;
+                break;
+    
+            case TR_REQ_IOVA_OFFSET:
+            case TR_REQ_CTRL_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.dbg = 0;
+                write_register(i, 8, temp + 2);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.dbg = 1;
+                write_register(i, 8, temp + 2);
+                if ( (temp + 2) != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case TR_RESPONSE_OFFSET:
+                temp = read_register(i, 8);
+                write_register(i, 8, temp + 1);
+                if ( temp != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+
+            case ICVEC_OFFSET:
+                offset += 4;
+                break;
+            case MSI_ADDR_0_OFFSET:
+            case MSI_ADDR_1_OFFSET:
+            case MSI_ADDR_2_OFFSET:
+            case MSI_ADDR_3_OFFSET:
+            case MSI_ADDR_4_OFFSET:
+            case MSI_ADDR_5_OFFSET:
+            case MSI_ADDR_6_OFFSET:
+            case MSI_ADDR_7_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.igs = WIS;
+                write_register(i, 8, temp + 8);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.igs = 0;
+                write_register(i, 8, temp + 8);
+                if ( (temp + 8) != read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case MSI_ADDR_8_OFFSET:
+            case MSI_ADDR_9_OFFSET:
+            case MSI_ADDR_10_OFFSET:
+            case MSI_ADDR_11_OFFSET:
+            case MSI_ADDR_12_OFFSET:
+            case MSI_ADDR_13_OFFSET:
+            case MSI_ADDR_14_OFFSET:
+            case MSI_ADDR_15_OFFSET:
+                temp = read_register(i, 8);
+                g_reg_file.capabilities.igs = WIS;
+                write_register(i, 8, temp + 8);
+                if ( temp != read_register(i, 8) ) return -1;
+                g_reg_file.capabilities.igs = 0;
+                write_register(i, 8, temp + 8);
+                if ( (temp + 8) == read_register(i, 8) ) return -1;
+                offset += 8;
+                break;
+            case MSI_DATA_0_OFFSET:
+            case MSI_DATA_1_OFFSET:
+            case MSI_DATA_2_OFFSET:
+            case MSI_DATA_3_OFFSET:
+            case MSI_DATA_4_OFFSET:
+            case MSI_DATA_5_OFFSET:
+            case MSI_DATA_6_OFFSET:
+            case MSI_DATA_7_OFFSET:
+            case MSI_VEC_CTRL_0_OFFSET:
+            case MSI_VEC_CTRL_1_OFFSET:
+            case MSI_VEC_CTRL_2_OFFSET:
+            case MSI_VEC_CTRL_3_OFFSET:
+            case MSI_VEC_CTRL_4_OFFSET:
+            case MSI_VEC_CTRL_5_OFFSET:
+            case MSI_VEC_CTRL_6_OFFSET:
+            case MSI_VEC_CTRL_7_OFFSET:
+                write_register(i, 4, 0);
+                temp = read_register(i, 4);
+                g_reg_file.capabilities.igs = WIS;
+                write_register(i, 4, temp + 1);
+                if ( temp != read_register(i, 4) ) return -1;
+                g_reg_file.capabilities.igs = 0;
+                write_register(i, 4, temp + 1);
+                if ( (temp + 1) != read_register(i, 4) ) return -1;
+                offset += 4;
+                break;
+            case MSI_DATA_8_OFFSET:
+            case MSI_DATA_9_OFFSET:
+            case MSI_DATA_10_OFFSET:
+            case MSI_DATA_11_OFFSET:
+            case MSI_DATA_12_OFFSET:
+            case MSI_DATA_13_OFFSET:
+            case MSI_DATA_14_OFFSET:
+            case MSI_DATA_15_OFFSET:
+            case MSI_VEC_CTRL_8_OFFSET:
+            case MSI_VEC_CTRL_9_OFFSET:
+            case MSI_VEC_CTRL_10_OFFSET:
+            case MSI_VEC_CTRL_11_OFFSET:
+            case MSI_VEC_CTRL_12_OFFSET:
+            case MSI_VEC_CTRL_13_OFFSET:
+            case MSI_VEC_CTRL_14_OFFSET:
+            case MSI_VEC_CTRL_15_OFFSET:
+                write_register(i, 4, 0);
+                temp = read_register(i, 4);
+                g_reg_file.capabilities.igs = WIS;
+                write_register(i, 4, temp + 1);
+                if ( temp != read_register(i, 4) ) return -1;
+                g_reg_file.capabilities.igs = 0;
+                write_register(i, 4, temp + 1);
+                if ( (temp + 1) == read_register(i, 4) ) return -1;
+                offset += 4;
+                break;
+            default:
+                temp = read_register(i, 4);
+                write_register(i, 4, temp + 1);
+                if ( temp != read_register(i, 4) ) return -1;
+                offset += 1;
+                break;
+        }
+    }
+    // writing as two 4B writes
+    write_register(MSI_ADDR_0_OFFSET, 4, 0xDEADBEE0);
+    write_register(MSI_ADDR_0_OFFSET+4, 4, 0x000000F0);
+    temp = read_register(MSI_ADDR_0_OFFSET, 8);
+    if ( temp != 0x000000F0DEADBEE0 ) return -1;
+
+    // DIsable ATS only registers
+    g_reg_file.capabilities.ats = 0;
+    g_reg_file.capabilities.hpm = 0;
+
+    temp = read_register(PQB_OFFSET, 8);
+    write_register(PQB_OFFSET, 8, temp + 1);
+    if ( temp != read_register(PQB_OFFSET, 8) ) return -1;
+
+    temp = read_register(PQH_OFFSET, 4);
+    write_register(PQH_OFFSET, 4, temp + 1);
+    if ( temp != read_register(PQH_OFFSET, 4) ) return -1;
+
+    temp = read_register(PQT_OFFSET, 4);
+    write_register(PQT_OFFSET, 4, temp + 1);
+    if ( temp != read_register(PQT_OFFSET, 4) ) return -1;
+
+    write_register(ICVEC_OFFSET, 8, 0x0000000000005555);
+    if ( read_register(ICVEC_OFFSET, 8) != 0x0000000000000055) return -1;
+    g_reg_file.capabilities.hpm = 1;
+    write_register(ICVEC_OFFSET, 8, 0x0000000000005555);
+    if ( read_register(ICVEC_OFFSET, 8) != 0x0000000000000555) return -1;
+    g_reg_file.capabilities.ats = 1;
+    write_register(ICVEC_OFFSET, 8, 0x0000000000005555);
+    if ( read_register(ICVEC_OFFSET, 8) != 0x0000000000005555) return -1;
+
+    printf("PASS\n");
+
+   
 
 
 
@@ -2612,7 +3541,8 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
            uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask, 
            uint64_t msi_addr_pattern) {
     device_context_t DC;
-
+    char zero[16384];
+    memset(zero, 0, 16384);
     memset(&DC, 0, sizeof(DC));
 
     DC.tc.V      = 1;
@@ -2624,6 +3554,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     if ( iohgatp_mode != IOHGATP_Bare ) {
         DC.iohgatp.GSCID = gscid;
         DC.iohgatp.PPN = get_free_ppn(4);
+        write_memory(zero, DC.iohgatp.PPN * PAGESIZE, 16384);
     }
     DC.iohgatp.MODE = iohgatp_mode;
     if ( iosatp_mode != IOSATP_Bare ) {
@@ -2643,9 +3574,11 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
             gpte.D = 0;
             gpte.PBMT = PMA;
             gpte.PPN = get_free_ppn(1);
+            write_memory(zero, gpte.PPN * PAGESIZE, 4096);
             add_g_stage_pte(DC.iohgatp, (PAGESIZE * DC.fsc.iosatp.PPN), gpte, 0);
         } else {
             DC.fsc.iosatp.PPN = get_free_ppn(1);
+            write_memory(zero, DC.fsc.iosatp.PPN * PAGESIZE, 4096);
         }
     }
     if ( pdt_mode != PDTP_Bare ) {
@@ -2665,14 +3598,17 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
             gpte.D = 0;
             gpte.PBMT = PMA;
             gpte.PPN = get_free_ppn(1);
+            write_memory(zero, gpte.PPN * PAGESIZE, 4096);
             add_g_stage_pte(DC.iohgatp, (PAGESIZE * DC.fsc.pdtp.PPN), gpte, 0);
         } else {
-            DC.fsc.iosatp.PPN = get_free_ppn(1);
+            DC.fsc.pdtp.PPN = get_free_ppn(1);
+            write_memory(zero, DC.fsc.pdtp.PPN * PAGESIZE, 4096);
         }
     }
     DC.msiptp.MODE = msiptp_mode;
     if ( msiptp_mode != MSIPTP_Bare ) {
        DC.msiptp.PPN = get_free_ppn(msiptp_pages);
+       write_memory(zero, DC.msiptp.PPN * PAGESIZE, 4096);
        DC.msi_addr_mask.mask = msi_addr_mask;
        DC.msi_addr_pattern.pattern = msi_addr_pattern;
     }
@@ -2729,6 +3665,24 @@ ats_command(
     cmd.ats.dseg = DSEG;
     cmd.ats.payload = payload;
 
+    cqb.raw = read_register(CQB_OFFSET, 8);
+    cqt.raw = read_register(CQT_OFFSET, 4);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    access_viol_addr = temp;
+    data_corruption_addr = temp1;
+    cqt.index++;
+    write_register(CQT_OFFSET, 4, cqt.raw);
+    process_commands();
+    return;
+}
+void 
+generic_any(
+    command_t cmd) {
+    cqb_t cqb;
+    cqt_t cqt;
+    uint64_t temp, temp1;
+    temp = access_viol_addr;
+    temp1 = data_corruption_addr;
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
     write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
@@ -2807,6 +3761,7 @@ get_free_ppn(
     }
     free_ppn = next_free_page;
     next_free_page += num_ppn;
+    memset(&memory[free_ppn * PAGESIZE], 0, num_ppn * PAGESIZE);
     return free_ppn; 
 }
 uint8_t read_memory(
@@ -2822,7 +3777,7 @@ uint8_t read_memory_for_AMO(
     return read_memory(addr, size, data);
 }
 uint8_t write_memory(
-    char *data, uint64_t addr, uint8_t size) {
+    char *data, uint64_t addr, uint32_t size) {
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(&memory[addr], data, size);

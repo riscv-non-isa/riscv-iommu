@@ -103,7 +103,7 @@ write_register(
             data8 = ((data8) & 0xFFFFFFFF00000000) | (data4);
         }
         // Align offset to 8B boundary
-        offset = offset / 8;
+        offset = offset & ~0x7;
     }
 
     fctrl_temp.raw = data4;
@@ -809,7 +809,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
                 uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
                 capabilities_t capabilities, fctrl_t fctrl) {
     int i;
-
+#ifdef DEBUG
     // Only PA upto 56 bits supported in RISC-V
     if ( capabilities.pas > 56 )
         return -1;
@@ -845,6 +845,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     // Reset value for ddtp.iommu_mode field must be either Off or Bare
     if ( reset_iommu_mode != Off && reset_iommu_mode != DDT_Bare )
         return -1;
+#endif
 
     g_eventID_mask = eventID_mask;
     g_num_vec_bits = num_vec_bits;
@@ -883,13 +884,17 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_offset_to_size[CAPABILITIES_OFFSET] = 8;
     g_offset_to_size[FCTRL_OFFSET] = 4;
     g_offset_to_size[DDTP_OFFSET] = 8;
+    g_offset_to_size[DDTP_OFFSET + 4] = 8;
     g_offset_to_size[CQB_OFFSET] = 8;
+    g_offset_to_size[CQB_OFFSET + 4] = 8;
     g_offset_to_size[CQH_OFFSET] = 4;
     g_offset_to_size[CQT_OFFSET] = 4;
     g_offset_to_size[FQB_OFFSET] = 8;
+    g_offset_to_size[FQB_OFFSET + 4] = 8;
     g_offset_to_size[FQH_OFFSET] = 4;
     g_offset_to_size[FQT_OFFSET] = 4;
     g_offset_to_size[PQB_OFFSET] = 8;
+    g_offset_to_size[PQB_OFFSET + 4] = 8;
     g_offset_to_size[PQH_OFFSET] = 4;
     g_offset_to_size[PQT_OFFSET] = 4;
     g_offset_to_size[CQCSR_OFFSET] = 4;
@@ -898,25 +903,30 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_offset_to_size[IPSR_OFFSET] = 4;
     g_offset_to_size[IOCNTOVF_OFFSET] = 4;
     g_offset_to_size[IOCNTINH_OFFSET] = 4;
-    g_offset_to_size[IOHPMCYCLES_OFFSET] = 4;
+    g_offset_to_size[IOHPMCYCLES_OFFSET] = 8;
+    g_offset_to_size[IOHPMCYCLES_OFFSET + 4] = 8;
     for ( i = IOHPMCTR1_OFFSET; i < IOHPMCTR1_OFFSET + (8 * 31); i += 8 ) {
         g_offset_to_size[i] = 8;
+        g_offset_to_size[i + 4] = 8;
     }
     for ( i = IOHPMEVT1_OFFSET; i < IOHPMEVT1_OFFSET + (8 * 31); i += 8 ) {
         g_offset_to_size[i] = 8;
+        g_offset_to_size[i + 4] = 8;
     }
     g_offset_to_size[TR_REQ_IOVA_OFFSET] = 8;
-    g_offset_to_size[TR_REQ_IOVA_OFFSET + 4] = 4;
+    g_offset_to_size[TR_REQ_IOVA_OFFSET + 4] = 8;
     g_offset_to_size[TR_REQ_CTRL_OFFSET] = 8;
-    g_offset_to_size[TR_REQ_CTRL_OFFSET + 4] = 4;
+    g_offset_to_size[TR_REQ_CTRL_OFFSET + 4] = 8;
     g_offset_to_size[TR_RESPONSE_OFFSET] = 8;
-    g_offset_to_size[TR_RESPONSE_OFFSET + 4] = 4;
+    g_offset_to_size[TR_RESPONSE_OFFSET + 4] = 8;
     for ( i = RESERVED_OFFSET; i < ICVEC_OFFSET; i++ ) {
         g_offset_to_size[i] = 1;
     }
-    g_offset_to_size[ICVEC_OFFSET] = 4;
+    g_offset_to_size[ICVEC_OFFSET] = 8;
+    g_offset_to_size[ICVEC_OFFSET + 4] = 8;
     for ( i = 0; i < 256; i += 16) {
         g_offset_to_size[i + MSI_ADDR_0_OFFSET] = 8;
+        g_offset_to_size[i + MSI_ADDR_0_OFFSET + 4] = 8;
         g_offset_to_size[i + MSI_DATA_0_OFFSET] = 4;
         g_offset_to_size[i + MSI_VEC_CTRL_0_OFFSET] = 4;
     }

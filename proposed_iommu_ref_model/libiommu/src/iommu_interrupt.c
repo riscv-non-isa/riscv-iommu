@@ -56,8 +56,6 @@ generate_interrupt(
             vec = g_reg_file.icvec.pmiv;
             g_reg_file.ipsr.pmip = 1;
             break;
-        default:
-            return;
     }
     // The vector is used: 
     // 1. By an IOMMU that generates interrupts as MSI, to index into MSI 

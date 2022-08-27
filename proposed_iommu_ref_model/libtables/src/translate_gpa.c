@@ -25,7 +25,7 @@ translate_gpa (
         PTESIZE = 4;
         gst_page_sz = 4UL * 1024UL * 1024UL;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);
@@ -52,6 +52,7 @@ translate_gpa (
     i = LEVELS - 1;
     a = iohgatp.PPN * PAGESIZE;
     while ( 1 ) {
+        nl_gpte.raw = 0;
         read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw);
         if ( nl_gpte.V == 0 ) return 1;
         if ( nl_gpte.R != 0 || nl_gpte.X != 0 ) {

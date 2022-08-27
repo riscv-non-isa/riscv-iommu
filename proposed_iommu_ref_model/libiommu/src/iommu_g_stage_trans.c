@@ -263,7 +263,7 @@ step_5:
 
     // Count G stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, G_PT_WALKS);
-
+    amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_gpte.raw);
 
     if ( status != 0 ) goto access_fault;

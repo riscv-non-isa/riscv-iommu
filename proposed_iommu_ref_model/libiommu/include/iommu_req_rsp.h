@@ -86,7 +86,7 @@ typedef struct {
     uint8_t PBMT;
     uint8_t is_msi;
     uint8_t is_mrif_wr;
-    uint8_t mrif_nid;
+    uint16_t mrif_nid;
 } iommu_trans_rsp_t;
 
 // IOMMU response to requests from the IO bridge

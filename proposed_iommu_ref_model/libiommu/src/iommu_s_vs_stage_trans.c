@@ -144,7 +144,7 @@ step_2:
 
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
-
+    pte.raw = 0;
     status = read_memory(a, PTESIZE, (char *)&pte.raw);
     if ( status != 0 ) goto access_fault;
 
@@ -320,7 +320,7 @@ step_5:
 
     // Count S/VS stage page walks
     count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, S_VS_PT_WALKS);
-
+    amo_pte.raw = 0;
     status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw);
 
     if ( status != 0 ) goto access_fault;

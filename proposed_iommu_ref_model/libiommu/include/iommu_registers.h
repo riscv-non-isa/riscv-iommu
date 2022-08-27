@@ -56,7 +56,7 @@ typedef union {
         uint64_t end     : 1;      // When 0, IOMMU supports one endianness (either little
                                    // or big). When 1, IOMMU supports both endianness.
                                    // The endianness is defined in `fctrl` register.
-        uint64_t igs     : 1;      // IOMMU interrupt generation support.
+        uint64_t igs     : 2;      // IOMMU interrupt generation support.
                                    // !Value  !Name      ! Description
                                    // !0      ! `MSI`    ! IOMMU supports only MSI
                                    //                      generation.

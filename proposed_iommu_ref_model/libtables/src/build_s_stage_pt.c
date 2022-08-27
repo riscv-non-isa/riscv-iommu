@@ -44,6 +44,7 @@ add_s_stage_pte (
     i = LEVELS - 1;
     a = satp.PPN * PAGESIZE;
     while ( i > add_level ) {
+        nl_pte.raw = 0;
         read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw);
         if ( nl_pte.V == 0 ) {
             nl_pte.V = 1;

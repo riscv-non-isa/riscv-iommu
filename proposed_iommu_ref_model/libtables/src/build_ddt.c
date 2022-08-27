@@ -33,6 +33,7 @@ add_dev_context(
     if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL ) LEVELS = 1;
     i = LEVELS - 1;
     while ( i > 0 ) {
+        ddte.raw = 0;
         read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw);
         if ( ddte.V == 0 ) {
             ddte.V = 1;

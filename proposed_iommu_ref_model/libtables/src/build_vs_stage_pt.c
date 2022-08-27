@@ -21,7 +21,7 @@ add_vs_stage_pte (
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( satp.MODE == IOSATP_Sv32 ) {
+    if ( satp.MODE == IOSATP_Sv39 ) {
         vpn[0] = get_bits(20, 12, va);
         vpn[1] = get_bits(29, 21, va);
         vpn[2] = get_bits(40, 30, va);
@@ -46,6 +46,7 @@ add_vs_stage_pte (
     a = satp.PPN * PAGESIZE;
     while ( i > add_level ) {
         if ( translate_gpa(iohgatp, a, &a) == -1) return 1;
+        nl_pte.raw = 0;
         read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw);
         if ( nl_pte.V == 0 ) {
             gpte_t gpte;

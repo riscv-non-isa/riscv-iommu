@@ -199,7 +199,7 @@ msi_address_translation(
     //       (at address `msipte.MRIF_ADDR * 512`), set the interrupt-pending bit
     //       for interrupt identity `D` to 1 using an `AMOOR` operation for atomic update.
     if ( g_reg_file.capabilities.amo == 1 ) {
-        mrif_dw_addr = (msipte.mrif.MRIF_ADDR * 512) + (D >> 5);
+        mrif_dw_addr = (msipte.mrif.MRIF_ADDR * 512) + ((D >> 5) * 4);
         status = read_memory_for_AMO((msipte.mrif.MRIF_ADDR * 512), 4, (char *)&mrif_dw);
         if ( status == 0 ) {
             mrif_dw |= (1UL << (D & 0x1F));
@@ -210,8 +210,8 @@ msi_address_translation(
     //       destination MRIF (at address `msipte.MRIF_ADDR * 512`), set the
     //       interrupt-pending bit for interrupt identity `D` to 1 using a non-atomic
     //       read-modify-write sequence.
-    if ( g_reg_file.capabilities.amo == 1 ) {
-        mrif_dw_addr = (msipte.mrif.MRIF_ADDR * 512) + (D >> 5);
+    if ( g_reg_file.capabilities.amo == 0 ) {
+        mrif_dw_addr = (msipte.mrif.MRIF_ADDR * 512) + ((D >> 5) * 4);
         status = read_memory((msipte.mrif.MRIF_ADDR * 512), 4, (char *)&mrif_dw);
         if ( status == 0 ) {
             mrif_dw |= (1UL << (D & 0x1F));

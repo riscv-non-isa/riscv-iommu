@@ -25,6 +25,7 @@ add_process_context(
     i = LEVELS - 1;
     while ( i > 0 ) {
         if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return 1;
+        pdte.raw = 0;
         read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw);
         if ( pdte.V == 0 ) {
             pdte.V = 1;

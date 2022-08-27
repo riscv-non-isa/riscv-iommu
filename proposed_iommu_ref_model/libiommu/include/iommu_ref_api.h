@@ -7,7 +7,7 @@
 
 extern uint8_t read_memory(uint64_t addr, uint8_t size, char *data);
 extern uint8_t read_memory_for_AMO(uint64_t address, uint8_t size, char *data);
-extern uint8_t write_memory(char *data, uint64_t address, uint8_t size);
+extern uint8_t write_memory(char *data, uint64_t address, uint32_t size);
 
 extern uint64_t read_register(uint16_t offset, uint8_t num_bytes);
 extern void write_register(uint16_t offset, uint8_t num_bytes, uint64_t data);
