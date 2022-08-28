@@ -93,7 +93,7 @@ written is identified by the num_bytes parameter. The data to be written is prov
 in the data parameter. If the access is invalid then the function drops the write i.e.
 an abort response.
 
-6. **`int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, uint8_t num_vec_bits, uint8_t reset_iommu_mode, capabilities_t capabilities, fctrl_t fctrl)`**
+6. **int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, uint8_t num_vec_bits, uint8_t reset_iommu_mode, capabilities_t capabilities, fctrl_t fctrl)**
 
 This function is provided by the reference model to establish the resset default state.
 The num_hpm indicates the number of hardware performace monitoring counters to be 
@@ -107,7 +107,7 @@ parameter. The default value of the feature control register is provided by the 
 parameter. The function returns 0 if the reference model could be successfully initialized
 with the provided parameters.
 
-7. **`void iommu_translate_iova(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg)`**
+7. **void iommu_translate_iova(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg)**
 
 This function is used by the test bench to invoke the translation request interface in the
 IOMMU. The translation response is returned in the buffer pointed to by rsp_msg.
