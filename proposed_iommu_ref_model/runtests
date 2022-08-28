@@ -1,0 +1,11 @@
+#!/bin/bash
+GREEN='\032'
+clear
+figlet "IOMMU     Tests"
+echo -e "\e[0m\e[4m                                                             \e[0m"
+echo -e "\e[32m\e[4m\e[1mRunning IOMMU test suite\e[0m"
+test/iommu
+echo -e "\e[0m\e[4m                                                             \e[0m"
+echo -e "\e[32m\e[4m\e[1mCoverage report\e[0m\e[36m"
+gcov -n libiommu/src/*.gcda | awk '!(NR%2){printf "%-50s %s \n", p, $0}{p=$0}' |sed 's/Lines executed//' |sed 's/ of.*//' |grep iommu
+echo -e "\e[0m\e[4m                                                             \e[0m"
