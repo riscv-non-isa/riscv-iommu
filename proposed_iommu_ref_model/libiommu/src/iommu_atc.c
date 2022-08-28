@@ -3,26 +3,31 @@
 // SPDX-License-Identifier: Apache-2.0
 // Author: ved@rivosinc.com
 #include "iommu.h"
-ddt_cache_t ddt_cache[2];
+ddt_cache_t ddt_cache[DDT_CACHE_SIZE];
 pdt_cache_t pdt_cache[2];
 tlb_t       tlb[2];
+uint32_t    lru_time = 0;
 
 // Cache a device context
 void
 cache_ioatc_dc(
     uint32_t device_id, device_context_t *DC) {
-    uint8_t i, replace = 0;
+    uint8_t i, replace;
+    uint32_t lru = 0xFFFFFFFF;
     
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
         if ( ddt_cache[i].valid == 0 ) {
             replace = i; 
             break;
         }
-        if ( ddt_cache[i].lru == 1 ) 
-            replace = i;
     }
-    ddt_cache[0].lru = (replace == 0) ? 0 : 1;
-    ddt_cache[1].lru = (replace == 0) ? 1 : 0;
+    if ( i == DDT_CACHE_SIZE ) {
+        for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
+            if ( ddt_cache[i].lru < lru ) {
+                replace = i;
+            }
+        }
+    }
     ddt_cache[replace].DC = *DC;
     ddt_cache[replace].DID = device_id;
     ddt_cache[replace].valid = 1;
@@ -34,14 +39,10 @@ uint8_t
 lookup_ioatc_dc(
     uint32_t device_id, device_context_t *DC) {
     uint8_t i;
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
         if ( ddt_cache[i].valid == 1 && ddt_cache[i].DID == device_id ) {
             *DC = ddt_cache[i].DC;
-            ddt_cache[i].lru = 0;
-            if ( i == 0 ) 
-                ddt_cache[1].lru = 1;
-            else
-                ddt_cache[0].lru = 1;
+            ddt_cache[i].lru = lru_time++;
             return IOATC_HIT;
         }
     }
@@ -52,17 +53,21 @@ void
 cache_ioatc_pc(
     uint32_t device_id, uint32_t process_id, process_context_t *PC) {
     uint8_t i, replace = 0;
+    uint32_t lru = 0xFFFFFFFF;
     
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
         if ( pdt_cache[i].valid == 0 ) {
             replace = i; 
             break;
         }
-        if ( pdt_cache[i].lru == 1 ) 
-            replace = i;
     }
-    pdt_cache[0].lru = (replace == 0) ? 0 : 1;
-    pdt_cache[1].lru = (replace == 0) ? 1 : 0;
+    if ( i == PDT_CACHE_SIZE ) {
+        for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
+            if ( pdt_cache[i].lru < lru ) {
+                replace = i;
+            }
+        }
+    }
     pdt_cache[replace].PC = *PC;
     pdt_cache[replace].DID = device_id;
     pdt_cache[replace].PID = process_id;
@@ -74,16 +79,12 @@ uint8_t
 lookup_ioatc_pc(
     uint32_t device_id, uint32_t process_id, process_context_t *PC) {
     uint8_t i;
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
         if ( pdt_cache[i].valid == 1 && 
              pdt_cache[i].DID == device_id &&
              pdt_cache[i].PID == process_id ) {
             *PC = pdt_cache[i].PC;
-            pdt_cache[i].lru = 0;
-            if ( i == 0 ) 
-                pdt_cache[1].lru = 1;
-            else
-                pdt_cache[0].lru = 1;
+            pdt_cache[i].lru = lru_time++;
             return 1;
         }
     }
@@ -98,13 +99,20 @@ cache_ioatc_iotlb(
     uint64_t PPN, uint8_t  S) {
 
     uint8_t i, replace = 0;
+    uint32_t lru = 0xFFFFFFFF;
 
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < TLB_SIZE; i++ ) {
         if ( tlb[i].valid == 0 ) {
             replace = i; 
             break;
         }
-        if ( tlb[i].lru == 1 ) replace = i;
+    }
+    if ( i == TLB_SIZE ) {
+        for ( i = 0; i < TLB_SIZE; i++ ) {
+            if ( tlb[i].lru < lru ) {
+                replace = i;
+            }
+        }
     }
 
     // Fill the tags
@@ -146,7 +154,7 @@ lookup_ioatc_iotlb(
     uint64_t vpn = iova / PAGESIZE;
 
     hit = 0xFF;
-    for ( i = 0; i < 1; i++ ) {
+    for ( i = 0; i < TLB_SIZE; i++ ) {
         if ( tlb[i].valid == 1 && 
              tlb[i].GV == GV && tlb[i].GSCID == GSCID && 
              tlb[i].PSCV == PSCV && tlb[i].PSCID == PSCID &&
@@ -158,8 +166,7 @@ lookup_ioatc_iotlb(
     if ( hit == 0xFF ) return IOATC_MISS;
 
     // Age the entries
-    tlb[0].lru = (hit == 0) ? 0 : 1;
-    tlb[1].lru = (hit == 0) ? 1 : 0;
+    tlb[i].lru = lru_time++;
 
     // Check S/VS stage permissions
     if ( is_exec  && (tlb[hit].VS_X == 0) ) return IOATC_FAULT;

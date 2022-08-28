@@ -21,6 +21,7 @@ s_vs_stage_address_translation(
     uint8_t i, PTESIZE, LEVELS, status, pte_changed;
     uint64_t a, masked_upper_bits, mask, napot_ppn, napot_iova, napot_gpa;
     uint8_t is_implicit_write = 0;
+    uint8_t is_implicit_read = 1;
     uint64_t gst_page_sz, resp_gpa;
     uint8_t GR, GW, GX, GD, GPBMT;
     uint8_t ioatc_status, GV, PSCV;
@@ -133,7 +134,8 @@ step_2:
     // in G-stage page tables if A or D bit needs to be set in VS stage page
     // table.
     is_implicit_write = ( g_reg_file.capabilities.amo == 0 ) ? 0 : 1;
-    if ( g_stage_address_translation(a, 1, is_implicit_write, 0, 1,
+    is_implicit_read = ( g_reg_file.capabilities.amo == 0 ) ? 1 : 0;
+    if ( g_stage_address_translation(a, is_implicit_read, is_implicit_write, 0, 1,
             iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
             pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
         return 1;

@@ -31,6 +31,7 @@ iommu_translate_iova(
     is_unsup = is_msi = is_mrif_wr = 0;
     priv = U_MODE;
     DTF = 0;
+    PSCID = 0;
 
     // Count events
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED )

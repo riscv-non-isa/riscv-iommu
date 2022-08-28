@@ -50,7 +50,7 @@ generate_interrupt(
             vec = g_reg_file.icvec.civ;
             g_reg_file.ipsr.cip = 1;
             break;
-        case HPM:
+        default: // HPM
             if ( g_reg_file.ipsr.pmip == 1) 
                 return;
             vec = g_reg_file.icvec.pmiv;

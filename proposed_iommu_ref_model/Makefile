@@ -1,4 +1,5 @@
 SUBDIRS = libiommu libtables test
+.PHONY: run
 all:
 	@for i in $(SUBDIRS); do \
 	    echo "Building $$i";\
@@ -9,4 +10,4 @@ clean:
 	    (cd $$i; $(MAKE) -s --no-print-directory clean); done
 
 run:
-	test/iommu
+	./runtests

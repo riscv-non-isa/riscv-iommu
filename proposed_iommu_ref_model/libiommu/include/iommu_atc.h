@@ -29,14 +29,14 @@ typedef struct {
     // PPN and size
     uint64_t PPN;
     uint8_t  S;
-    uint8_t  lru; 
+    uint32_t lru; 
     uint8_t  valid;
 } tlb_t;
 // Device directory cache
 typedef struct {
     device_context_t DC;
     uint32_t         DID;
-    uint8_t          lru; 
+    uint32_t         lru; 
     uint8_t          valid;
 } ddt_cache_t;
 // Process directory cache
@@ -44,11 +44,10 @@ typedef struct {
     process_context_t PC;
     uint32_t          DID;
     uint32_t          PID;
-    uint8_t           lru; 
+    uint32_t          lru; 
     uint8_t           valid;
 } pdt_cache_t;
 
-// Only implemented for size = 2
 #define DDT_CACHE_SIZE 2
 #define PDT_CACHE_SIZE 2
 #define TLB_SIZE       2
