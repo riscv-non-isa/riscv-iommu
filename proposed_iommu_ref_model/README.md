@@ -55,6 +55,7 @@ File 'src/iommu_utils.c'                           :100.00%
 # Reference model API
 To drive the reference mode, the model exposes the following APIs that must be
 implemented by the test bench:
+
 1. **uint8_t read_memory(uint64_t address, uint8_t size, char *data)**
 
 This function is used by the reference model to read memory. The bit 0 of the 
