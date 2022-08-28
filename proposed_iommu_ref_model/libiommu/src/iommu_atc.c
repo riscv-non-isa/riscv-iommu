@@ -6,7 +6,9 @@
 ddt_cache_t ddt_cache[DDT_CACHE_SIZE];
 pdt_cache_t pdt_cache[2];
 tlb_t       tlb[2];
-uint32_t    lru_time = 0;
+uint32_t    dc_lru_time = 0;
+uint32_t    pc_lru_time = 0;
+uint32_t    tlb_lru_time = 0;
 
 // Cache a device context
 void
@@ -42,7 +44,7 @@ lookup_ioatc_dc(
     for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
         if ( ddt_cache[i].valid == 1 && ddt_cache[i].DID == device_id ) {
             *DC = ddt_cache[i].DC;
-            ddt_cache[i].lru = lru_time++;
+            ddt_cache[i].lru = dc_lru_time++;
             return IOATC_HIT;
         }
     }
@@ -84,7 +86,7 @@ lookup_ioatc_pc(
              pdt_cache[i].DID == device_id &&
              pdt_cache[i].PID == process_id ) {
             *PC = pdt_cache[i].PC;
-            pdt_cache[i].lru = lru_time++;
+            pdt_cache[i].lru = pc_lru_time++;
             return 1;
         }
     }
@@ -166,7 +168,7 @@ lookup_ioatc_iotlb(
     if ( hit == 0xFF ) return IOATC_MISS;
 
     // Age the entries
-    tlb[i].lru = lru_time++;
+    tlb[i].lru = tlb_lru_time++;
 
     // Check S/VS stage permissions
     if ( is_exec  && (tlb[hit].VS_X == 0) ) return IOATC_FAULT;
