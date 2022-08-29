@@ -270,7 +270,9 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
   {bits: 1,  name: 'DTF'},
   {bits: 1,  name: 'PDTV'},
   {bits: 1,  name: 'PRPR'},
-  {bits: 25, name: 'reserved'},
+  {bits: 1,  name: 'GADE'},
+  {bits: 1,  name: 'SADE'},
+  {bits: 23, name: 'reserved'},
   {bits: 32, name: 'for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -375,6 +377,19 @@ The `PDTV` is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
 with its memory accesses. For PCIe, for example, if the request has a PASID 
 then the PASID is used as the `process_id`.
+
+The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
+is 1. When `capabilities.AMO` is 0, these bits are reserved.
+
+If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
+`GADE` is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not
+update the A or D bits and does not cause any faults based on A and/or D bit
+being 0.
+
+If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
+`SADE` is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not
+update the A or D bits and does not cause any faults based on A and/or D bit
+being 0.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
