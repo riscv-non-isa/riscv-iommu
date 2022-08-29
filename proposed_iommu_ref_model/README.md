@@ -89,7 +89,11 @@ the IOMMU model assumes that all previous read and/or write are globally observe
 This function is invoked by the IOMMU to send a ATS message - Invalidation request or a page request
 group response - to the test bench.
 
-# Reference model test bench functions
+# Reference model functions
+
+These functions are provided by the reference model to the test bench to input stimulii and 
+obtain responses from the model.
+
 1. **`uint64_t read_register(uint16_t offset, uint8_t num_bytes)`**
 
 This function is provided by the reference model to read a memory mapped IOMMU
@@ -146,3 +150,68 @@ processing is required then the function should be invoked for each command.
 
 
 # Libtables functions
+The following functions are provided by the libtables to build memory resident data structures.
+The functions do not implement extensive error checking and providing bad inputs may lead to bad
+tables being created.
+
+1. **`uint64_t add_dev_context(device_context_t *DC, uint32_t device_id)`**
+
+This function is used to build the device directory table by adding non-leaf entries when needed
+and inserting the device context in the leaf entry. The function returns the address, in test memory
+space, where the leaf entry was inserted. 
+
+2. **`uint64_t add_process_context(device_context_t *DC, process_context_t *PC, uint32_t process_id)`**
+
+This function is used to build the process directory table by adding non-leaf entries when needed
+and inserting the process context in the leaf entry. The function returns the address, in test memory
+space, where the leaf entry was inserted. 
+
+3. **`uint64_t add_g_stage_pte(iohgatp_t iohgatp, uint64_t gpa, gpte_t gpte, uint8_t add_level)`**
+
+This function is used to build the G-stage page table by adding non-leaf entries when needed
+and inserting the leaf entry at the requested level. The level value of 0 indicates that the entry
+should be added at the last level possible for the G-stage page table i.e. a 4K or a NAPOT 64K entry.
+Larger mappings may be created, as appropriate for the mode in iohgatp, by specifying higher levels.
+The function may invoke the get_ppn function to request pages to build the page table. The function
+returns the address, in test memory space, where the leaf entry was inserted.
+
+
+4. **`uint64_t add_s_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level)`**
+
+This function is used to build the S-stage page table by adding non-leaf entries when needed
+and inserting the leaf entry at the requested level. The level value of 0 indicates that the entry
+should be added at the last level possible for the S-stage page table i.e. a 4K or a NAPOT 64K entry.
+Larger mappings may be created, as appropriate for the mode in satp, by specifying higher levels.
+The function may invoke the get_ppn function to request pages to build the page table. The function
+returns the address, in test memory space, where the leaf entry was inserted.
+
+5. **`uint64_t add_vs_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, iohgatp_t iohgatp)`**
+
+This function is used to build the VS-stage page table by adding non-leaf entries when needed
+and inserting the leaf entry at the requested level. The level value of 0 indicates that the entry
+should be added at the last level possible for the VS-stage page table i.e. a 4K or a NAPOT 64K entry.
+Larger mappings may be created, as appropriate for the mode in satp, by specifying higher levels.
+The function may invoke the get_gppn function to request pages to build the page table. The function
+maps the obtained gppn into the G-stage page table determined by iohgatp. The function returns the address, 
+in test memory space, where the leaf entry was inserted.
+
+6. **`uint64_t translate_gpa (iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa)`**
+
+This function is used to translate a gpa to a spa. The function also returns the G-stage pte that provides
+the translation as an address in test memory space.
+
+# Libtables test bench functions
+These functions are invoked by the libtables functions to allocate memory for the table structures. These
+are provided by the test bench that invokes the libtables.
+
+1. **`uint64_t get_free_ppn(uint64_t num_ppn)`**
+
+This function is used to allocate a set of pages in the test memory space. The function should provide
+a range of pages with the base page aligned to num_ppn.
+
+2. **`uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp)`**
+
+This function is used to allocate a set of pages in the memory space of the guest associated with iohgatp. 
+The function should provide a range of pages with the base page aligned to num_gppn.
+
+#endif // __TABLES_API_H__
