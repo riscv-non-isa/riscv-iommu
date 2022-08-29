@@ -219,9 +219,9 @@ A valid (`V==1`) non-leaf DDT entry provides PPN of the next level DDT.
 ....
 {reg: [
   {bits: 1,  name: 'V',        attr: '1'},
-  {bits: 11, name: 'reserved', attr: '11'},
+  {bits: 9, name: 'reserved', attr: '9'},
   {bits: 44, name: 'PPN',      attr: '44'},
-  {bits: 8,  name: 'reserved', attr: '8'},
+  {bits: 10,  name: 'reserved', attr: '10'},
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
@@ -489,8 +489,9 @@ identified by a VS-stage page table with a `process_id`.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 44, name: 'reserved'},
+  {bits: 32, name: 'reserved'},
   {bits: 20, name: 'PSCID'},
+  {bits: 12, name: 'reserved'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
@@ -606,10 +607,10 @@ A valid (`V==1`) non-leaf PDT entry holds the PPN of the next-level PDT.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 1,  name: 'V',        attr: '1'},
-  {bits: 11, name: 'reserved', attr: '11'},
+  {bits:  1, name: 'V',        attr: '1'},
+  {bits:  9, name: 'reserved', attr: '9'},
   {bits: 44, name: 'PPN',      attr: '44'},
-  {bits: 8,  name: 'reserved', attr: '8'},
+  {bits: 10, name: 'reserved', attr: '10'},
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
@@ -638,8 +639,9 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
   {bits: 1,  name: 'V',        attr: '1'},
   {bits: 1,  name: 'ENS',     attr: '1'},
   {bits: 1,  name: 'SUM',    attr: '1'},
-  {bits: 41, name: 'reserved', attr: '42'},
+  {bits: 9, name: 'reserved', attr: '9'},
   {bits: 20, name: 'PSCID',    attr: '20'},
+  {bits: 32, name: 'reserved', attr: '32'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
