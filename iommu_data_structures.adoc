@@ -256,6 +256,11 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 ], config:{lanes: 8, hspace: 1024, fontsize: 16}}
 ....
 
+The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
+64-bit doublewords in extended-format. The byte order of each of the doublewords
+in memory, little-endian or big-endian, is the endianness as determined by
+`fctrl.END` (<<FCTRL>>).
+
 ==== Device-context fields
 ===== Translation control (`tc`)
 
@@ -628,6 +633,10 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
+The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `fctrl.END` (<<FCTRL>>).
+
 ==== Process-context fields
 
 ===== Translation attributes (`ta`)
@@ -731,8 +740,8 @@ unspecified, and any address an IOMMU may compute and use for reading an
 individual MSI PTE from the table is also unspecified.
 
 Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order 
-for each of the two doublewords in memory, little-endian or big-endian, is as 
-the endianness as determined by `fctrl.END` (<<FCTRL>>).
+for each of the two doublewords in memory, little-endian or big-endian, is the 
+endianness as determined by `fctrl.END` (<<FCTRL>>).
 
 Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`, 
 the PTE is invalid, and all other bits of both doublewords are ignored by an 
@@ -976,9 +985,9 @@ harts are big-endian-only).
 [NOTE]
 ====
 Big-endian-configured harts that make use of MRIFs are expected to 
-implement the REV8 byte-reversal instruction defined by the RISC-V 
-“Bitmanip” extension (B extension), or pay the cost of endianness 
-conversion using a sequence of instructions.
+implement the `REV8` byte-reversal instruction defined Zbb extesion.
+If `REV8` is not implemented, then the endianness conversion may be 
+implemented using a sequence of instructions.
 ====
 
 The pairs of doublewords contain the interrupt-pending and 
@@ -1331,7 +1340,7 @@ address and translating the address using the MSI page table is as follows:
 . Extract an interrupt file number `I` from `A` as 
   `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
   to generic bit extract performed by RISC-V instruction `BEXT`, defined by the 
-  Bitmanip extension (B extension). The bit extract function `extract(x, y)` 
+  Zbs extension). The bit extract function `extract(x, y)` 
   discards all bits from `x` whose matching bits in the same positions in the 
   mask `y` are zeros, and packs the remaining bits from `x` contiguously at the 
   least-significant end of the result, keeping the same bit order as `x` and 
