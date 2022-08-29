@@ -1123,7 +1123,7 @@ The process to translate an `IOVA` is as follows:
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
   GPA. Go to step 16 with following page table information:
 .. Let `iosatp.MODE` be `Bare`
-.. Let `PSCID` be 0
+... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 16 with the following page table 
   information:
@@ -1134,10 +1134,11 @@ The process to translate an `IOVA` is as follows:
 .. If a G-stage page table is not active in the device-context
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
-. If there is no `process_id` associated with the transaction then go to step 16
-  with the following page table information:
+. If there is no `process_id` associated with the transaction or if 
+  `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table 
+   information:
 .. Let `iosatp.MODE` be `Bare`
-.. Let `PSCID` be 0
+... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
 . Locate the process-context (`PC`) as specified in <<GET_PC>>.
 . if any of the following conditions hold then stop and report
