@@ -822,7 +822,7 @@ status of the fault-queue.
                            when set to 1. 
 
                            Changing `fqen`  from 0 to 1, resets the `fqh` and 
-                           `fqt` to 0 and clears `fqcsr` bits `fqmf` and `fqof`.
+                           `fqt` to 0.
                            The fault-queue may take some time to be active
                            following setting the `fqen` to 1. When the fault 
                            queue is active, the `fqon` bit reads 1.  
