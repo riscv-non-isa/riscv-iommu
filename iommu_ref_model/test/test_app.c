@@ -579,7 +579,7 @@ main(void) {
     write_memory((char *)&DC, DC_addr, 64);
     END_TEST();
 
-    START_TEST("Test IOFENCE");
+    START_TEST("IOFENCE");
     iofence_PPN = get_free_ppn(1);
     for ( PR = 0; PR < 2; PR++ ) {
         for ( PW = 0; PW < 2; PW++ ) {
@@ -856,7 +856,7 @@ main(void) {
 
     END_TEST();
 
-    START_TEST("Test G-stage translation sizes");
+    START_TEST("G-stage translation sizes");
     req.device_id = 0x012345;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -952,7 +952,7 @@ main(void) {
     }
     END_TEST();
 
-    START_TEST("Test G-stage permission faults");
+    START_TEST("G-stage permission faults");
     req.device_id = 0x012345;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -1045,7 +1045,7 @@ main(void) {
 
     END_TEST();
 
-    START_TEST("Test IOTINVAL.GVMA");
+    START_TEST("IOTINVAL.GVMA");
     req.device_id = 0x012345;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -1080,7 +1080,7 @@ main(void) {
     fail_if( ( rsp.status != SUCCESS ) ); 
     END_TEST();
 
-    START_TEST("Test S-stage translation sizes");
+    START_TEST("S-stage translation sizes");
     DC_addr = add_device(0x012349, 1, 1, 1, 1, 0, 1, IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
                          MSIPTP_Flat, 1, 0xF0F00FF0FF, 0x1903020124);
     read_memory(DC_addr, 64, (char *)&DC);
@@ -1192,7 +1192,7 @@ main(void) {
 
     END_TEST();
 
-    START_TEST("Test S-stage permission faults");
+    START_TEST("S-stage permission faults");
     req.device_id = 0x012349;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -1290,7 +1290,7 @@ main(void) {
 
     END_TEST();
 
-    START_TEST("Test IOTINVAL.VMA");
+    START_TEST("IOTINVAL.VMA");
     req.device_id = 0x012349;
     req.pid_valid = 0;
     req.is_cxl_dev = 0;
@@ -1382,7 +1382,7 @@ main(void) {
     fail_if( ( rsp.status != SUCCESS ) ); 
     END_TEST();
 
-    START_TEST("Test HPM filtering");
+    START_TEST("HPM filtering");
     
     for ( i = 0; i < 32; i++ ) {
         write_register(IOHPMEVT1_OFFSET + (i * 4), 4, 0);
@@ -1482,7 +1482,7 @@ main(void) {
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 1 ) );
     END_TEST();
 
-    START_TEST("Test Process Directory Table walk");
+    START_TEST("Process Directory Table walk");
     // collapse fault queue
     write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
     DC_addr = add_device(0x112233, 1, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PD20,
