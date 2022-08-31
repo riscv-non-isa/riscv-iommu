@@ -236,8 +236,8 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 {reg: [
   {bits: 64,  name: 'Translation-control (tc)'},
   {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
-  {bits: 64,  name: 'First-stage-context (fsc)'},
   {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},  
 ], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
@@ -247,8 +247,8 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 {reg: [
   {bits: 64,  name: 'Translation-control (tc)'},
   {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
-  {bits: 64,  name: 'First-stage-context (fsc)'},
   {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
   {bits: 64,  name: 'MSI-page-table pointer (msiptp)'},
   {bits: 64,  name: 'MSI-address-mask (msi_addr_mask)'},
   {bits: 64,  name: 'MSI-address-pattern (msi_addr_pattern)'},
@@ -424,6 +424,24 @@ to a 16-KiB boundary.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
+===== Translation attributes (`ta`)
+
+.Translation attributes (`ta`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 12, name: 'reserved'},
+  {bits: 20, name: 'PSCID'},
+  {bits: 32, name: 'reserved'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The `PSCID` field of `ta` provides the process soft-context ID that identifies
+the address-space of the process. `PSCID` facilitates address-translation
+fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
+address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
+`Bare`. When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
+
 ===== First-Stage context (`fsc`)
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
 is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide the
@@ -487,24 +505,6 @@ identified by a VS-stage page table with a `process_id`.
                     256 entries.The bits 19:8 of `process_id` must be 0.
 | 3-15 | --       | Reserved
 |===
-
-===== Translation attributes (`ta`)
-
-.Translation attributes (`ta`) field
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 32, name: 'reserved'},
-  {bits: 20, name: 'PSCID'},
-  {bits: 12, name: 'reserved'},
-], config:{lanes: 2, hspace: 1024, fontsize: 16}}
-....
-
-The `PSCID` field of `ta` provides the process soft-context ID that identifies
-the address-space of the process. `PSCID` facilitates address-translation
-fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
-address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
-`Bare`. When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== MSI page table pointer (`msiptp`)
 
@@ -628,8 +628,8 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 64,  name: 'First-stage-context (fsc)'},
   {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
