@@ -412,10 +412,7 @@ Implementations are not required to support all defined mode settings for
 in the harts integrated into the system or a subset thereof.
 
 The root page table as determined by `iohgatp.PPN` is 16 KiB and must be aligned
-to a 16-KiB boundary.  If the root page table is not aligned to 16 KiB as 
-required, then all entries in that G-stage root page table appear to an IOMMU as
-`UNSPECIFIED` and any address an IOMMU may compute and use for accessing an
-entry in the root page table is also `UNSPECIFIED`.
+to a 16-KiB boundary.
 
 .IO hypervisor guest address translation and protection (`iohgatp`) field
 [wavedrom, , ]
@@ -1225,6 +1222,8 @@ is as follows:
 .. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
 .. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
    and not `Flat`
+.. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
+   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . The device-context has been successfully located and may be cached.
 
 [NOTE]
