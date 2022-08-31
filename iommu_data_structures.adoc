@@ -44,10 +44,10 @@ To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
 redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from 
 devices are simply memory writes, they would naturally be subject to the same
 address translation that an IOMMU applies to other memory writes. However, 
-the IOMMU architecture treats MSIs directed to virtual machines specially, in 
+the IOMMU architecture may treat MSIs directed to virtual machines specially, in 
 part to simplify software, and in part to allow optional support for 
 memory-resident interrupt files. To support this capability, the architecture
-to the device contexts an MSI address mask and address pattern, used together 
+adds to the device contexts an MSI address mask and address pattern, used together 
 to recognize certain memory writes from the device as being MSIs; and the real
 physical address of an MSI page table for controlling the translation and/or 
 conversion of MSIs from the device.
@@ -503,7 +503,7 @@ identified by a VS-stage page table with a `process_id`.
                     256 entries. The bits 19:17 of `process_id` must be 0.
 | 3    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
                     256 entries.The bits 19:8 of `process_id` must be 0.
-| 3-15 | --       | Reserved
+| 4-15 | --       | Reserved
 |===
 
 ===== MSI page table pointer (`msiptp`)
@@ -1278,7 +1278,7 @@ The process to locate the Process-context for a transaction using its
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
 . Let `PC` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access 
-  fault" (cause = 265).If `PC` access detects a data corruption 
+  fault" (cause = 265). If `PC` access detects a data corruption 
   (a.k.a. poisoned data), then stop and report "PDT data corruption" 
   (cause = 269).
 . If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
