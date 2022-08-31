@@ -554,10 +554,10 @@ and if the privilege of the transaction was Supervisor then `PRIV` bit is 1
 else its 0. The `DID`, `PV`, `PID`, and `PRIV` fields are 0 if `TTYP` is 0.
 
 If the `CAUSE` is a guest-page fault then the guest-physical-address right 
-shifted by 2 is reported in `iotval2[63:2]`. If bit 0 of `iotval2` 1, then 
+shifted by 2 is reported in `iotval2[63:2]`. If bit 0 of `iotval2` is 1, then 
 guest-page-fault was caused by an implicit memory access for VS-stage address
 translation. If bit 0 of `iotval2` is 1, and the implicit access was a write
-then bit 1 is set to 1 else its set to 0.
+then bit 1 of `iotval2` is set to 1 else it is set to 0.
 
 The IOMMU may be unable to report faults through the fault-queue due to error 
 conditions such as the fault-queue being full or the IOMMU encountering access
