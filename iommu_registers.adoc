@@ -1666,5 +1666,8 @@ and `iotval` set to the value of `msi_addr_x`.
 |0      |`M`   |RW        | When the mask bit `M` is 1, the corresponding 
                             interrupt vector is masked and the IOMMU is 
                             prohibited from sending the associated message.
+                            Pending message for that vector are later
+                            generated if the corresponding mask bit is
+                            cleared to 0.
 |31:1   |`WPRI`|WPRI      | Reserved for future use.
 |===
