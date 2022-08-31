@@ -302,10 +302,11 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'reserved'},
-  {bits: 1,  name: 'busy'},
   {bits: 4,  name: 'iommu_mode'},
+  {bits: 1,  name: 'busy'},
+  {bits: 5, name: 'reserved'},
+  {bits: 44, name: 'PPN'},
+  {bits: 10, name: 'reserved'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -313,30 +314,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 [%header, cols="^1,2,^1,5"]
 |===
 |Bits  |Field      |Attribute | Description
-|43:0  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
-                                device-directory-table.
-|58:44 |`reserved` |WPRI      | Reserved for standard use
-|59    |`busy`     |RO        | A write to `ddtp` may require the IOMMU to 
-                                perform many operations that may not occur 
-                                synchronously to the write. When a write is 
-                                observed by the `ddtp`, the `busy` bit is set 
-                                to 1. When the `busy` bit is 1, behavior of 
-                                additional writes to the `ddtp` is 
-                                `UNSPECIFIED`. Some implementations 
-                                may ignore the second write and others may 
-                                perform the actions determined by the second 
-                                write. Software must verify that the `busy` 
-                                bit is 0 before writing to the `ddtp`.
-
-                                If the `busy` bit reads 0 then the IOMMU has 
-                                completed the operations associated with the 
-                                previous write to `ddtp`.
-
-                                An IOMMU that can complete these operations 
-                                synchronously may hard-wire this bit to 0.
-|63:60 |`iommu_mode` |WARL   a| The IOMMU may be configured to be in following
+|3:0   |`iommu_mode` |WARL   a| The IOMMU may be configured to be in following
                                 modes:
-
 [%header, cols="^1,1,3"]
 !===
                                 !Value  !Name      ! Description
@@ -354,6 +333,28 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 !4      ! `3LVL`   ! Three-level 
                                                      device-directory-table
 !===
+|4     |`busy`     |RO        | A write to `ddtp` may require the IOMMU to 
+                                perform many operations that may not occur 
+                                synchronously to the write. When a write is 
+                                observed by the `ddtp`, the `busy` bit is set 
+                                to 1. When the `busy` bit is 1, behavior of 
+                                additional writes to the `ddtp` is 
+                                `UNSPECIFIED`. Some implementations 
+                                may ignore the second write and others may 
+                                perform the actions determined by the second 
+                                write. Software must verify that the `busy` 
+                                bit is 0 before writing to the `ddtp`.
+
+                                If the `busy` bit reads 0 then the IOMMU has 
+                                completed the operations associated with the 
+                                previous write to `ddtp`.
+
+                                An IOMMU that can complete these operations 
+                                synchronously may hard-wire this bit to 0.
+|9:5   |`reserved` |WPRI      | Reserved for standard use
+|53:10 |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
+                                device-directory-table.
+|63:54 |`reserved` |WPRI      | Reserved for standard use
 |===
 
 The device-context is 64-bytes in size if `capabilities.MSI_FLAT` is 1 else it is 
@@ -401,8 +402,9 @@ and number of entries in the queue. Each command is 16 bytes.
 ....
 {reg: [
   {bits:  5, name: 'LOG2SZ-1'},
+  {bits: 5, name: 'reserved'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'reserved'},
+  {bits: 10, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -421,7 +423,8 @@ and number of entries in the queue. Each command is 16 bytes.
                                 than 256 entries then the command-queue 
                                 base address must be naturally aligned to 
                                 `2^LOG2SZ^ x 16`.
-|48:5  |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
+|9:5   |`reserved` |WPRI      | Reserved for standard use
+|53:10 |`PPN`      |WARL      | Holds the `PPN` of the root page of the 
                                 in-memory command-queue used by software to 
                                 queue commands to the IOMMU. If the base 
                                 address as determined by `PPN` is not aligned
@@ -429,7 +432,7 @@ and number of entries in the queue. Each command is 16 bytes.
                                 to an IOMMU as `UNSPECIFIED` and any address
                                 an IOMMU may compute and use for accessing an
                                 entry in the queue is also `UNSPECIFIED`.
-|63:49 |`reserved` |WPRI      | Reserved for standard use
+|63:54 |`reserved` |WPRI      | Reserved for standard use
 |===
 
 [NOTE]
@@ -495,8 +498,9 @@ and number of entries in the queue. Each fault record is 32 bytes.
 ....
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
+  {bits: 5, name: 'reserved'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'reserved'},
+  {bits: 10, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -513,7 +517,8 @@ and number of entries in the queue. Each fault record is 32 bytes.
                                to 4-KiB. If the fault-queue has more than 128 
                                entries then the fault-queue base address must 
                                be naturally aligned to `2^LOG2SZ^ x 32`.
-|48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
+| 9:5  |`reserved`|WPRI       | Reserved for standard use
+|53:10 |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory fault-queue used by IOMMU to queue 
                                fault record. if the base address as determined 
                                by `PPN` is not aligned as required, all entries
@@ -521,7 +526,7 @@ and number of entries in the queue. Each fault record is 32 bytes.
                                and any address an IOMMU may compute and use for
                                accessing an entry in the queue is also 
                                `UNSPECIFIED`.
-|63:49 |`reserved`|WPRI       | Reserved for standard use
+|63:54 |`reserved`|WPRI       | Reserved for standard use
 |===
 
 [NOTE]
@@ -590,8 +595,9 @@ message is 16 bytes.
 ....
 {reg: [
   {bits: 5, name: 'LOG2SZ-1'},
+  {bits:  5, name: 'reserved'},
   {bits: 44, name: 'PPN'},
-  {bits: 15, name: 'reserved'},
+  {bits: 10, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -609,7 +615,8 @@ message is 16 bytes.
                                If the page-request-queue has more than 256 
                                entries then the page-request-queue base address
                                must be naturally aligned to `2^LOG2SZ^ x 16`.
-|48:5  |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
+| 9:5  |`reserved`|WPRI      | Reserved for standard use
+|53:10 |`PPN`     |WARL      | Holds the `PPN` of the root page of the 
                                in-memory page-request-queue used by IOMMU to 
                                queue "Page Request" messages. If the base 
                                address as determined by `PPN` is not aligned as
@@ -617,7 +624,7 @@ message is 16 bytes.
                                IOMMU as `UNSPECIFIED` and any address an IOMMU
                                may compute and use for accessing an entry in the
                                queue is also `UNSPECIFIED`.
-|63:49 |`reserved`|WPRI      | Reserved for standard use
+|63:54 |`reserved`|WPRI      | Reserved for standard use
 |===
 
 [NOTE]
@@ -1464,11 +1471,12 @@ translation-request interface for debug. This register is present when
   {bits: 1, name: 'Priv'},
   {bits: 1, name: 'Exe'},
   {bits: 1, name: 'RWn'},
-  {bits: 1, name: 'PV'},
-  {bits: 11, name: 'reserved'},
-  {bits: 24, name: 'DID'},
+  {bits: 8, name: 'reserved'},
   {bits: 20, name: 'PID'},
+  {bits: 1, name: 'PV'},
+  {bits: 3, name: 'reserved'},
   {bits: 4, name: 'custom'},
+  {bits: 24, name: 'DID'},
 ], config:{lanes: 4, hspace:1024}}
 ....
 
@@ -1492,15 +1500,16 @@ translation-request interface for debug. This register is present when
                                  access for this translation.
 | 3     |`RWn`      |WARL      | When set to 1 the request only needs
                                  read-only access for this translation.
-| 4     |`PV`       |WARL      | When set to 1 the `PID` field of the 
-                                 register is valid.
-| 15:5  |reserved   |WPRI      | Reserved for standard use
-| 39:16 |`DID`      |WARL      | This field provides the `device_id` for
-                                 this translation request.
-| 59:40 |`PID`      |WARL      | When `PV` is 1 this field provides the
+| 11:4  |reserved   |WPRI      | Reserved for standard use
+| 31:12 |`PID`      |WARL      | When `PV` is 1 this field provides the
                                  `process_id` for this translation 
                                  request.
-| 63:60 a|_custom_  |WPRI     a| _Reserved for custom use_
+| 32    |`PV`       |WARL      | When set to 1 the `PID` field of the 
+                                 register is valid.
+| 35:33 |reserved   |WPRI      | Reserved for standard use
+| 39:36 a|_custom_  |WPRI     a| _Reserved for custom use_
+| 63:40 |`DID`      |WARL      | This field provides the `device_id` for
+                                 this translation request.
 |===
 
 
@@ -1514,11 +1523,12 @@ This register is present when `capabilities.DBG == 1`.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 44, name: 'PPN'},
-  {bits: 1, name: 'S'},
-  {bits: 2, name: 'PBMT'},
   {bits: 1, name: 'fault'},
-  {bits: 12, name: 'reserved'},
+  {bits: 6, name: 'reserved'},
+  {bits: 2, name: 'PBMT'},
+  {bits: 1, name: 'S'},
+  {bits: 44, name: 'PPN'},
+  {bits: 6, name: 'reserved'},
   {bits: 4, name: 'custom'},
 ], config:{lanes: 4, hspace:1024}}
 ....
@@ -1527,7 +1537,23 @@ This register is present when `capabilities.DBG == 1`.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field      |Attribute | Description
-| 43:0  |`PPN`      |RO        a| If the `fault` bit is 0, then this field
+|0      |`fault`    |RO        | If the process to translate the IOVA detects
+                                 a fault then the `fault` field is set to 1.
+                                 The detected fault may be reported through the
+                                 fault-queue.
+|6:1    |reserved   |RO        | Reserved for standard use
+|8:7    |`PBMT`     |RO        | Memory type determined for the translation 
+                                 using the PBMT fields in the S/VS-stage and/or
+                                 the G-stage page tables used for the 
+                                 translation. This value of field is 
+                                 `UNSPECIFIED` if the `fault` field is 1.
+|9      |`S`        |RO        | Translation range size field, when set to 1
+                                 indicates that the translation applies to a
+                                 range that is larger than 4 KiB and the size
+                                 of the translation range is encoded in the 
+                                 `PPN` field. The value of this field is 
+                                 `UNSPECIFIED` if the `fault` field is 1.
+|53:10  |`PPN`      |RO       a| If the `fault` bit is 0, then this field
                                  provides the PPN determined as a result of
                                  translating the `iova_vpn` in `tr_req_iova`. +
  +
@@ -1560,22 +1586,7 @@ This register is present when `capabilities.DBG == 1`.
                                 !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
                                 !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
 !===
-| 44   |`S`      |RO          | Translation range size field, when set to 1
-                                indicates that the translation applies to a
-                                range that is larger than 4 KiB and the size
-                                of the translation range is encoded in the 
-                                `PPN` field. The value of this field is 
-                                `UNSPECIFIED` if the `fault` field is 1.
-|46:45 |`PBMT`   |RO          | Memory type determined for the translation 
-                                using the PBMT fields in the S/VS-stage and/or
-                                the G-stage page tables used for the 
-                                translation. This value of field is 
-                                `UNSPECIFIED` if the `fault` field is 1.
-|47    |`fault`  |RO          | If the process to translate the IOVA detects
-                                a fault then the `fault` field is set to 1.
-                                The detected fault may be reported through the
-                                fault-queue.
-|59:48 |reserved |RO          | Reserved for standard use
+|59:54 |reserved |RO          | Reserved for standard use
 |63:60 a|_custom_|RO         a| _Reserved for custom use_
 |===
 

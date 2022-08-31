@@ -118,15 +118,17 @@ determined by `fctrl.END` (<<FCTRL>>).
 {reg: [
   {bits: 7, name: 'opcode', attr: 'IOTINVAL(0x1)'},
   {bits: 3, name: 'func3',  attr: ['VMA-0x0', 'GVMA-0x1']},
-  {bits: 1, name: 'PSCV'},
   {bits: 1, name: 'AV'},
-  {bits: 1, name: 'GV'},
-  {bits: 3, name: 'rsvd'},
+  {bits: 1, name: 'rsvd'},
   {bits: 20, name: 'PSCID'},
-  {bits: 4, name: 'rsvd'},
+  {bits: 1, name: 'PSCV'},
+  {bits: 1, name: 'GV'},
+  {bits: 10, name: 'rsvd'},
   {bits: 16, name: 'GSCID'},
-  {bits: 20, name: 'rsvd'},
+  {bits: 4, name: 'rsvd'},
+  {bits: 10, name: 'rsvd'},
   {bits: 52, name: 'ADDR[63:12]'},
+  {bits: 2, name: 'rsvd'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 
@@ -245,14 +247,14 @@ address-translation entries.
 {reg: [
   {bits: 7, name: 'opcode', attr: 'IOFENCE(0x2)'},
   {bits: 3, name: 'func3',  attr: 'C-0x0'},
-  {bits: 1, name: 'PR'},
-  {bits: 1, name: 'PW'},
   {bits: 1, name: 'AV'},
   {bits: 1, name: 'WIS'},
+  {bits: 1, name: 'PR'},
+  {bits: 1, name: 'PW'},
   {bits: 18, name: 'rsvd'},
   {bits: 32, name: 'DATA'},
-  {bits: 2, name: 'rsvd'},
   {bits: 62, name: 'ADDR[63:2]'},
+  {bits: 2, name: 'rsvd'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 
@@ -319,10 +321,11 @@ memory indicating command completion.
 {reg: [
   {bits: 7, name: 'opcode', attr: 'IODIR(0x3)'},
   {bits: 3, name: 'func3',  attr: ['INVAL_DDT-0x0', 'INVAL_PDT-0x1']},
-  {bits: 1, name: 'DV'},
-  {bits: 5, name: 'rsvd'},
+  {bits: 2, name: 'rsvd'},
   {bits: 20, name: 'PID'},
-  {bits: 4, name: 'rsvd'},
+  {bits: 1, name: 'rsvd'},
+  {bits: 1, name: 'DV'},
+  {bits: 6, name: 'rsvd'},
   {bits: 24, name: 'DID'},
   {bits: 64, name: 'rsvd'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
@@ -383,13 +386,13 @@ This command is supported if `capabilities.ATS` is set to 1.
 {reg: [
   {bits: 7, name: 'opcode', attr: 'ATS(0x4)'},
   {bits: 3, name: 'func3',  attr: ['INVAL-0x0', 'PRGR-0x1']},
-  {bits: 1, name: 'DSV'},
-  {bits: 1, name: 'PV'},
-  {bits: 4, name: 'rsvd'},
+  {bits: 2, name: 'rsvd'},
   {bits: 20, name: 'PID'},
-  {bits: 4, name: 'rsvd'},
-  {bits: 8, name: 'DSEG'},
+  {bits: 1, name: 'PV'},
+  {bits: 1, name: 'DSV'},
+  {bits: 6, name: 'rsvd'},
   {bits: 16, name: 'RID'},
+  {bits: 8, name: 'DSEG'},
   {bits: 64, name: 'PAYLOAD'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
@@ -468,12 +471,12 @@ as determined by `fctrl.END` (<<FCTRL>>).
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 24, name: 'DID'},
+  {bits: 12, name: 'CAUSE'},
   {bits: 20, name: 'PID'},
   {bits:  1, name: 'PV'},
   {bits:  1, name: 'PRIV'},
   {bits:  6, name: 'TTYP'},
-  {bits: 12, name: 'CAUSE'},
+  {bits: 24, name: 'DID'},
   {bits: 32, name: 'for custom use'},
   {bits: 32, name: 'reserved'},
   {bits: 64, name: 'iotval'},
@@ -620,12 +623,13 @@ bit is set in the `pqcsr`.
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 24, name: 'DID'},
+  {bits: 12, name: 'reserved'},
   {bits: 20, name: 'PID'},
   {bits:  1, name: 'PV'},
   {bits:  1, name: 'PRIV'},
   {bits:  1, name: 'X'},
-  {bits: 17, name: 'reserved'},
+  {bits:  5, name: 'reserved'},
+  {bits: 24, name: 'DID'},
   {bits: 64, name: 'PAYLOAD'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
