@@ -33,7 +33,7 @@ table.
                   If the optional feature that is associated with the bits is 
                   not implemented, the bits are permitted to be hardwired to
                   Zero.
-| RW1S          | Read-Write-1-to-set - register bits indicate status when
+| RW1S          | Read-Write-1-to-set - Register bits indicate status when
                   read. The bit may be Set by writing 1b. Writing a 0b to RW1S
                   bits has no effect.
 
@@ -1367,7 +1367,7 @@ A minimum of one programmable event counter besides the cycles counter is
 required to comply with this specification. One counter may be used in a time
 multiplexed manner to sample events but such analysis may take longer to
 complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
-the PMU may be used by a performance analyst to analyze one or more of those
+the HPM may be used by a performance analyst to analyze one or more of those
 streams concurrently. Typically a performance analyst may require four 
 programmable counters, to count events for an IO stream. To support concurrent
 analysis of at least two streams of IO it is recommended to support seven 

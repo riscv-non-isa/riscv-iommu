@@ -12,7 +12,7 @@ translation-response registers. If the process stops due to faults then the
 faults are reported normally in the fault-queue and the translation-response
 registers updated with a failure indicator. If the IOVA is determined to be an
 MSI (<<MSI_ID>>) and the corresponding MSI PTE is in MRIF mode, then the process
-stops and reports a "Transaction type disallowed" (cause = 256) fault.
+stops and reports a "Transaction type disallowed" (cause = 260) fault.
 
 When the process to translate an IOVA is invoked for this purpose, the IOMMU
 must not cache S/VS-stage PTEs, G-stage PTEs, DDT entries, PDT entries, or MSI
@@ -20,8 +20,8 @@ PTEs accessed for the translation process in the IOATC. The IOMMU is allowed to
 use any PTEs or directory structure entries that may already be cached in the
 IOATC. The IOMMU may update the Accessed (A) and/or Dirty (D) bits in the PTEs
 used for the translation process if supported by the IOMMU. When the IOMMU
-implements a PMU, the PMU counters may be updated normally by the IOMMU. For the
-purpose of counting in the PMU, these requests are treated as Untranslated
+implements a HPM, the HPM counters may be updated normally by the IOMMU. For the
+purpose of counting in the HPM, these requests are treated as Untranslated
 Requests.
 
 The translation-request interface consists of following 64-bit WARL registers:
