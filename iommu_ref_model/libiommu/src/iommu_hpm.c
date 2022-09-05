@@ -67,8 +67,8 @@ count_events(
                     continue;
                 }
             }
-        }
-        if ( g_reg_file.iohpmevt[i].idt == 1 ) {
+        } else {
+            // g_reg_file.iohpmevt[i].idt == 1
             // When 1, the DID_GSCID field holds a GSCID and PID_PSCID 
             // field holds a PSCID.
             if ( g_reg_file.iohpmevt[i].pv_pscv == 1 ) {

@@ -80,7 +80,7 @@ step_2:
     if ( g_stage_address_translation(a, 1, 0, 0, 1,
             DC->iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
             1, process_id, 0, 0, device_id, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
-            DC->iohgatp.GSCID, TTYP) )
+            DC->iohgatp.GSCID, TTYP, DC->tc.GADE) )
         return 1;
 
     // 3. If `i == 0` go to step 9.
@@ -148,7 +148,8 @@ step_9:
     }
     //11. If any bits or encoding that are reserved for future standard use are set
     //     within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-    if ( PC->ta.reserved != 0 || PC->fsc.iosatp.reserved != 0 ||
+    if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 || 
+         PC->fsc.iosatp.reserved != 0 ||
          ((PC->fsc.iosatp.MODE != IOSATP_Bare) &&
           (PC->fsc.iosatp.MODE != IOSATP_Sv32) &&
           (PC->fsc.iosatp.MODE != IOSATP_Sv39) &&

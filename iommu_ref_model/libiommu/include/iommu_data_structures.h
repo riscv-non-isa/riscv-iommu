@@ -69,7 +69,19 @@ typedef union {
         // "Page Request" had a PASID.
         uint64_t PRPR:1;
 
-        uint64_t reserved:25;
+        // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO is 1. 
+        // When capabilities.AMO is 0, these bits are reserved. If GADE is 1, the IOMMU 
+        // updates A and D bits in G-stage PTEs atomically. If GADE is 0, the IOMMU ignores
+        // the A and D bits in the PTEs; the IOMMU does not update the A or D bits and does
+        // not cause any faults based on A and/or D bit being 0.
+        uint64_t GADE:1;
+
+        // If SADE is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
+        // SADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not 
+        // update the A or D bits and does not cause any faults based on A and/or D bit being 0.
+        uint64_t SADE:1;
+
+        uint64_t reserved:23;
         uint64_t custom:32;
     };
     uint64_t raw;
@@ -94,12 +106,27 @@ typedef union {
 // in the harts integrated into the system or a subset thereof.
 typedef union {
     struct {
-        uint64_t MODE:4;
-        uint64_t GSCID:16;
         uint64_t PPN:44;
+        uint64_t GSCID:16;
+        uint64_t MODE:4;
     };
     uint64_t raw;
 } iohgatp_t;
+
+// Translation attributes
+typedef union {
+    struct {
+        // The `PSCID` field of `ta` provides the process soft-context ID that identifies
+        // the address-space of the process. `PSCID` facilitates address-translation
+        // fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
+        // address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
+        // `Bare`.
+        uint64_t reserved0:12;
+        uint64_t PSCID:20;
+        uint64_t reserved1:32;
+    };
+    uint64_t raw;
+} ta_t;
 
 #define IOSATP_Bare 0
 #define IOSATP_Sv32 1
@@ -110,7 +137,7 @@ typedef union {
 typedef union {
     struct {
         uint64_t PPN:44; 
-        uint64_t reserved:15; 
+        uint64_t reserved:16; 
         uint64_t MODE:4; 
     };
     uint64_t raw;
@@ -152,7 +179,7 @@ typedef union {
     // identified by a VS-stage page table with a `process_id`.
     struct {
         uint64_t PPN:44; 
-        uint64_t reserved:15; 
+        uint64_t reserved:16; 
         // Encoding of `pdtp.MODE` field
         // |Value | Name     | Description
         // | 0    | `Bare`   | No translation or protection. First stage translation is
@@ -173,19 +200,6 @@ typedef union {
     uint64_t raw;
 } fsc_t;
 
-// Translation attributes
-typedef union {
-    struct {
-        // The `PSCID` field of `ta` provides the process soft-context ID that identifies
-        // the address-space of the process. `PSCID` facilitates address-translation
-        // fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
-        // address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
-        // `Bare`.
-        uint64_t PSCID:20;
-        uint64_t reserved:44;
-    };
-    uint64_t raw;
-} ta_t;
 
 // MSI page table pointer
 // Encoding of `msiptp` `MODE` field
@@ -204,6 +218,16 @@ typedef union {
     uint64_t raw;
 } msiptp_t;
 
+// The MSI address mask (msi_addr_mask) and pattern (msi_addr_pattern) fields are used to 
+// recognize certain memory writes from the device as being MSIs and to identify the 4-KiB
+// pages of virtual interrupt files in the guest physical address space of the relevant VM.
+// An incoming 32-bit write made by a device is recognized as an MSI write to a virtual 
+// interrupt file if the destination guest physical page matches the supplied address 
+// pattern in all bit positions that are zeros in the supplied address mask. In detail, a 
+// write to guest physical address A is recognized as an MSI to a virtual interrupt file if:
+// (A >> 12) & ~msi_addr_mask = (msi_addr_pattern & ~msi_addr_mask)
+// where >> 12 represents shifting right by 12 bits, an ampersand (&) represents bitwise 
+// logical AND, and ~msi_addr_mask is the bitwise logical complement of the address mask.
 typedef union {
     struct {
         uint64_t mask:52;
@@ -219,18 +243,18 @@ typedef union {
     uint64_t raw;
 } msi_addr_pattern_t;
 
-
 // In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 // 
 // Base-format device-context
 //   bits:    63:0:'Translation-control (tc)'
 //   bits:  127:64:'IO Hypervisor guest address translation and protection (iohgatp)'
-//   bits: 191:128:'First-stage-context (fsc)'
-//   bits: 255:192:'Translation-attributes (ta)'
+//   bits: 191:128: 'Translation-attributes (ta)'
+//   bits: 255:192: 'First-stage-context (fsc)'
 // Extended-format device-context
 //   bits:    63:0:'Translation-control (tc)'
 //   bits:  127:64:'IO Hypervisor guest address translation and protection (iohgatp)'
-//   bits: 191:128:'First-stage-context (fsc)'
+//   bits: 191:128: 'Translation-attributes (ta)'
+//   bits: 255:192: 'First-stage-context (fsc)'
 //   bits: 319:256:'MSI-page-table pointer (msiptp)'
 //   bits: 383:320:'MSI-address-mask (msi_addr_mask)'
 //   bits: 447:384:'MSI-address-pattern (msi_addr_pattern)'
@@ -239,8 +263,8 @@ typedef struct {
     // Base Format
     tc_t      tc;
     iohgatp_t iohgatp;
-    fsc_t     fsc;
     ta_t      ta;
+    fsc_t     fsc;
     // Extended Format - additional fields
     msiptp_t  msiptp;
     msi_addr_mask_t  msi_addr_mask;
@@ -250,16 +274,16 @@ typedef struct {
 #define BASE_FORMAT_DC_SIZE 32
 #define EXT_FORMAT_DC_SIZE  64
 
+// A valid (`V==1`) non-leaf DDT entry provides PPN of the next level DDT.
 typedef union {
     struct {
         uint64_t V:1;
-        uint64_t reserved0:11;
+        uint64_t reserved0:9;
         uint64_t PPN:44;
-        uint64_t reserved1:8;
+        uint64_t reserved1:10;
     };
     uint64_t raw;
 } ddte_t;
-
 
 // Process context translation attributes
 typedef union {
@@ -279,8 +303,9 @@ typedef union {
         // intent to pages mapped with `U` bit in PTE set to 1 will fault, regardless of
         // the state of `SUM`.
         uint64_t SUM:1;
-        uint64_t reserved:41;
+        uint64_t reserved0:9;
         uint64_t PSCID:20;
+        uint64_t reserved1:32;
     };
     uint64_t raw;
 } pc_ta_t;
@@ -291,20 +316,34 @@ typedef union {
     //  {bits: 63:60: 'MODE'
     // The encoding of the `iosatp`/`iovsatp` `MODE` field are as the same as the
     // encoding for `MODE` field in the `satp` CSR.
+    // When two-stage address translation is active (`iohgatp.MODE != Bare`), the `PPN`
+    // field holds a guest PPN of the root of a VS-stage page table. Addresses of the
+    // VS-stage page table entries are then converted by guest physical address
+    // translation process, as controlled by the `iohgatp`, into a supervisor physical
+    // address. A guest OS may thus directly edit the VS-stage page table to limit
+    // access by the device to a subset of its memory and specify permissions for the
+    // device accesses.
     iosatp_t iosatp;
     uint64_t raw;
 } pc_fsc_t;
 
+// A valid (`V==1`) non-leaf PDT entry holds the PPN of the 
+// next-level PDT.
 typedef union {
     struct {
         uint64_t V:1;
-        uint64_t reserved0:11;
+        uint64_t reserved0:9;
         uint64_t PPN:44;
-        uint64_t reserved1:8;
+        uint64_t reserved1:10;
     };
     uint64_t raw;
 } pdte_t;
 
+// The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte
+// process-context (PC)
+// The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+// doublewords in memory, little-endian or big-endian, is the endianness as
+// determined by `fctrl.END` (<<FCTRL>>).
 typedef struct {
     pc_fsc_t   fsc;
     pc_ta_t ta;

@@ -673,10 +673,11 @@ write_register(
                         iommu_translate_iova(&req, &rsp);
 
                         g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
-                        g_reg_file.tr_response.PPN = rsp.trsp.PPN;
-                        g_reg_file.tr_response.S = rsp.trsp.S;
+                        g_reg_file.tr_response.reserved0 = 0;
                         g_reg_file.tr_response.PBMT = rsp.trsp.PBMT;
-                        g_reg_file.tr_response.reserved = 0;
+                        g_reg_file.tr_response.S = rsp.trsp.S;
+                        g_reg_file.tr_response.PPN = rsp.trsp.PPN;
+                        g_reg_file.tr_response.reserved1 = 0;
                         g_reg_file.tr_response.custom = 0;
                         g_reg_file.tr_req_ctrl.go_busy = 0;
                     }

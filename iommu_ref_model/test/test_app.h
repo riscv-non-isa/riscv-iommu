@@ -19,10 +19,11 @@ extern void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t p
              uint32_t length, uint8_t read_writeAMO, uint32_t msi_wr_data,
              hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp);
 extern int8_t check_rsp_and_faults(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp, status_t status,
-          uint16_t cause, uint64_t exp_iotval2);
+             uint16_t cause, uint64_t exp_iotval2);
 extern int8_t check_msg_faults(uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, 
-          uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval);
-extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X, uint16_t reserved, uint64_t PAYLOAD);
+             uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval);
+extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X,
+             uint16_t reserved0, uint8_t reserved1, uint64_t PAYLOAD);
 extern uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 extern uint64_t add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa, 
            uint8_t dtf, uint8_t prpr, uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,

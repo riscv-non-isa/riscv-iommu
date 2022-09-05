@@ -111,9 +111,22 @@ typedef union {
 // they can be observed by all RISC-V hart, devices, and IOMMUs in the platform.
 typedef union {
     struct {
-        uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
-                                   // device-directory-table.
-        uint64_t reserved: 15;     // reserved for standard use.
+        uint64_t iommu_mode: 4;    // The IOMMU may be configured to be in following
+                                   // modes:
+                                   // !Value  !Name      ! Description
+                                   // !0      ! `Off`    ! No inbound memory 
+                                   //                      transactions are allowed
+                                   //                      by the IOMMU.
+                                   // !1      ! `Bare`   ! No translation or 
+                                   //                      protection. All inbound
+                                   //                      memory accesses are passed
+                                   //                      through.
+                                   // !2      ! `1LVL`   ! One-level
+                                   //                      device-directory-table
+                                   // !3      ! `2LVL`   ! Two-level
+                                   //                      device-directory-table
+                                   // !4      ! `3LVL`   ! Three-level
+                                   //                      device-directory-table
         uint64_t busy    : 1;      // A write to `ddtp` may require the IOMMU to 
                                    // perform many operations that may not occur 
                                    // synchronously to the write. When a write is
@@ -132,22 +145,10 @@ typedef union {
     
                                    // An IOMMU that can complete these operations 
                                    // synchronously may hard-wire this bit to 0.
-        uint64_t iommu_mode: 4;    // The IOMMU may be configured to be in following
-                                   // modes:
-                                   // !Value  !Name      ! Description
-                                   // !0      ! `Off`    ! No inbound memory 
-                                   //                      transactions are allowed
-                                   //                      by the IOMMU.
-                                   // !1      ! `Bare`   ! No translation or 
-                                   //                      protection. All inbound
-                                   //                      memory accesses are passed
-                                   //                      through.
-                                   // !2      ! `1LVL`   ! One-level
-                                   //                      device-directory-table
-                                   // !3      ! `2LVL`   ! Two-level
-                                   //                      device-directory-table
-                                   // !4      ! `3LVL`   ! Three-level
-                                   //                      device-directory-table
+        uint64_t reserved0: 5;     // reserved for standard use.
+        uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
+                                   // device-directory-table.
+        uint64_t reserved1: 10;    // reserved for standard use.
     };
     uint64_t raw;
 } ddtp_t;
@@ -166,10 +167,11 @@ typedef union {
                                    // than 256 entries then the command-queue 
                                    // base address must be naturally aligned to
                                    // `2^LOG2SZ^ x 16`. 
+        uint64_t reserved0: 5;     // Reserved for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory command-queue used by software to
                                    // queue commands to the IOMMU. 
-        uint64_t reserved: 15;     // Reserved for standard use
+        uint64_t reserved1: 10;    // Reserved for standard use
     };
     uint64_t raw;
 } cqb_t;
@@ -206,10 +208,11 @@ typedef union {
                                    // to 4-KiB. If the fault-queue has more than 128  
                                    // entries then the fault-queue base address must  
                                    // be naturally aligned to `2^LOG2SZ^ x 32`. 
+        uint64_t reserved0: 5;     // Reserved for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory fault-queue used by IOMMU to queue
                                    // fault record.
-        uint64_t reserved: 15;     // Reserved for standard use
+        uint64_t reserved1: 10;    // Reserved for standard use
     };
     uint64_t raw;
 } fqb_t;
@@ -249,10 +252,11 @@ typedef union {
                                    // If the page-request-queue has more than 256
                                    // entries then the page-request-queue base address
                                    // must be naturally aligned to `2^LOG2SZ^ x 16`.
+        uint64_t reserved0: 5;     // Reserved for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory page-request-queue used by IOMMU to
                                    // queue "Page Request" messages.
-        uint64_t reserved: 15;     // Reserved for standard use
+        uint64_t reserved1: 10;    // Reserved for standard use
     };
     uint64_t raw;
 } pqb_t;
@@ -446,6 +450,19 @@ typedef union {
     };
     uint64_t raw;
 } iohpmevt_t;
+
+typedef union {
+    struct {
+        uint64_t civ     :4;
+        uint64_t fiv     :4;
+        uint64_t pmiv    :4;
+        uint64_t piv     :4;
+        uint64_t reserved:16;
+        uint64_t custom  :32;
+    };
+    uint64_t raw;
+} icvec_t;
+
 // The tr_req_iova is a 64-bit WARL register used to 
 // implement a translation-request interface for
 // debug. This register is present when 
@@ -477,13 +494,14 @@ typedef union {
                                // for this translation.
         uint64_t RWn:1;        // When set to 1 the request only needs read-only 
                                // access for this translation.
-        uint64_t PV:1;         // When set to 1 the PID field of the register is valid.
-        uint64_t reserved:11;  // Reserved for standard use
-        uint64_t DID:24;       // This field provides the device_id for this 
-                               // translation request.
+        uint64_t reserved0:8;  // Reserved for standard use
         uint64_t PID:20;       // When PV is 1 this field provides the process_id for 
                                // this translation request.
+        uint64_t PV:1;         // When set to 1 the PID field of the register is valid.
+        uint64_t reserved:3;   // Reserved for standard use
         uint64_t custom:4;     // Reserved for custom use
+        uint64_t DID:24;       // This field provides the device_id for this 
+                               // translation request.
     };
     uint64_t raw;
 } tr_req_ctrl_t;
@@ -494,6 +512,22 @@ typedef union {
 // when capabilities.DBG == 1
 typedef union {
     struct {
+        uint64_t fault:1;      // If the process to translate the IOVA detects
+                               // a fault then the `fault` field is set to 1.
+                               // The detected fault may be reported through the
+                               // fault-queue.
+        uint64_t reserved0:6;  // Reserved for standard use
+        uint64_t PBMT:2;       // Memory type determined for the translation
+                               // using the PBMT fields in the S/VS-stage and/or
+                               // the G-stage page tables used for the
+                               // translation. This value of field is
+                               // `UNSPECIFIED` if the `fault` field is 1.
+        uint64_t S:1;          // Translation range size field, when set to 1
+                               // indicates that the translation applies to a
+                               // range that is larger than 4 KiB and the size
+                               // of the translation range is encoded in the
+                               // `PPN` field. The value of this field is
+                               // `UNSPECIFIED` if the `fault` field is 1.
         uint64_t  PPN:44;      // If the fault bit is 0, then this field provides the PPN determined
                                // as a result of translating the iova_vpn in tr_req_iova.
                                // If the fault bit is 1, then the value of this field is UNSPECIFIED.
@@ -511,39 +545,13 @@ typedef union {
                                //  !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
                                //  !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
 
-        uint64_t    S:1;       // Translation range size field, when set to 1
-                               // indicates that the translation applies to a
-                               // range that is larger than 4 KiB and the size
-                               // of the translation range is encoded in the
-                               // `PPN` field. The value of this field is
-                               // `UNSPECIFIED` if the `fault` field is 1.
-        uint64_t PBMT:2;       // Memory type determined for the translation
-                               // using the PBMT fields in the S/VS-stage and/or
-                               // the G-stage page tables used for the
-                               // translation. This value of field is
-                               // `UNSPECIFIED` if the `fault` field is 1.
-        uint64_t fault:1;      // If the process to translate the IOVA detects
-                               // a fault then the `fault` field is set to 1.
-                               // The detected fault may be reported through the
-                               // fault-queue.
-        uint64_t reserved:12;  // Reserved for standard use
+        uint64_t reserved1:6;  // Reserved for standard use
         uint64_t custom:4;     // _Reserved for custom use_
     };
     uint64_t raw;
 } tr_response_t;
 
 
-typedef union {
-    struct {
-        uint64_t civ     :4;
-        uint64_t fiv     :4;
-        uint64_t pmiv    :4;
-        uint64_t piv     :4;
-        uint64_t reserved:16;
-        uint64_t custom  :32;
-    };
-    uint64_t raw;
-} icvec_t;
 typedef union {
     struct {
         uint64_t zero:2;

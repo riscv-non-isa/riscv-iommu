@@ -206,7 +206,8 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     return;
 }
 int8_t
-check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X, uint16_t reserved, uint64_t PLOAD)
+check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X, 
+                 uint16_t reserved0, uint8_t reserved1, uint64_t PLOAD)
 {
     page_rec_t page_rec;
     pqb_t pqb;
@@ -220,14 +221,16 @@ check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X
     if ( page_rec.PV != PV ) return -1; 
     if ( page_rec.PRIV != PRIV ) return -1; 
     if ( page_rec.X != X ) return -1; 
-    if ( page_rec.reserved != reserved ) return -1; 
+    if ( page_rec.reserved0 != reserved0 ) return -1; 
+    if ( page_rec.reserved1 != reserved1 ) return -1; 
     if ( page_rec.PAYLOAD != PLOAD ) return -1; 
     write_register(PQH_OFFSET, 4, pqh.raw + 1);
     return 0;
 }
 int8_t
 check_msg_faults(
-    uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval) {
+    uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV, 
+    uint32_t exp_DID, uint64_t exp_iotval) {
     fault_rec_t fault_rec;
     fqb_t fqb;
     fqh_t fqh;

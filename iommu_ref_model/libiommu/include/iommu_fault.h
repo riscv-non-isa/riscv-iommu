@@ -31,24 +31,24 @@
 
 
 // Fault-queue record
-// bits:    23:0: 'DID'
-// bits:   43:24: 'PID'
-// bits:      44: 'PV'
-// bits:      45: 'PRIV'
-// bits:   51:46: 'TTYP'
-// bits:   63:52: 'CAUSE'
+// bits:    11:0: 'CAUSE'
+// bits:   31:12: 'PID'
+// bits:      32: 'PV'
+// bits:      33: 'PRIV'
+// bits:   39:34: 'TTYP'
+// bits:   63:40: 'DID'
 // bits:   95:64: 'for custom use'
 // bits:  127:96: 'reserved'
 // bits: 191:128: 'iotval'
 // bits: 255:192: 'iotval2'
 typedef union {
     struct {
-        uint64_t DID:24;
+        uint64_t CAUSE:12;
         uint64_t PID:20;
         uint64_t PV:1;
         uint64_t PRIV:1;
         uint64_t TTYP:5;
-        uint64_t CAUSE:12;
+        uint64_t DID:24;
         uint32_t custom;
         uint32_t reserved;
         uint64_t iotval;

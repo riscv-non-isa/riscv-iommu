@@ -222,7 +222,8 @@ handle_page_request(
     prec.PRIV     = (pr->PV == 0) ? 0 : pr->PRIV;
     prec.X        = (pr->PV == 0) ? 0 : pr->EXEC_REQ;
     prec.PAYLOAD  = pr->PAYLOAD;
-    prec.reserved = 0;
+    prec.reserved0= 0;
+    prec.reserved1= 0;
     prec_addr = ((pqb * 4096) | (pqt * 16));
     status = write_memory((char *)&prec, prec_addr, 16);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {

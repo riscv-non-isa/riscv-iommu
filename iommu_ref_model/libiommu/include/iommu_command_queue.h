@@ -5,64 +5,77 @@
 #ifndef __IOMMU_COMMAND_QUEUE_H__
 #define __IOMMU_COMMAND_QUEUE_H__
 #define IOTINVAL 1
-#define IODIR    2
-#define IOFENCE  3
+#define IOFENCE  2
+#define IODIR    3
 #define ATS      4
 
 #define VMA       0
 #define GVMA      1
+
 #define INVAL_DDT 0
 #define INVAL_PDT 1
+
 #define IOFENCE_C 0
+
 #define INVAL     0
 #define PRGR      1
 typedef union {
     struct {
         uint64_t opcode:7;
         uint64_t func3:3;
-        uint64_t pscv:1;
         uint64_t av:1;
-        uint64_t gv:1;
-        uint64_t rsvd:3;
+        uint64_t rsvd:1;
         uint64_t pscid:20;
-        uint64_t rsvd1:4;
+
+        uint64_t pscv:1;
+        uint64_t gv:1;
+        uint64_t rsvd1:10;
         uint64_t gscid:16;
-        uint64_t rsvd2:8;
+        uint64_t rsvd2:4;
+
+        uint64_t rsvd3:10;
         uint64_t addr_63_12:52;
-        uint64_t rsvd3:12;
+        uint64_t rsvd4:2;
     } iotinval;
     struct {
         uint64_t opcode:7;
         uint64_t func3:3;
-        uint64_t dv:1;
-        uint64_t rsvd:5;
-        uint64_t pid:20;
-        uint64_t rsvd1:4;
-        uint64_t did:24;
-        uint64_t rsvd2;
-    } iodir;
-    struct {
-        uint64_t opcode:7;
-        uint64_t func3:3;
-        uint64_t pr:1;
-        uint64_t pw:1;
         uint64_t av:1;
         uint64_t wis:1;
+        uint64_t pr:1;
+        uint64_t pw:1;
         uint64_t reserved:18;
+
         uint64_t data:32;
-        uint64_t reserved1:2;
+
         uint64_t addr_63_2:62;
+        uint64_t reserved1:2;
     } iofence;
     struct {
         uint64_t opcode:7;
         uint64_t func3:3;
-        uint64_t dsv:1;
-        uint64_t pv:1;
-        uint64_t reserved:4;
+        uint64_t rsvd:2;
         uint64_t pid:20;
-        uint64_t rsvd1:4;
-        uint64_t dseg:8;
+
+        uint64_t rsvd1:1;
+        uint64_t dv:1;
+        uint64_t rsvd2:6;
+        uint64_t did:24;
+
+        uint64_t rsvd3;
+    } iodir;
+    struct {
+        uint64_t opcode:7;
+        uint64_t func3:3;
+        uint64_t rsvd:2;
+        uint64_t pid:20;
+
+        uint64_t pv:1;
+        uint64_t dsv:1;
+        uint64_t rsvd1:6;
         uint64_t rid:16;
+        uint64_t dseg:8;
+
         uint64_t payload;
     } ats;
     struct {

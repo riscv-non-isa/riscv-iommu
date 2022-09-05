@@ -20,10 +20,8 @@ uint64_t g_pending_inval_req_PAYLOAD;
 void
 process_commands(
     void) {
-    uint8_t status, opcode, func3, GV, AV, PSCV, DV, DSV, PV, DSEG, PR, PW, WIS_BIT, itag;
-    uint16_t RID;
-    uint32_t GSCID, PSCID, PID, DID, DATA;
-    uint64_t a, ADDR_63_12, PAYLOAD, reserved, ADDR;
+    uint8_t status, itag;
+    uint64_t a;
     command_t command;
 
     // Command queue is used by software to queue commands to be processed by 
@@ -85,77 +83,56 @@ process_commands(
     // opcode and within each group the func3 field specifies the function invoked 
     // by that command. The opcode defines the format of the operand fields. One 
     // or more of those fields may be used by the specific function invoked.
-    opcode = get_bits(6, 0, command.low);
-    func3  = get_bits(9, 7, command.low);
-
-    switch ( opcode ) {
+    switch ( command.any.opcode ) {
         case IOTINVAL:
-            PSCV     = get_bits(10, 10, command.low);
-            AV       = get_bits(11, 11, command.low);
-            GV       = get_bits(12, 12, command.low);
-            PSCID    = get_bits(35, 16, command.low);
-            GSCID    = get_bits(55, 40, command.low);
-            ADDR_63_12 = get_bits(52,  0, command.high);
-            reserved = get_bits(15, 13, command.low);
-            reserved|= get_bits(39, 36, command.low);
-            reserved|= get_bits(63, 56, command.low);
-            reserved|= get_bits(63, 52, command.high);
-            if ( reserved ) 
-                goto command_illegal;
-            switch ( func3 ) {
+            if ( command.iotinval.rsvd != 0 || command.iotinval.rsvd1 != 0 || 
+                 command.iotinval.rsvd2 != 0 || command.iotinval.rsvd3 != 0 || 
+                 command.iotinval.rsvd4 != 0 ) goto command_illegal;
+            switch ( command.any.func3 ) {
                 case VMA:
-                    do_iotinval_vma(GV, AV, PSCV, GSCID, PSCID, ADDR_63_12);
+                    do_iotinval_vma(command.iotinval.gv, command.iotinval.av, 
+                                    command.iotinval.pscv, command.iotinval.gscid, 
+                                    command.iotinval.pscid, command.iotinval.addr_63_12);
                     break;
                 case GVMA:
                     // Setting PSCV to 1 with IOTINVAL.GVMA is illegal.
-                    if ( PSCV ) 
-                        goto command_illegal;
-                    do_iotinval_gvma(GV, AV, GSCID, ADDR_63_12);
+                    if ( command.iotinval.pscv != 0 ) goto command_illegal;
+                    do_iotinval_gvma(command.iotinval.gv, command.iotinval.av, 
+                                     command.iotinval.gscid, command.iotinval.addr_63_12);
                     break;
                 default: goto command_illegal;
             }
             break;
         case IODIR:
-            DV       = get_bits(10, 10, command.low);
-            PID      = get_bits(35, 16, command.low);
-            DID      = get_bits(63, 40, command.low);
-            reserved = get_bits(15, 11, command.low);
-            reserved|= get_bits(39, 36, command.low);
-            reserved|= command.high;
-            if ( reserved ) 
+            if ( command.iodir.rsvd != 0 || command.iodir.rsvd1 != 0 ||
+                 command.iodir.rsvd2 != 0 || command.iodir.rsvd3 != 0 ) 
                 goto command_illegal;
-            switch ( func3 ) {
+            switch ( command.any.func3 ) {
                 case INVAL_DDT:
-                    if ( PID != 0 ) goto command_illegal;
-                    do_inval_ddt(DV, DID);
+                    if ( command.iodir.pid != 0 ) goto command_illegal;
+                    do_inval_ddt(command.iodir.dv, command.iodir.did);
                     break;
                 case INVAL_PDT:
-                    if ( DV != 1 ) goto command_illegal;
-                    do_inval_pdt(DID, PID);
+                    if ( command.iodir.dv != 1 ) goto command_illegal;
+                    do_inval_pdt(command.iodir.did, command.iodir.pid);
                     break;
                 default: goto command_illegal;
             }
             break;
         case IOFENCE:
-            PR       = get_bits(10, 10, command.low);
-            PW       = get_bits(11, 11, command.low);
-            AV       = get_bits(12, 12, command.low);
-            WIS_BIT  = get_bits(13, 13, command.low);
-            DATA     = get_bits(63, 32, command.low);
-            ADDR     = get_bits(63,  2, command.high);
-            reserved = get_bits(31, 14, command.low);
-            reserved|= get_bits(1,   0, command.high);
-            if ( reserved ) goto command_illegal;
-            ADDR = ADDR << 2;
+            if ( command.iofence.reserved != 0 || command.iofence.reserved1 != 0 ) 
+                goto command_illegal;
             // The wired-interrupt-signaling (WIS) bit when set to 1 
             // causes a wired-interrupt from the command
             // queue to be generated on completion of IOFENCE.C. This
             // bit is reserved if the IOMMU supports MSI.
-            if ( g_reg_file.fctrl.wis == 0 && WIS_BIT == 1) 
+            if ( g_reg_file.fctrl.wis == 0 && command.iofence.wis == 1) 
                 goto command_illegal;
-            switch ( func3 ) {
+            switch ( command.any.func3 ) {
                 case IOFENCE_C:
-                    if ( do_iofence_c(PR, PW, AV, WIS_BIT, ADDR, DATA) ) {
+                    if ( do_iofence_c(command.iofence.pr, command.iofence.pw, 
+                             command.iofence.av, command.iofence.wis, 
+                             (command.iofence.addr_63_2 << 2UL), command.iofence.data) ) {
                         // If IOFENCE encountered a memory fault or timeout
                         // then do not advance the CQH
                         // If IOFENCE is waiting for invalidation requests
@@ -167,39 +144,33 @@ process_commands(
             }
             break;
         case ATS:
-            func3    = get_bits(9,   7, command.low);
-            DSV      = get_bits(10, 10, command.low);
-            PV       = get_bits(11, 11, command.low);
-            PID      = get_bits(35, 16, command.low);
-            DSEG     = get_bits(47, 40, command.low);
-            RID      = get_bits(63, 48, command.low);
-            PAYLOAD  = command.high;
-            reserved = get_bits(39, 36, command.low);
-            reserved|= get_bits(15, 12, command.low);
-            if ( reserved ) goto command_illegal;
-            switch ( func3 ) {
+            if ( command.ats.rsvd != 0 || command.ats.rsvd1 != 0 ) goto command_illegal;
+            switch ( command.any.func3 ) {
                 case INVAL:
                     // Allocate a ITAG for the request
-                    if ( allocate_itag(DSV, DSEG, RID, &itag) ) { 
+                    if ( allocate_itag(command.ats.dsv, command.ats.dseg, 
+                            command.ats.rid, &itag) ) { 
                         // No ITAG available, This command stays pending
                         // but since the reference implementation only
                         // has one deep pending command buffer the CQ
                         // is now stall till a completion or a timeout 
                         // frees up pending ITAGs.
-                        g_pending_inval_req_DSV = DSV;
-                        g_pending_inval_req_DSEG = DSEG;
-                        g_pending_inval_req_RID = RID;
-                        g_pending_inval_req_PV = PV;
-                        g_pending_inval_req_PID = PID;
-                        g_pending_inval_req_PAYLOAD = PAYLOAD;
+                        g_pending_inval_req_DSV = command.ats.dsv;
+                        g_pending_inval_req_DSEG = command.ats.dseg;
+                        g_pending_inval_req_RID = command.ats.rid;
+                        g_pending_inval_req_PV = command.ats.pv;
+                        g_pending_inval_req_PID = command.ats.pid;
+                        g_pending_inval_req_PAYLOAD = command.ats.payload;
                         g_command_queue_stall_for_itag = 1;
                     } else {
                         // ITAG allocated successfully, send invalidate request
-                        do_ats_msg(INVAL_REQ_MSG_CODE, itag, DSV, DSEG, RID, PV, PID, PAYLOAD);
+                        do_ats_msg(INVAL_REQ_MSG_CODE, itag, command.ats.dsv, command.ats.dseg, 
+                            command.ats.rid, command.ats.pv, command.ats.pid, command.ats.payload);
                     }
                     break;
                 case PRGR:
-                    do_ats_msg(PRGR_MSG_CODE, 0, DSV, DSEG, RID, PV, PID, PAYLOAD);
+                    do_ats_msg(PRGR_MSG_CODE, 0, command.ats.dsv, command.ats.dseg, 
+                        command.ats.rid, command.ats.pv, command.ats.pid, command.ats.payload);
                     break;
                 default: goto command_illegal;
             }

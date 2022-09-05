@@ -12,7 +12,8 @@ s_vs_stage_address_translation(
     uint8_t SUM, iosatp_t iosatp, uint32_t PSCID, iohgatp_t iohgatp, 
     uint32_t *cause, uint64_t *iotval2, uint64_t *resp_pa, uint64_t *page_sz,
     uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT, uint8_t *UNTRANSLATED_ONLY,
-    uint8_t pid_valid, uint32_t process_id, uint32_t device_id, uint8_t TTYP, uint8_t T2GPA) {
+    uint8_t pid_valid, uint32_t process_id, uint32_t device_id, uint8_t TTYP, uint8_t T2GPA,
+    uint8_t SADE, uint8_t GADE) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -137,7 +138,7 @@ step_2:
     is_implicit_read = ( g_reg_file.capabilities.amo == 0 ) ? 1 : 0;
     if ( g_stage_address_translation(a, is_implicit_read, is_implicit_write, 0, 1,
             iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
-            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
+            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP, GADE) ) 
         return 1;
 
     //    If the address is beyond the maximum physical address width of the machine
@@ -295,19 +296,14 @@ step_5:
     //    ≥ 1  x xxxx xxxx      Reserved                           −
     if ( i == 0 && pte.N && ((pte.PPN & 0xF) != 0x8) ) goto page_fault;
 
-    // IOMMU A/D bit behavior:
-    //    When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
-    //    PTEs atomically. If `capabilities.AMO` is 0, the IOMMU ignores the A and D bits
-    //    in the PTEs; the IOMMU does not update the A or D bits and does not cause any
-    //    faults based on A and/or D bit being 0.
-    //    The A and/or D bit updates by the IOMMU must follow the rules specified by the
-    //    Privileged specification for validity, permission checking, and atomicity.
-    //    The PTE update must be globally visible before a memory access using the
-    //    translated address provided by the IOMMU becomes globally visible.
-    //    Specifically, When the translated address is provided to a device in an ATS
-    //    Translation completion, the PTE update must be globally visible before a memory
-    //    access from the device using the translated address becomes globally visible.
+    // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO
+    // is 1. When capabilities.AMO is 0, these bits are reserved.
+    // If SADE is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. 
+    // If SADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does
+    // not update the A or D bits and does not cause any faults based on A and/or D
+    // bit being 0.
     if ( g_reg_file.capabilities.amo == 0 ) goto step_8;
+    if ( SADE == 0 ) goto step_8;
 
     // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
@@ -371,7 +367,7 @@ step_8:
     // table is active.
     if ( g_stage_address_translation(*resp_pa, is_read, is_write, is_exec, 0,
             iohgatp, cause, iotval2, resp_pa, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
-            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP) ) 
+            pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, TTYP, GADE) ) 
         return 1;
 
     // The page size is smaller of VS or G stage page table size

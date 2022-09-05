@@ -175,7 +175,8 @@ step_8:
          (DC->tc.reserved != 0) ||
          (DC->fsc.pdtp.reserved != 0 && DC->tc.PDTV == 1) ||
          (DC->fsc.iosatp.reserved != 0 && DC->tc.PDTV == 0) ||
-         (DC->ta.reserved != 0) ) {
+         (DC->ta.reserved0 != 0) ||
+         (DC->ta.reserved1 != 0) ) {
         *cause = 259;     // DDT entry misconfigured
         return 1;
     }
@@ -204,7 +205,7 @@ step_8:
     //    c. `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
     //    d. `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
     //    e. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
-    if ( ((DC->tc.EN_ATS || DC->tc.EN_PRI || DC->tc.PRPR) &&
+    if ( ((DC->tc.EN_ATS == 1 || DC->tc.EN_PRI == 1 || DC->tc.PRPR == 1) &&
           (g_reg_file.capabilities.ats == 0)) ||
          ((DC->tc.EN_ATS == 0) && (DC->tc.T2GPA == 1 || DC->tc.EN_PRI == 1)) ||
          ((DC->tc.EN_PRI == 0) && (DC->tc.PRPR == 1)) ||
@@ -262,7 +263,22 @@ step_8:
         *cause = 259;     // DDT entry misconfigured
         return 1;
     }
-    //11. The device-context has been successfully located and may be cached.
+    //11. If any of the following conditions are true then stop and report 
+    //    "DDT entry misconfigured" (cause = 259).
+    //    m.  DC.iohgatp.MODE is not Bare and the root page table determined by 
+    //        DC.iohgatp.PPN is not aligned to a 16-KiB boundary.
+    if ( (DC->iohgatp.MODE != IOHGATP_Bare) && ((DC->iohgatp.PPN & 0x3UL) != 0) ) {
+        *cause = 259;     // DDT entry misconfigured
+        return 1;
+    }
+    //11. If any of the following conditions are true then stop and report 
+    //    "DDT entry misconfigured" (cause = 259).
+    //    n.  `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+    if ( g_reg_file.capabilities.amo == 0 && (DC->tc.SADE == 1 || DC->tc.GADE == 1) ) {
+        *cause = 259;     // DDT entry misconfigured
+        return 1;
+    }
+    //12. The device-context has been successfully located and may be cached.
     cache_ioatc_dc(device_id, DC);
     return 0;
 }

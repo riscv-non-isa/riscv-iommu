@@ -11,7 +11,7 @@ g_stage_address_translation(
     uint64_t *resp_pa, uint64_t *gst_page_sz,
     uint8_t *GR, uint8_t *GW, uint8_t *GX, uint8_t *GD, uint8_t *GPBMT,
     uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID, uint8_t TTYP) {
+    uint8_t GV, uint32_t GSCID, uint8_t TTYP, uint8_t GADE) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -236,19 +236,14 @@ step_5:
     //    ≥ 1  x xxxx xxxx      Reserved                           −
     if ( i == 0 && gpte.N && ((gpte.PPN & 0xF) != 0x8) ) goto guest_page_fault;
 
-    // IOMMU A/D bit behavior:
-    //    When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
-    //    PTEs atomically. If `capabilities.AMO` is 0, the IOMMU ignores the A and D bits
-    //    in the PTEs; the IOMMU does not update the A or D bits and does not cause any
-    //    faults based on A and/or D bit being 0.
-    //    The A and/or D bit updates by the IOMMU must follow the rules specified by the
-    //    Privileged specification for validity, permission checking, and atomicity.
-    //    The PTE update must be globally visible before a memory access using the
-    //    translated address provided by the IOMMU becomes globally visible.
-    //    Specifically, When the translated address is provided to a device in an ATS
-    //    Translation completion, the PTE update must be globally visible before a memory
-    //    access from the device using the translated address becomes globally visible.
+    // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO
+    // is 1. When capabilities.AMO is 0, these bits are reserved.
+    // If GADE is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. 
+    // If GADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does
+    // not update the A or D bits and does not cause any faults based on A and/or D
+    // bit being 0.
     if ( g_reg_file.capabilities.amo == 0 ) goto step_8;
+    if ( GADE == 0 ) goto step_8;
 
     // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception

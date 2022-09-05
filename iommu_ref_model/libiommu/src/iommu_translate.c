@@ -323,7 +323,7 @@ step_16:
     if ( s_vs_stage_address_translation(req->tr.iova, priv, is_read, is_write, is_exec,
                         SUM, iosatp, PSCID, iohgatp, &cause, &iotval2, &pa, &page_sz, &R, &W, &X, &G, 
                         &PBMT, &UNTRANSLATED_ONLY, req->pid_valid, req->process_id, req->device_id,
-                        TTYP, DC.tc.T2GPA) )
+                        TTYP, DC.tc.T2GPA, DC.tc.SADE, DC.tc.GADE) )
         goto stop_and_report_fault;
 
 step_18:
