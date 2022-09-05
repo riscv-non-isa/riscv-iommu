@@ -22,12 +22,6 @@ not to use real IO devices to generate the stimulus.
 
 The stock test application generates the following output.
 ```bash
- ___ ___  __  __ __  __ _   _       _____         _
-|_ _/ _ \|  \/  |  \/  | | | |     |_   _|__  ___| |_ ___
- | | | | | |\/| | |\/| | | | |       | |/ _ \/ __| __/ __|
- | | |_| | |  | | |  | | |_| |       | |  __/\__ \ |_\__ \
-|___\___/|_|  |_|_|  |_|\___/        |_|\___||___/\__|___/
-
 Running IOMMU test suite
 Test 01 : All inbound transactions disallowed      : PASS
 Test 02 : Bare mode tests                          : PASS
