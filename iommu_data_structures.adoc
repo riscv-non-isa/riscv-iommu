@@ -1228,6 +1228,7 @@ is as follows:
    and not `Flat`
 .. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
    `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
+.. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
 . The device-context has been successfully located and may be cached.
 
 [NOTE]
