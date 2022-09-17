@@ -93,10 +93,10 @@ MSI address translation table configured by software in the device context.
 
 === Glossary
 .Terms and definitions
-[width=75%]
+[width=90%]
 [%header, cols="5,20"]
 |===
-| Term            | Definition
+| Term            ^| Definition
 | AIA             | Advanced Interrupt Architecture.
 | ATS / PCIe ATS  | Address Translation Services: A PCIe protocol to support
                     DevATC.
@@ -141,8 +141,6 @@ MSI address translation table configured by software in the device context.
 | PRI             | Page Request Interface - a PCIe protocol that enables 
                     devices to request OS memory manager services to make pages
                     resident.
-| PT              | Page Table.
-| PTE             | Page Table Entry. A leaf or non-leaf entry in a page table.
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard.
 | PDI             | Process-directory-index: a sub field of the unique process
@@ -173,26 +171,23 @@ MSI address translation table configured by software in the device context.
 | RO              | Read-only - Register bits are read-only and cannot be altered
                     by software. Where explicitly defined, these bits are used
                     to reflect changing hardware state, and as a result bit 
-                    values can be observed to change at run time.
-
+                    values can be observed to change at run time. +
                     If the optional feature that would Set the bits is not 
                     implemented, the bits must be hardwired to Zero
 | RW              | Read-Write - Register bits are read-write and are permitted 
-                    to be either Set or Cleared by software to the desired state.
-
+                    to be either Set or Cleared by software to the desired
+                    state. +
                     If the optional feature that is associated with the bits is 
                     not implemented, the bits are permitted to be hardwired to
                     Zero.
 | RW1C            | Write-1-to-clear status - Register bits indicate status when 
                     read. A Set bit indicates a status event which is Cleared by
-                    writing a 1b. Writing a 0b to RW1C bits has no effect.
-
+                    writing a 1b. Writing a 0b to RW1C bits has no effect. +
                     If the optional feature that would Set the bit is not 
                     implemented, the bit must be read-only and hardwired to Zero
 | RW1S            | Read-Write-1-to-set - register bits indicate status when
                     read. The bit may be Set by writing 1b. Writing a 0b to RW1S
-                    bits has no effect.
-
+                    bits has no effect. +
                     If the optional feature that introduces the bit is not 
                     implemented, the bit must be read-only and hardwired to Zero
 | SOC             | System on a chip, also referred as system-on-a-chip and
@@ -505,11 +500,14 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
   the translation requests from the IO Bridge. On this interface the IO Bridge
   provides information about the request such as:
 .. The hardware identities associated with transaction - the `device_id` and
-   if applicable the `process_id`. The IOMMU uses the hardware identities to
-   retrieve the context information to perform the requested address translations.
+   if applicable the `process_id` and its validity. The IOMMU uses the hardware
+   identities to retrieve the context information to perform the requested
+   address translations.
 .. The IOVA and the type of the transaction (Translated or Untranslated).
 .. Whether the request is for a read, write, execute, or an atomic operation.
-.. The privilege mode associated with the request when applicable.
+.. The privilege mode associated with the request. When a privilege mode is not
+   explicitly associated with the request (e.g., using a PCIe PASID), the default
+   privilege mode must be User.
 .. The number of bytes accessed by the request.
 .. The IO Bridge may also provide some additional opaque information (e.g. tags)
    that are not interpreted by the IOMMU but returned along with the response
@@ -528,8 +526,8 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
   provides the completion response from the IOMMU for previously requested
   address translations. The completion interface may provide information
   such as:
-.. The status of the request, indicating if the request completed successfully or a fault
-   occurred.
+.. The status of the request, indicating if the request completed successfully
+   or a fault occurred.
 .. If the request was completed successfully; the Supervisor Physical Address (SPA).
 .. Opaque information (e.g. tags), if applicable, associated with the request.
 .. The page-based memory types (PBMT), if Svpbmt is supported, obtained from the
@@ -559,9 +557,23 @@ PMP checkers is a platform choice.
 PMA and PMP checkers reside outside the IOMMU. The example above is showing
 them in the IO Bridge.
 
-Implicit accesses by the IOMMU itself through the data structure interface are
+Implicit accesses by the IOMMU itself through the Data Structure interface are
 checked by the PMA checker. PMAs are tightly tied to a given physical platform’s
 organization, many details are inherently platform-specific.
+
+The memory accesses performed by the IOMMU using the Data Structure interface
+need not be ordered in general with the device initiated memory accesses.
+
+[NOTE]
+====
+IOMMU may generate implicit memory accesses on the Data Structure interface to
+access data structures needed to perform the address translations. Such accesses
+must not be blocked by the original device initiated memory access.
+
+IO bridge may perform ordering of memory accesses on the Data Structure interface
+to satisfy the necessary hazard checks and other rules as defined by the IO
+bridge and the system interconnect.
+====
 
 The IOMMU provides the resolved PBMT (PMA, IO, NC) along with the translated
 address on the device translation completion interface to the IO Bridge. The
@@ -573,6 +585,20 @@ access privileges. As the IOMMU itself is a bus master for its implicit
 accesses, the IOMMU hardware ID may be used by the PMP to select the appropriate
 access control rules.
 
+[NOTE]
+====
+The IOMMU does not validate the authenticity of the hardware IDs provided by 
+the IO bridge. 
+
+The IO bridge and/or the root ports must include suitable mechanisms to
+authenticate the hardware IDs. In some SOC this may be trivially achieved as a
+property of the devices being integrated into the SOC and their IDs being
+immutable. For PCIe, for example, the PCIe defined Access Control Services (ACS)
+Source Validation capabilities may be used to authenticate the hardware IDs.
+Other implementation specific methods in the IO bridge may be provided to
+perform such authentication.
+====
+
 === IOMMU features
 The version 1.0 of the RISC-V IOMMU specification supports the following
 features:
@@ -580,53 +606,42 @@ features:
 * Memory-based device context to locate parameters and address translations
   structures. The device context is located using the hardware provided
   unique `device_id`. The supported `device_id` width may be up to 24-bit.
-  IOMMU is required to support at least one of the valid `device_id` widths as
-  specified in <<DATA_STRUCTURES>>.
 
 * Memory-based process context to locate parameters and address translation
   structures using hardware provide unique `process_id`. The supported
-  `process_id` may be up to 20-bit. IOMMU is required to support at least one
-  of the valid `process_id` widths as specified in <<DATA_STRUCTURES>>
+  `process_id` may be up to 20-bit.
 
-* IOMMU must support 16-bit GSCIDs and 20-bit PSCIDs.
+* Up to 16-bit GSCIDs and 20-bit PSCIDs.
 
-* An implementation may support only the VS/S-stage of address translation,
-  only G-stage address translation, or two stage address translation.
+* Single stage and two stage address translation.
 
-* VS/S-stage and/or G-stage virtual-memory system as specified by the RISC-V
+* VS/S-stage and G-stage virtual-memory system as specified by the RISC-V
   privileged specification to allow software flexibility to use a common page
-  table for the CPU MMU as well as the IOMMU or to use a separate page table for the
-  IOMMU.
+  table for the CPU MMU as well as the IOMMU or to use a separate page table
+  for the IOMMU.
 
-* Up to 57-bit virtual-address width and 59-bit guest-physical-address width.
+* Up to 57-bit virtual-address width, 56-bit system-physical-address, and 59-bit
+  guest-physical-address width.
 
-* Support for hardware management of page-table entry Accessed and Dirty bits
-  is optional for the IOMMU.
+* Hardware updating of PTE Accessed and Dirty bits.
 
-* Support for MSI address translation to redirect MSIs to interrupt files in
-  an IMSIC is optional. When MSI address translation is supported using flat
-  MSI page tables then supporting memory-resident-interrupt-files is optional.
+* MSI address translation to redirect MSIs to interrupt files in an IMSIC 
+  using MSI PTEs in write-through mode and redirecting MSI to 
+  memory-resident-interrupt-files.
 
-* Supporting Svnapot extension is optional.
+* Svnapot and Svpbmt extension.
 
-* Supporting Svpbmt extension is optional.
+* PCIe ATS and PRI services. When ATS is supported the IOMMU may optionally
+  support the ability to translate to a GPA instead of a SPA in response to
+  a translation request.
 
-* IOMMU may optionally support the PCIe ATS and PRI services. When ATS is
-  supported the IOMMU may optionally support the ability to translate to a GPA
-  instead of a SPA in response to a translation request.
+* A hardware performance monitor (HPM).
 
-* IOMMU may optionally support a hardware performance monitor (HPM). If 
-  HPM is supported then the IOMMU must support the cycles counter and at least 
-  1 hardware performance monitoring counter must be supported.
+* MSI and wire-based-interrupts to request service from software. 
 
-* The IOMMU may use MSI or wire-based-interrupts to request service from
-  software. At least one method of generating interrupts from the IOMMU must be
-  supported.
+* Support software debug through a register interface for software to request
+  an address translation.
 
 Software may discover the supported features using the `capabilities`
 register of the IOMMU described in <<CAP>>.
-
-
-
-
 
