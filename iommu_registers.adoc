@@ -332,12 +332,12 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 may ignore the second write and others may 
                                 perform the actions determined by the second 
                                 write. Software must verify that the `busy` 
-                                bit is 0 before writing to the `ddtp`.
-
+                                bit is 0 before writing to the `ddtp`. +
+                                                                               +
                                 If the `busy` bit reads 0 then the IOMMU has 
                                 completed the operations associated with the 
-                                previous write to `ddtp`.
-
+                                previous write to `ddtp`. +
+                                                                               +
                                 An IOMMU that can complete these operations 
                                 synchronously may hard-wire this bit to 0.
 |9:5   |`reserved` |WPRI      | Reserved for standard use
@@ -370,9 +370,9 @@ To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off`
 state.
 
 When an IOMMU is transitioned to `Bare` of `Off` state, the IOMMU may retain
-information cached from in-memory data structures such as page tables in its
-address translation caches. Software must use suitable invalidation commands
-to invalidate cached entries.
+information cached from in-memory data structures such as page tables, DDT,
+PDT, etc. Software must use suitable invalidation commands to invalidate cached
+entries.
 
 [NOTE]
 ====
