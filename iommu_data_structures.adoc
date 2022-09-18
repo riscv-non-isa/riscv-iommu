@@ -569,6 +569,54 @@ the address mask.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
+[[DC_MISCONFIG]]
+==== Device-context configuration checks
+
+A `DC` with `V=1` is considered as misconfigured if any of the following
+conditions are true.
+
+. If any bits or encoding that are reserved for future standard use are set
+  within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
+. `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`,
+   or `DC.tc.PRPR` is 1
+. `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
+. `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
+. `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
+. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
+. `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode
+.. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
+.. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
+.. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
+. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the
+   supported modes
+.. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
+.. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
+.. `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
+.. `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
+. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
+. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
+. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
+. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
+. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
+   and not `Flat`
+. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
+  `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
+. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+
+[NOTE]
+====
+Some `DC` fields that hold a system-physical-addresses or
+guest-physical-addresses. Some implementations may verify the validity of the
+addresses - e.g. the system-physical-address is not wider than that supported as
+determined by `capabilities.PAS`, etc. at the time of locating the `DC`. Such
+implementations may cause a "DDT entry misconfigured" (cause = 259) fault.
+
+Other implementations only detect such addresses to be invalid when the data
+structure referenced by these fields need to be accessed. Such
+implementations may detect access-violation faults in the process of making the
+acccess.
+====
+
 === Process-Directory-Table (PDT)
 
 The PDT is a 1, 2, or 3-level radix tree indexed using the process directory
