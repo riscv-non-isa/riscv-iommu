@@ -99,6 +99,14 @@ radix-table depending on the maximum width of the `device_id` supported. The
 partitioning of the `device_id` to obtain the device directory indexes (DDI) to
 traverse the DDT radix-tree table are as follows:
 
+The RISC-V memory model requires memory access from a hart to be single-copy
+atomic. When RV32 is implemented the size of a single-copy atomic memory access
+is up to 32-bits when RV64 is implemented the size of a single-copy atomic
+memory access is up to 64-bits. The size of a single-copy atomic memory access
+implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
+when the harts in the system implement RV32 and is required to be 64-bits when 
+the harts in the system implement RV64.
+
 .Base format `device_id` partitioning
 
 [wavedrom, , ]
@@ -228,6 +236,24 @@ A valid (`V==1`) non-leaf DDT entry provides PPN of the next level DDT.
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
+It is generally unsafe for software to update a valid non-leaf DDT entry using
+a set of stores of width less than the minimal single-copy atomic memory access
+supported by an IOMMU as it is legal for an IOMMU to read the entry at any time,
+including when only some of the partial stores have taken effect.
+
+The IOMMU is not required to immediately observe the software update to a
+non-leaf DDT entry. Software must follow the procedure outlined in <<DC_CHANGE>>
+after the update to synchronize updates to the non-leaf DDT entry with the
+operation of the IOMMU.
+
+[NOTE]
+====
+If a non-leaf DDT entry is changed, the IOMMU may use the old value of the
+non-leaf DDT entry or the new value of the DDT entry and the choice is
+unpredictable till the procedure outlined in <<DC_CHANGE>> is completed. The
+behavior is otherwise well-defined.
+====
+
 ==== Leaf DDT entry
 The leaf DDT page is indexed by `DDI[0]` and holds the device-context (`DC`).
 
@@ -262,16 +288,20 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format. The byte order of each of the doublewords
 in memory, little-endian or big-endian, is the endianness as determined by
-`fctrl.END` (<<FCTRL>>).
+`fctrl.END` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
 
-[NOTE]
-====
-It is generally unsafe to update a `DC` when it is marked valid as it is legal
-for the implementation to read the `DC` at any time, including when only some of
-the stores to `DC` have taken effect. To modify fields of `DC` software must
-first set `V=0` and follow the procedure outlined in <<DC_CHANGE>> before
-updating other fields and marking it valid by setting `V=1`.
-====
+Software may update a single field of a valid `DC` without first needing to mark
+`DC` as invalid by clearing the `V` bit. However, it is generally unsafe for
+software to update a `DC` using a set of stores of width less than the minimal
+single-copy atomic memory access supported by an IOMMU as it is legal for an
+IOMMU to read the `DC` at any time, including when only some of the partial
+stores have taken effect. Further, if the update to a field will make the field
+inconsistent with another field of the `DC` then software must first set `V=0`
+and follow the procedure outlined in <<DC_CHANGE>> before updating other fields.
+
+The IOMMU is not required to immediately observe the software update to `DC`.
+Software must follow the procedure outlined in <<DC_CHANGE>> after the update
+to synchronize updates to `DC` with the operation of the IOMMU.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -685,6 +715,24 @@ A valid (`V==1`) non-leaf PDT entry holds the PPN of the next-level PDT.
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
+It is generally unsafe for software to update a non-leaf PDT entry using a set
+of stores of width less than the minimal single-copy atomic memory access
+supported by an IOMMU as it is legal for an IOMMU to read the entry at any time,
+including when only some of the partial stores have taken effect.
+
+The IOMMU is not required to immediately observe the software update to a
+non-leaf DDT entry. Software must follow the procedure outlined in <<PC_CHANGE>>
+after the update to synchronize updates to the non-leaf DDT entry with the
+operation of the IOMMU.
+
+[NOTE]
+====
+If a non-leaf PDT entry is changed, the IOMMU may use the old value of the
+non-leaf PDT entry or the new value of the PDT entry and the choice is
+unpredictable till the procedure outlined in <<PC_CHANGE>> is completed. The
+behavior is otherwise well-defined.
+====
+
 ==== Leaf PDT entry
 The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 (`PC`).
@@ -703,14 +751,19 @@ The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
 determined by `fctrl.END` (<<FCTRL>>).
 
-[NOTE]
-====
-It is generally unsafe to update a `PC` when it is marked valid as it is legal
-for the implementation to read the `PC` at any time, including when only some of
-the stores to `PC` have taken effect. To modify fields of `PC` software must
-first set `V=0` and follow the procedure outlined in <<PC_CHANGE>> before
-updating other fields and marking it valid by setting `V=1`.
-====
+Software may update a single field of a valid `PC` without first needing to mark
+`PC` as invalid by clearing the `V` bit. However, it is generally unsafe for
+software to update a `PC` using a set of stores of width less than the minimal
+single-copy atomic memory access supported by an IOMMU as it is legal for an
+IOMMU to read the `PC` at any time, including when only some of the partial
+stores have taken effect. Further, if the update to a field will make the field
+inconsistent with another field of the `PC` then software must first set `V=0`
+and follow the procedure outlined in <<PC_CHANGE>> before updating other fields.
+
+The IOMMU is not required to immediately observe the software update to `PC`.
+Software must follow the procedure outlined in <<PC_CHANGE>> after the update
+to synchronize updates to `PC` with the operation of the IOMMU.
+
 ==== Process-context fields
 
 ===== Translation attributes (`ta`)
@@ -866,6 +919,29 @@ mode for incoming MSIs, and if `W = 0`, it specifies MRIF mode. The
 interpretation of an MSI PTE for each of these two modes is detailed further
 in the next two subsections.
 
+Software may update a single field of a valid MSI PTE without first needing to
+mark MSI PTE as invalid by clearing the `V` bit. For example, software may
+update the MSI PTE to convert it from write-through mode to MRIF mode. However,
+it is generally unsafe for software to update a MSI PTE using a set of stores
+of width less than the minimal single-copy atomic memory access supported by an
+IOMMU as it is legal for an IOMMU to read the MSI PTE at any time, including
+when only some of the partial stores have taken effect. Further, if the update
+to a field will make the field inconsistent with another field of the MSI PTE
+then software must first set `V=0` and follow the procedure outlined in
+<<MSI_PT_CHANGE>> before updating other fields.
+
+The IOMMU is not required to immediately observe the software update to MSI PTE.
+Software must follow the procedure outlined in <<MSI_PT_CHANGE>> after the 
+update to synchronize updates to the MSI PTE with the operation of the IOMMU.
+
+[NOTE]
+====
+If a MSI PTE is changed, the IOMMU may use the old value of the MSI PTE or the
+new value of the MSI PTE and the choice is unpredictable till the procedure
+outlined in <<MSI_PT_CHANGE>> is completed. The behavior is otherwise
+well-defined.
+====
+
 ==== MSI PTE, write-through mode
 When an MSI PTE has fields `V = 1`, `C = 0`, and `W = 1` (write-through mode), the 
 PTE’s complete format is:
@@ -914,6 +990,7 @@ translate an MSI write the same as the actual MSI PTE, except that what
 would be the PTE’s accessed (A), dirty (D), and user (U) bits are all zeros. 
 An IOMMU needs to treat only these three bits differently for an MSI PTE 
 versus a regular RV64 leaf PTE.
+
 The address computation used to select a PTE from a regular RISC-V page table
 must be modified to select an MSI PTE’s first doubleword from an MSI page 
 table.  However, the extraction of an interrupt file number from a guest 
@@ -922,16 +999,6 @@ creates an unavoidable difference in PTE addressing. For RV32, the lower
 32-bit word of an MSI PTE’s first doubleword has the same format as a leaf 
 PTE for Sv32 or Sv32x4 page-based address translation, except again for what
 would be PTE bits A, D, and U, which must be treated differently.
-====
-
-[NOTE]
-====
-It is generally unsafe to update a MSI PTE when it is marked valid as it is
-legal for the implementation to read the MSI PTE at any time, including when
-only some of the stores to MSI PTE have taken effect. To modify fields of MSI
-PTE software must first set `V=0` and follow the procedure outlined in
-<<MSI_PT_CHANGE>> before updating other fields and marking it valid by setting
-`V=1`.
 ====
 
 [[MRIF_PTE]]
