@@ -633,6 +633,7 @@ conditions are true.
 . `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
 . `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
 . `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
+. `DC.tc.T2GPA` is 1 and `DC.iohgatp.MODE` is `Off` or is `Bare`
 . `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode
     (<<PDTP_MODE_ENC>>)
 . `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the
