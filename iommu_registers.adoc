@@ -246,11 +246,6 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |63:56 |_custom_   |RO        | _Reserved for custom use_
 |===
 
-The implementation must support a `PSCID` that is at least as wide as the 
-supported `process_id` width. The behavior of configuring a `PSCID` in in-memory
-data structures and registers that is wider than the supported `process_id`
-width is `UNSPECIFIED`.
-
 [NOTE]
 ====
 Hypervisor may provide an SW emulated IOMMU to allow the guest to manage 
