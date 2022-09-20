@@ -611,7 +611,7 @@ features:
   structures using hardware provide unique `process_id`. The supported
   `process_id` may be up to 20-bit.
 
-* Up to 16-bit GSCIDs and 20-bit PSCIDs.
+* 16-bit GSCIDs and 20-bit PSCIDs.
 
 * Single stage and two stage address translation.
 
