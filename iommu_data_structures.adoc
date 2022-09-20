@@ -1108,7 +1108,7 @@ The process to translate an `IOVA` is as follows:
   process is complete. Go to step 19.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
   GPA. Go to step 17 with following page table information:
-.. Let `A` be the GPA
+.. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
