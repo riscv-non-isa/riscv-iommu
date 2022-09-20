@@ -278,7 +278,7 @@ in memory, little-endian or big-endian, is the endianness as determined by
   {bits: 1,  name: 'GADE'},
   {bits: 1,  name: 'SADE'},
   {bits: 23, name: 'reserved'},
-  {bits: 32, name: 'for custom use'},
+  {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
 
