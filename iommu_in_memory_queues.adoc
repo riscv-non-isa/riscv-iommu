@@ -491,7 +491,6 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 [%header, cols="4,20,6"]
 |===
 |CAUSE | Description                         | Reported if `DTF` is 1?
-|0     | Instruction address misaligned      | No
 |1     | Instruction access fault            | No
 |4     | Read address misaligned             | No
 |5     | Read access fault                   | No
