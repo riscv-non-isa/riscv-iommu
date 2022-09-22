@@ -1286,7 +1286,6 @@ The process to translate an `IOVA` is as follows:
   "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request and `DC.tc.EN_ATS` is 0.
-..  Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the 
     `process_id` is wider than supported by `pdtp.MODE`.
