@@ -625,9 +625,10 @@ features:
 
 * Hardware updating of PTE Accessed and Dirty bits.
 
-* MSI address translation to redirect MSIs to interrupt files in an IMSIC 
-  using MSI PTEs in write-through mode and redirecting MSI to 
-  memory-resident-interrupt-files.
+* Identifying MSI writes and MSI address translation, using MSI page tables, to
+  redirect MSIs to interrupt files in an IMSIC using MSI PTEs in write-through
+  mode and redirecting MSI to memory-resident-interrupt-files using MSI PTEs in
+  MRIF mode.
 
 * Svnapot and Svpbmt extension.
 
