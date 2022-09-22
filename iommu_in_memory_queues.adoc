@@ -350,6 +350,15 @@ ordering of all previous reads and writes. Ordering previous reads may be
 required if the reclaimed memory will be used to hold data that must not be made
 visible to the device.
 
+The `IOFENCE.C` with `PR` and/or `PW` set to 1 only ensures that requests that
+have been already processed by the IOMMU are committed to the global ordering
+point. Software must perform an an interconnect specific fence action if there
+is a need to ensure that all in-flight requests from a device that have not yet
+been processed by the IOMMU are observed. For PCIe, for example, a completion
+from device in response to a read from the device memory has the property of
+ensuring that previous posted writes are observed by the IOMMU as completions
+may not pass previous posted writes.
+
 The ordering guarantees are made for accesses to main-memory. For accesses to 
 I/O memory, the ordering guarantees are implementation and I/O protocol 
 defined.
