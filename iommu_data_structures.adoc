@@ -1081,7 +1081,6 @@ The process to translate an `IOVA` is as follows:
   19 with translated address same as the `IOVA`.
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
-..  Transaction type is a PCIe "Page Request" Message.
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
@@ -1580,6 +1579,9 @@ conditions such as the queue being disabled, queue being full, or the IOMMU
 encountering access faults when attempting to access queue memory. These error 
 conditions are specified in <<PRQ>>.
 
+If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
+device-context for the requestor.
+
 If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable 
 to locate the `DC` to determine the `EN_PRI` configuration, or the request 
 could not be queued into `PQ` then the IOMMU behavior depends on the type 
@@ -1597,7 +1599,7 @@ on the cause of the error.
 
 The status is set to Response Failure if the following faults are encountered: 
 
-* All inbound transactions disallowed (cause = 256) 
+* `ddtp.iommu_mode` is `Off`
 * DDT entry load access fault (cause = 257) 
 * DDT entry misconfigured (cause = 259) 
 * DDT entry not valid (cause = 258)
@@ -1606,12 +1608,12 @@ The status is set to Response Failure if the following faults are encountered:
 
 The status is set to Invalid Request if the following faults are encountered: 
 
-* Transaction type disallowed (cause = 260)
+* `ddtp.iommu_mode` is `Bare`
+* `EN_PRI` is set to 0
 
 The status is set to Success if no other faults were encountered but the 
 "Page Request" could not be queued due to the page-request queue being full 
 (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
-
 
 [NOTE]
 ====
