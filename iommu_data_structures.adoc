@@ -13,8 +13,9 @@ translation using a S-stage page table may be used when the control of the
 device is retained by the hypervisor or Host OS itself. 
 
 When two-stage address translation is used the `DC` holds the PPN of the root
-G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates fences
-on a per-virtual-machine basis; and the G-stage address translation scheme.
+G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates
+invalidations of cached address translations on a per-virtual-machine basis; and
+the G-stage address translation scheme.
 
 Some devices supports multiple contexts where each context may be associated 
 with a different process and thus a different virtual address space. The context
@@ -37,8 +38,8 @@ translation are be held in the `DC` itself.
 
 The S/VS-stage address translation controls include the PPN of the root 
 S/VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
-fences on a per-address-space basis; and the S/VS-stage address translation
-scheme.
+invalidations of cached address translations on a per-address-space basis; and
+the S/VS-stage address translation scheme.
 
 To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
 redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from 
@@ -1072,6 +1073,15 @@ to an MRIF is specified more precisely in <<MSI_TRANS>>.
 
 [[P2IOVA]]
 === Process to translate an IOVA
+
+The process to translate an IOVA uses the hardware IDs (`device_id` and
+`process_id`) to locate the Device Context and the Process Context. The Device
+Context and Process Control provide the page tables, `PSCID`, `GSCID`, and other
+control parameters that affect the address translation and protection process.
+When address translation caches are implemented, the translation process may
+use the `GSCID` and `PSCID` to associate the cached translations with their
+address spaces.
+
 The process to translate an `IOVA` is as follows:
 
 . If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
