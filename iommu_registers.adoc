@@ -472,7 +472,7 @@ the software queues the next command for the IOMMU.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the command-queue where 
                             software queues the next command for IOMMU.  Only 
-                            `LOG2SZ:0` bits are writable.
+                            `LOG2SZ-1:0` bits are writable.
 |===
 
 [[FQB]]
@@ -545,7 +545,7 @@ software will fetch the next fault record.
 |Bits |Field   |Attribute |Description
 |31:0 |`index` |WARL      | Holds the `index` into the fault-queue from which 
                             software reads the next fault record.  Only 
-                            `LOG2SZ:0` bits are writable.
+                            `LOG2SZ-1:0` bits are writable.
 |===
 
 [[FQT]]
@@ -643,7 +643,7 @@ software will fetch the next page-request.
 |Bits |Field   |Attribute | Description
 |31:0 |`index` |WARL      | Holds the `index` into the page-request-queue from 
                             which software reads the next "Page Request" message.
-                            Only `LOG2SZ:0` bits are writable.
+                            Only `LOG2SZ-1:0` bits are writable.
 |===
 
 [[PQT]]
