@@ -99,14 +99,6 @@ radix-table depending on the maximum width of the `device_id` supported. The
 partitioning of the `device_id` to obtain the device directory indexes (DDI) to
 traverse the DDT radix-tree table are as follows:
 
-The RISC-V memory model requires memory access from a hart to be single-copy
-atomic. When RV32 is implemented the size of a single-copy atomic memory access
-is up to 32-bits when RV64 is implemented the size of a single-copy atomic
-memory access is up to 64-bits. The size of a single-copy atomic memory access
-implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
-when the harts in the system implement RV32 and is required to be 64-bits when 
-the harts in the system implement RV64.
-
 .Base format `device_id` partitioning
 
 [wavedrom, , ]
@@ -236,24 +228,6 @@ A valid (`V==1`) non-leaf DDT entry provides PPN of the next level DDT.
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
-It is generally unsafe for software to update a valid non-leaf DDT entry using
-a set of stores of width less than the minimal single-copy atomic memory access
-supported by an IOMMU as it is legal for an IOMMU to read the entry at any time,
-including when only some of the partial stores have taken effect.
-
-The IOMMU is not required to immediately observe the software update to a
-non-leaf DDT entry. Software must follow the procedure outlined in <<DC_CHANGE>>
-after the update to synchronize updates to the non-leaf DDT entry with the
-operation of the IOMMU.
-
-[NOTE]
-====
-If a non-leaf DDT entry is changed, the IOMMU may use the old value of the
-non-leaf DDT entry or the new value of the DDT entry and the choice is
-unpredictable till the procedure outlined in <<DC_CHANGE>> is completed. The
-behavior is otherwise well-defined.
-====
-
 ==== Leaf DDT entry
 The leaf DDT page is indexed by `DDI[0]` and holds the device-context (`DC`).
 
@@ -289,19 +263,6 @@ The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format. The byte order of each of the doublewords
 in memory, little-endian or big-endian, is the endianness as determined by
 `fctrl.END` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
-
-Software may update a single field of a valid `DC` without first needing to mark
-`DC` as invalid by clearing the `V` bit. However, it is generally unsafe for
-software to update a `DC` using a set of stores of width less than the minimal
-single-copy atomic memory access supported by an IOMMU as it is legal for an
-IOMMU to read the `DC` at any time, including when only some of the partial
-stores have taken effect. Further, if the update to a field will make the field
-inconsistent with another field of the `DC` then software must first set `V=0`
-and follow the procedure outlined in <<DC_CHANGE>> before updating other fields.
-
-The IOMMU is not required to immediately observe the software update to `DC`.
-Software must follow the procedure outlined in <<DC_CHANGE>> after the update
-to synchronize updates to `DC` with the operation of the IOMMU.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -460,8 +421,8 @@ to a 16-KiB boundary.
 The `GSCID` field of `iohgatp` identifies an address space. Configuring
 identical `GSCID` in two `DC` when the G-stage page-table referenced by the two
 `DC` are not identical then it is unpredictable whether the IOMMU uses the
-PTEs from the first page table or the second page table, but the behavior is
-otherwise well defined.
+PTEs from the first page table or the second page table. These are the only
+expected behaviors.
 ====
 
 .IO hypervisor guest address translation and protection (`iohgatp`) field
@@ -716,24 +677,6 @@ A valid (`V==1`) non-leaf PDT entry holds the PPN of the next-level PDT.
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
 
-It is generally unsafe for software to update a non-leaf PDT entry using a set
-of stores of width less than the minimal single-copy atomic memory access
-supported by an IOMMU as it is legal for an IOMMU to read the entry at any time,
-including when only some of the partial stores have taken effect.
-
-The IOMMU is not required to immediately observe the software update to a
-non-leaf DDT entry. Software must follow the procedure outlined in <<PC_CHANGE>>
-after the update to synchronize updates to the non-leaf DDT entry with the
-operation of the IOMMU.
-
-[NOTE]
-====
-If a non-leaf PDT entry is changed, the IOMMU may use the old value of the
-non-leaf PDT entry or the new value of the PDT entry and the choice is
-unpredictable till the procedure outlined in <<PC_CHANGE>> is completed. The
-behavior is otherwise well-defined.
-====
-
 ==== Leaf PDT entry
 The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 (`PC`).
@@ -750,20 +693,8 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 
 The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctrl.END` (<<FCTRL>>).
-
-Software may update a single field of a valid `PC` without first needing to mark
-`PC` as invalid by clearing the `V` bit. However, it is generally unsafe for
-software to update a `PC` using a set of stores of width less than the minimal
-single-copy atomic memory access supported by an IOMMU as it is legal for an
-IOMMU to read the `PC` at any time, including when only some of the partial
-stores have taken effect. Further, if the update to a field will make the field
-inconsistent with another field of the `PC` then software must first set `V=0`
-and follow the procedure outlined in <<PC_CHANGE>> before updating other fields.
-
-The IOMMU is not required to immediately observe the software update to `PC`.
-Software must follow the procedure outlined in <<PC_CHANGE>> after the update
-to synchronize updates to `PC` with the operation of the IOMMU.
+determined by `fctrl.END` (<<FCTRL>>). The IOMMU may read the `PC` fields in any
+order.
 
 ==== Process-context fields
 
@@ -835,8 +766,8 @@ device accesses.
 The `PSCID` field of `PC` identified an address space. Configuring identical
 `PSCID` in two `PC` when the page-table referenced by the two `PC` are not
 identical then it is unpredictable whether the IOMMU uses the PTEs from the
-first page table or the second page table, but the behavior is otherwise well
-defined.
+first page table or the second page table. These are the only expected
+behaviors.
 ====
 
 [[PC_MISCONFIG]]
@@ -919,29 +850,6 @@ is field `W` (Write-through).  If `W = 1`, the MSI PTE specifies write-through
 mode for incoming MSIs, and if `W = 0`, it specifies MRIF mode. The 
 interpretation of an MSI PTE for each of these two modes is detailed further
 in the next two subsections.
-
-Software may update a single field of a valid MSI PTE without first needing to
-mark MSI PTE as invalid by clearing the `V` bit. For example, software may
-update the MSI PTE to convert it from write-through mode to MRIF mode. However,
-it is generally unsafe for software to update a MSI PTE using a set of stores
-of width less than the minimal single-copy atomic memory access supported by an
-IOMMU as it is legal for an IOMMU to read the MSI PTE at any time, including
-when only some of the partial stores have taken effect. Further, if the update
-to a field will make the field inconsistent with another field of the MSI PTE
-then software must first set `V=0` and follow the procedure outlined in
-<<MSI_PT_CHANGE>> before updating other fields.
-
-The IOMMU is not required to immediately observe the software update to MSI PTE.
-Software must follow the procedure outlined in <<MSI_PT_CHANGE>> after the 
-update to synchronize updates to the MSI PTE with the operation of the IOMMU.
-
-[NOTE]
-====
-If a MSI PTE is changed, the IOMMU may use the old value of the MSI PTE or the
-new value of the MSI PTE and the choice is unpredictable till the procedure
-outlined in <<MSI_PT_CHANGE>> is completed. The behavior is otherwise
-well-defined.
-====
 
 ==== MSI PTE, write-through mode
 When an MSI PTE has fields `V = 1`, `C = 0`, and `W = 1` (write-through mode), the 
@@ -1767,6 +1675,7 @@ following conditions:
 * "Page Request" could not be queued due to the page-request queue being full 
   (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
+[[CACHING]]
 === Caching in-memory data structures
 
 To speed up Direct Memory Access (DMA) translations, the IOMMU may make use of
@@ -1802,3 +1711,48 @@ group of entries.
 |G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===
+
+=== Updating in-memory data structure entries
+
+The RISC-V memory model requires memory access from a hart to be single-copy
+atomic. When RV32 is implemented the size of a single-copy atomic memory access
+is up to 32-bits when RV64 is implemented the size of a single-copy atomic
+memory access is up to 64-bits. The size of a single-copy atomic memory access
+implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
+when the harts in the system implement RV32 and is required to be 64-bits when
+the harts in the system implement RV64.
+
+The IOMMU data structure entries have a `V` bit that when set to 1 indicates
+that the entry is valid.
+
+Software is allowed to make updates to a data structure entry that has the `V`
+bit set to 1. However, some rules as outlined below must be followed.
+
+* It is generally unsafe for software to update fields of a valid data structure
+  entry using a set of stores of width less than the minimal single-copy atomic
+  memory access supported by an IOMMU as it is legal for an IOMMU to read the
+  entry at any time, including when only some of the partial stores have taken
+  effect. +
++
+* For an update to an IOMMU data structure entry to be atomic, software must use
+  a single store of width equal to the minimal single-copy atomic memory access
+  supported by an IOMMU. +
++
+* If the update to a field will make the field inconsistent with another field
+  of the entry then software must first set `V` field to 0 and use the commands
+  outlined in <<CACHING>> to invalidate any previous copies of that entry that
+  may be in IOMMU caches before updating other fields of that entry. +
++
+* The IOMMU is not required to immediately observe the software update to an
+  entry. Software must use the commands outlined in <<CACHING>> to invalidate
+  any previous copies of that entry that may be in IOMMU caches to synchronize
+  the updates to the entry with the operation of the IOMMU.
+
+[NOTE]
+====
+If a data structure entry is changed, the IOMMU may use the old value of the
+entry or the new value of the entry and the choice is unpredictable till
+software uses the commands outlined in <<CACHING>> to invalidate any previous
+copies of that entry that may be in IOMMU caches to synchronize updates to the
+entry with the operation of the IOMMU. These are the only behaviors expected.
+====
