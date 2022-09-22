@@ -301,18 +301,16 @@ A `IOFENCE.C` command completion, as determined by `cqh` advancing past the
 index of the `IOFENCE.C` command in the CQ, guarantees that all previous
 commands fetched from the CQ have been completed and committed.
 
-If the `IOFENCE.C` times out waiting on completion of previous commands then the
-`cmd_to` bit is set in `cqcsr` <<CSR>> to signal this condition and the `cqh`
-holds the index of the `IOFENCE.C` that timed out.
+If the `IOFENCE.C` times out waiting on completion of previous commands that are
+specified to have a timeout, then the `cmd_to` bit in `cqcsr` <<CSR>> is set to
+signal this condition. The `cqh` holds the index of the `IOFENCE.C` that timed
+out and all previous commands that are not specified to have a timeout have been
+completed and committed.
 
 [NOTE]
 ====
 In this version of the specification, only the `ATS.INVAL` command is specified
-to cause a timeout. When a `IOFENCE.C` detects a timeout then all command
-that are not `ATS.INVAL` and were fetched between the `IOFENCE.C` that detected
-the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled, if 
-this is the first `IOFENCE.C` executed) that completed successfully have also
-completed successfully.
+to have a timeout.
 ====
 
 The commands may be used to order memory accesses from I/O devices connected to
@@ -488,16 +486,6 @@ invalidation commands that may have timed out. If the `ATS.INVAL` commands
 queued before the `IOFENCE.C` were directed at multiple devices then software
 may resubmit these commands as `ATS.INVAL` and `IOFENCE.C` pairs to identify
 the device caused the timeout.
-====
-
-[NOTE]
-====
-In this version of the specification, only the `ATS.INVAL` command is specified
-to cause a timeout. When a `IOFENCE.C` detects a timeout then all command
-that are not `ATS.INVAL` and were fetched between the `IOFENCE.C` that detected
-the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled, if
-this is the first `IOFENCE.C` executed) that completed successfully have also
-completed successfully.
 ====
 
 The `ATS.PRGR` command instructs the IOMMU to send a “Page Request Group 
