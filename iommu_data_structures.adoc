@@ -1196,9 +1196,9 @@ is as follows:
   `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
 . If `i == 0` go to step 8.
 . Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
-  `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
+  `ddte` violates a PMA or PMP check, then stop and report "DDT entry load
   access fault" (cause = 257).
-. If `ddte` access detects a data corruption (a.k.a. poisoned data), then 
+. If `ddte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If if any bits or encoding that are reserved for future standard use are
@@ -1207,7 +1207,7 @@ is as follows:
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 2.
 . Let `DC` be value of `DC_SIZE` bytes at address `a + DDI[0] * DC_SIZE`. If
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
-  If accessing `DC` violates a PMA or PMP check, then stop and report 
+  If accessing `DC` violates a PMA or PMP check, then stop and report
   "DDT entry load access fault" (cause = 257). If `DC` access detects a data 
   corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
   (cause = 268).
