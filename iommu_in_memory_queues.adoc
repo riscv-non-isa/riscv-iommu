@@ -310,8 +310,8 @@ holds the index of the `IOFENCE.C` that timed out.
 In this version of the specification, only the `ATS.INVAL` command is specified
 to cause a timeout. When a `IOFENCE.C` detects a timeout then all command
 that are not `ATS.INVAL` and were fetched between the `IOFENCE.C` that detected
-the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled if this
-is the first `IOFENCE.C` executed) that completed successfully have also
+the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled, if 
+this is the first `IOFENCE.C` executed) that completed successfully have also
 completed successfully.
 ====
 
@@ -486,8 +486,8 @@ the device caused the timeout.
 In this version of the specification, only the `ATS.INVAL` command is specified
 to cause a timeout. When a `IOFENCE.C` detects a timeout then all command
 that are not `ATS.INVAL` and were fetched between the `IOFENCE.C` that detected
-the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled if this
-is the first `IOFENCE.C` executed) that completed successfully have also
+the timeout and a previous `IOFENCE.C` (or since when the CQ was enabled, if
+this is the first `IOFENCE.C` executed) that completed successfully have also
 completed successfully.
 ====
 
