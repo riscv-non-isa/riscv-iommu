@@ -1152,10 +1152,9 @@ The process to translate an `IOVA` is as follows:
 . If all of the following conditions hold then MSI address translations using 
   MSI page tables is enabled and the transaction is eligible for MSI address 
   translation and the MSI address translation process specified in <<MSI_TRANS>>
-  is invoked to determine if the GPA `A` is a MSI address and if so translate
-  it. If the GPA `A` is determined to be not an MSI then the process continues
-  at step 18. If a fault is detected by the MSI adddress translation process
-  then stop and report the fault.
+  is invoked. If the GPA `A` is determined to be not an MSI then the process
+  continues at step 18. If a fault is detected by the MSI adddress translation
+  process then stop and report the fault.
 .. Address `A` is a 32-bit aligned address.
 .. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is 
    an ATS translation request.
