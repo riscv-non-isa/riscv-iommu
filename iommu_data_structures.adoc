@@ -1075,12 +1075,12 @@ to an MRIF is specified more precisely in <<MSI_TRANS>>.
 === Process to translate an IOVA
 
 The process to translate an IOVA uses the hardware IDs (`device_id` and
-`process_id`) to locate the Device Context and the Process Context. The Device
-Context and Process Control provide the page tables, `PSCID`, `GSCID`, and other
-control parameters that affect the address translation and protection process.
-When address translation caches are implemented, the translation process may
-use the `GSCID` and `PSCID` to associate the cached translations with their
-address spaces.
+`process_id`) to locate the Device-Context and the Process-Context. The 
+Device-context and Process-context provide the root PPN of the page tables,
+`PSCID`, `GSCID`, and other control parameters that affect the address
+translation and protection process. When address translation caches
+(<<CACHING>>) are implemented, the translation process may use the `GSCID` and
+`PSCID` to associate the cached translations with their address spaces.
 
 The process to translate an `IOVA` is as follows:
 
