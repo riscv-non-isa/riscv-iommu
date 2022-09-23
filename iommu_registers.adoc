@@ -100,9 +100,7 @@ reset value for `ddtp.busy` field must be 0.
 
 Reset value for `tr_req_ctrl.Go/Busy` field must be 0.
 
-Reset state of address translation caches, device directory table entry
-caches, process directory table entry caches, and MSI page table entry caches
-is invalid.
+After a reset the caches (<<CACHING>>) must have no valid entries.
 
 [NOTE]
 ====
