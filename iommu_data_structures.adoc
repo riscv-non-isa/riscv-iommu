@@ -384,7 +384,7 @@ that supports multiple process contexts and thus generates a valid `process_id`
 with its memory accesses. For PCIe, for example, if the request has a PASID 
 then the PASID is used as the `process_id`.
 
-When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use 0 as the default
+When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
 value of `process_id` for translating requests without a valid `process_id`.
 
 When `PDTV` is 0, the `DPE` bit is reserved for future standard extension. Until
