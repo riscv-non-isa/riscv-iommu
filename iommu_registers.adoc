@@ -106,7 +106,7 @@ the register returns 0 and writes to that offset are ignored.
                                      response>>           | if `capabilities.DBG==0`
 |624   |Reserved        |64  |Reserved for future use
                               (`WPRI`)                    |
-|682   |_custom_        |72  |_Reserved for custom use
+|688   |_custom_        |72  |_Reserved for custom use
                               (`WARL`)_                   |
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause
                               to vector register>>        | No
