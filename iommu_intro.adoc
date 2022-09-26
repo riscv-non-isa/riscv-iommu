@@ -505,6 +505,9 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
    address translations.
 .. The IOVA and the type of the transaction (Translated or Untranslated).
 .. Whether the request is for a read, write, execute, or an atomic operation.
+... Execute requested must be explicitly associated with the request
+    (e.g., using a PCIe PASID). When not explicitly requested, the default must
+    be 0.
 .. The privilege mode associated with the request. When a privilege mode is not
    explicitly associated with the request (e.g., using a PCIe PASID), the default
    privilege mode must be User.
