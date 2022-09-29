@@ -1175,10 +1175,9 @@ The process to translate an `IOVA` is as follows:
   disallowed" (cause = 256).
 . If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
   stop and report "Transaction type disallowed" (cause = 260); else go to step
-  18 with translated address same as the `IOVA`.
+  19 with translated address same as the `IOVA`.
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
-..  Transaction type is a PCIe "Page Request" Message.
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
@@ -1200,29 +1199,15 @@ The process to translate an `IOVA` is as follows:
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the 
     `process_id` is wider than supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
-. If all of the following conditions hold then MSI address translations using 
-  MSI page tables is enabled and the transaction is eligible for MSI address 
-  translation and the MSI address translation process specified in <<MSI_TRANS>>
-  is invoked to determine if the `IOVA` is a MSI address and if so translate it.
-  If the `IOVA` is determined to be not an MSI then the process continues at 
-  step 9.
-.. `capabilities.MSI_FLAT` (<<CAP>>) is 1, i.e., IOMMU support MSI address 
-   translation using MSI page tables (<<MSI_TRANS>>).
-.. `IOVA` is a 32-bit aligned address.
-.. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is 
-   an ATS translation request.
-.. Transaction does not have a `process_id` (e.g., PASID present). Transactions
-   with a `process_id` use a virtual address as IOVA and are not MSI.
-.. `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
-   is enabled.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
-  process is complete. Go to step 18.
+  process is complete. Go to step 19.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
-  GPA. Go to step 16 with following page table information:
+  GPA. Go to step 17 with following page table information:
+.. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
-. If `DC.tc.PDTV` is set to 0 then go to step 16 with the following page table 
+. If `DC.tc.PDTV` is set to 0 then go to step 15 with the following page table 
   information:
 .. Let `iosatp.MODE` be value in `DC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `DC.fsc.PPN` field
@@ -1232,7 +1217,7 @@ The process to translate an `IOVA` is as follows:
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
 . If there is no `process_id` associated with the transaction or if 
-  `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table 
+  `DC.fsc.pdtp.MODE = Bare` then go to step 15 with the following page table 
    information:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
@@ -1241,7 +1226,7 @@ The process to translate an `IOVA` is as follows:
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
-. Go to step 16 with the following page table information:
+. Go to step 15 with the following page table information:
 .. Let `iosatp.MODE` be value in `PC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `PC.fsc.PPN` field
 .. Let `PSCID` be value in `PC.ta.PSCID` field
@@ -1252,11 +1237,29 @@ The process to translate an `IOVA` is as follows:
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
   RISC-V privileged specification. If a fault is detecting by the single stage
-  address translation process then stop and report the fault.
+  address translation process then stop and report the fault. Go to step 19.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification. If a fault is detecting by the single stage address
-  translation process then stop and report the fault.
+  privileged specification to perform the VS-stage address translation to
+  determine the GPA accessed by the transaction. If a fault is detecting by the
+  two stage address translation process then stop and report the fault. If the 
+  translation process is completed then let `A` be the translated GPA.
+. If all of the following conditions hold then MSI address translations using 
+  MSI page tables is enabled and the transaction is eligible for MSI address 
+  translation and the MSI address translation process specified in <<MSI_TRANS>>
+  is invoked. If the GPA `A` is determined to be not an MSI then the process
+  continues at step 18. If a fault is detected by the MSI adddress translation
+  process then stop and report the fault.
+.. Address `A` is a 32-bit aligned address.
+.. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is 
+   an ATS translation request.
+.. `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
+   is enabled.
+. If a G-stage page table is active in the device-context then use the
+  G-stage address translation process specified in Section 8.5 of the RISC-V
+  privileged specification to translate the GPA `A` to determine the SPA accessed
+  by the transaction. If a fault is detecting by the two stage address translation
+  process then stop and report the fault.
 . Translation process is complete
 
 When the translation process reports a fault, and the request is a Untranslated
@@ -1368,7 +1371,7 @@ When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
 the process to identify a incoming 32-bit aligned `IOVA` from a device as a MSI 
 address and translating the address using the MSI page table is as follows:
 
-. Let `A` be the 32-bit aligned `IOVA`
+. Let `A` be the 32-bit aligned `GPA`
 . Let `DC` be the device-context located using the `device_id` of the device
   using the process outlined in <<GET_DC>>.
 . Determine if the address `A` is an MSI address as specified in <<MSI_ID>>.
@@ -1394,7 +1397,7 @@ address and translating the address using the MSI page table is as follows:
   the feature control register, `fctrl` (<<FCTRL>>), holds the configuration 
   bit that may be set to 1 to enable big-endian access to memory. If the IOMMU 
   is not capable or has not been configured for big-endian access to memory, 
-  then stop this process and treat the transaction as an unsupported request.
+  then stop and report "Transaction type disallowed" (cause = 260).
 . Let `m` be `(DC.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
   accessing `msipte` violates a PMA or PMP check, then stop and report 
@@ -1421,8 +1424,8 @@ address and translating the address using the MSI page table is as follows:
    details on this processing.
 .. Let `D` be the 32-bit data associated with the write. The byte order of 
    `D` is determined by bit 2 of `A`.
-.. If `A[11:3]` or `D[31:11]` is not zero, then stop this process and request
-   the IO bridge to discard the write as an unsupported request.
+.. If `A[11:3]` or `D[31:11]` is not zero, then stop and report "Transaction
+   type disallowed" (cause = 260).
 .. If the IOMMU supports atomic memory operations 
    (`capabilities.AMO` is 1, <<CAP>>), then, in the destination MRIF 
    (at address `msipte.MRIF_ADDR[55:9] * 512`), set the interrupt-pending bit 
@@ -1611,6 +1614,9 @@ conditions such as the queue being disabled, queue being full, or the IOMMU
 encountering access faults when attempting to access queue memory. These error 
 conditions are specified in <<PRQ>>.
 
+If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
+device-context for the requestor.
+
 If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable 
 to locate the `DC` to determine the `EN_PRI` configuration, or the request 
 could not be queued into `PQ` then the IOMMU behavior depends on the type 
@@ -1628,7 +1634,7 @@ on the cause of the error.
 
 The status is set to Response Failure if the following faults are encountered: 
 
-* All inbound transactions disallowed (cause = 256) 
+* `ddtp.iommu_mode` is `Off`
 * DDT entry load access fault (cause = 257) 
 * DDT entry misconfigured (cause = 259) 
 * DDT entry not valid (cause = 258)
@@ -1637,12 +1643,12 @@ The status is set to Response Failure if the following faults are encountered:
 
 The status is set to Invalid Request if the following faults are encountered: 
 
-* Transaction type disallowed (cause = 260)
+* `ddtp.iommu_mode` is `Bare`
+* `EN_PRI` is set to 0
 
 The status is set to Success if no other faults were encountered but the 
 "Page Request" could not be queued due to the page-request queue being full 
 (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
-
 
 [NOTE]
 ====
