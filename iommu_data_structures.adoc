@@ -13,8 +13,9 @@ translation using a S-stage page table may be used when the control of the
 device is retained by the hypervisor or Host OS itself. 
 
 When two-stage address translation is used the `DC` holds the PPN of the root
-G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates fences
-on a per-virtual-machine basis; and the G-stage address translation scheme.
+G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates
+invalidations of cached address translations on a per-virtual-machine basis; and
+the G-stage address translation scheme.
 
 Some devices supports multiple contexts where each context may be associated 
 with a different process and thus a different virtual address space. The context
@@ -37,8 +38,8 @@ translation are be held in the `DC` itself.
 
 The S/VS-stage address translation controls include the PPN of the root 
 S/VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
-fences on a per-address-space basis; and the S/VS-stage address translation
-scheme.
+invalidations of cached address translations on a per-address-space basis; and
+the S/VS-stage address translation scheme.
 
 To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
 redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from 
@@ -1177,6 +1178,15 @@ to an MRIF is specified more precisely in <<MSI_TRANS>>.
 
 [[P2IOVA]]
 === Process to translate an IOVA
+
+The process to translate an IOVA uses the hardware IDs (`device_id` and
+`process_id`) to locate the Device-Context and the Process-Context. The 
+Device-context and Process-context provide the root PPN of the page tables,
+`PSCID`, `GSCID`, and other control parameters that affect the address
+translation and protection process. When address translation caches
+(<<CACHING>>) are implemented, the translation process may use the `GSCID` and
+`PSCID` to associate the cached translations with their address spaces.
+
 The process to translate an `IOVA` is as follows:
 
 . If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
@@ -1298,9 +1308,9 @@ is as follows:
   `2LVL`, `LEVELS` is two. When `ddtp.iommu_mode` is `1LVL`, `LEVELS` is one.
 . If `i == 0` go to step 8.
 . Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
-  `ddte` violates a PMA or PMP check, then stop and report "DDT entry load 
+  `ddte` violates a PMA or PMP check, then stop and report "DDT entry load
   access fault" (cause = 257).
-. If `ddte` access detects a data corruption (a.k.a. poisoned data), then 
+. If `ddte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If if any bits or encoding that are reserved for future standard use are
@@ -1309,7 +1319,7 @@ is as follows:
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 2.
 . Let `DC` be value of `DC_SIZE` bytes at address `a + DDI[0] * DC_SIZE`. If
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
-  If accessing `DC` violates a PMA or PMP check, then stop and report 
+  If accessing `DC` violates a PMA or PMP check, then stop and report
   "DDT entry load access fault" (cause = 257). If `DC` access detects a data 
   corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
   (cause = 268).
