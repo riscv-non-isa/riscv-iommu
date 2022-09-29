@@ -280,7 +280,8 @@ in memory, little-endian or big-endian, is the endianness as determined by
   {bits: 1,  name: 'PRPR'},
   {bits: 1,  name: 'GADE'},
   {bits: 1,  name: 'SADE'},
-  {bits: 23, name: 'reserved'},
+  {bits: 1,  name: 'DPE'},
+  {bits: 22, name: 'reserved'},
   {bits: 32, name: 'for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -384,6 +385,13 @@ The `PDTV` is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
 with its memory accesses. For PCIe, for example, if the request has a PASID 
 then the PASID is used as the `process_id`.
+
+When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
+value of `process_id` for translating requests without a valid `process_id`.
+
+When `PDTV` is 0, the `DPE` bit is reserved for future standard extension. Until
+its use is defined, the bit should be cleared by software for forward
+compatibility, and must be ignored by hardware.
 
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
@@ -1216,9 +1224,14 @@ The process to translate an `IOVA` is as follows:
 .. If a G-stage page table is not active in the device-context
      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
      it is a VS-stage page table.
-. If there is no `process_id` associated with the transaction or if 
-  `DC.fsc.pdtp.MODE = Bare` then go to step 15 with the following page table 
-   information:
+. If `DPE` is 1 and there is no `process_id` associated with the transaction
+  then let `process_id` be the default value of 0.
+. If `DPE` is 0 and there is no `process_id` associated with the transaction
+  then then go to step 16 with the following page table information:
+.. Let `iosatp.MODE` be `Bare`
+... The `PSCID` value is not used when first-stage mode is `Bare`.
+. If `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table 
+  information:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
