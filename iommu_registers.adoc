@@ -44,7 +44,7 @@ the register returns 0 and writes to that offset are ignored.
 |0     |`capabilities`  |8   |<<CAP, Capabilities of the
                                      IOMMU>>              | No
 |8     |`fctrl`         |4   |<<FCTRL, Features control>> | No
-|12    |_custom_        |4   |_For custom use_            |
+|12    |_custom_        |4   |_Designated For custom use_ |
 |16    |`ddtp`          |8   |<<DDTP, Device directory
                               table pointer>>             | No
 |24    |`cqb`           |8   |<<CQB, Command-queue base>> | No
@@ -78,13 +78,13 @@ the register returns 0 and writes to that offset are ignored.
                                      response>>           | if `capabilities.DBG==0`
 |624   |Reserved        |64  |Reserved for future use
                               (`WPRI`)                    |
-|688   |_custom_        |72  |_Reserved for custom use
+|688   |_custom_        |72  |_Designated for custom use
                               (`WARL`)_                   |
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause
                               to vector register>>        | No
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration
                                      Table>>              | if `capabilities.IGS==WIS`
-|1024  |Reserved        |3072|Reserved for future use (`WPRI`)|
+|1024  |Reserved        |3072|Reserved for standard use   |
 |===
 
 === Reset behavior
@@ -217,7 +217,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
 |55:41 | reserved  |RO        | Reserved for standard use
-|63:56 |_custom_   |RO        | _Reserved for custom use_
+|63:56 |_custom_   |RO        | _Designated for custom use_
 |===
 
 If `HPM` is supported then the IOMMU must implement the cycles counter and at
@@ -286,7 +286,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 |1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wired-interrupts.
 |15:2  |`reserved` |WPRI      | Reserved for standard use.
-|31:16 |_custom_   |WPRI      | _Reserved for custom use._
+|31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
 
 [[DDTP]]
@@ -789,7 +789,7 @@ status of the command-queue.
                             An IOMMU that can complete these operations 
                             synchronously may hard-wire this bit to 0.
 |27:18 |`reserved`|WPRI  | Reserved for standard use
-|31:28 |_custom_  |WPRI  | _Reserved for custom use._
+|31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
 When `cmd_ill` or `cqmf` is 1 in `cqcsr` the `cqt` references the command in the
@@ -910,7 +910,7 @@ status of the fault-queue.
                            An IOMMU that can complete controls synchronously 
                            may hard-wire this bit to 0. 
 |27:18 |`reserved`|WPRI  | Reserved for standard use
-|31:28 |_custom_  |WPRI  | _Reserved for custom use._
+|31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
 [[PQCSR]]
@@ -1036,7 +1036,7 @@ status of the page-request-queue.
                               An IOMMU that can complete controls synchronously
                               may hard-wire this bit to 0
 |27:18 |`reserved`|WPRI     | Reserved for standard use
-|31:28 |_custom_  |WPRI     | _Reserved for custom use._
+|31:28 |_custom_  |WPRI     | _Designated for custom use._
 |===
 
 [[IPSR]]
@@ -1071,7 +1071,7 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 |2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending
 |3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending
 |7:4    |`reserved`  |WPRI  | Reserved for standard use
-|15:8   |_custom_    |WPRI  | _Reserved for custom use._
+|15:8   |_custom_    |WPRI  | _Designated for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use
 |===
 
@@ -1224,7 +1224,7 @@ a transactions with a range of IDs to be counted by the counter.
                                  indicates no events are counted. +
                                  Encoding 1 to 16383 are reserved for standard
                                  events defined in the <<Event_list>>. +
-                                 Encoding 16384 to 32767 are for reserved for 
+                                 Encoding 16384 to 32767 are for designated for 
                                  custom use. +
                                  When `eventID` is changed, including to 0, 
                                  the counter retains its value.
@@ -1439,7 +1439,7 @@ supported then only bit 0 for each cause could be writable.
                                is the vector number assigned to the
                                page-request-queue-interrupt.
 | 31:16 |`reserved`|WPRI     | Reserved for standard use
-| 63:32 |_custom_  |WPRI     | _Reserved for custom use_
+| 63:32 |_custom_  |WPRI     | _Designated for custom use_
 |===
 
 [[TRR_IOVA]]
@@ -1517,7 +1517,7 @@ translation-request interface for debug. This register is present when
 | 32    |`PV`       |WARL      | When set to 1 the `PID` field of the 
                                  register is valid.
 | 35:33 |reserved   |WPRI      | Reserved for standard use
-| 39:36 a|_custom_  |WPRI     a| _Reserved for custom use_
+| 39:36 a|_custom_  |WPRI     a| _Designated for custom use_
 | 63:40 |`DID`      |WARL      | This field provides the `device_id` for
                                  this translation request.
 |===
@@ -1597,7 +1597,7 @@ This register is present when `capabilities.DBG == 1`.
                                 !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
 !===
 |59:54 |reserved |RO          | Reserved for standard use
-|63:60 a|_custom_|RO         a| _Reserved for custom use_
+|63:60 a|_custom_|RO         a| _Designated for custom use_
 |===
 
 [[MSI]]
@@ -1641,7 +1641,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |Bits   |Field |Attribute |Description
 |1:0    | 0    |RO     |Fixed to 0
 |55:2   |`ADDR`|WARL   |Holds the 4-byte aligned MSI address.
-|63:56  |`WPRI`|WPRI   | Reserved for future use.
+|63:56  |`WPRI`|WPRI   | Reserved for standard use.
 |===
 
 
@@ -1679,5 +1679,5 @@ and `iotval` set to the value of `msi_addr_x`.
                             Pending message for that vector are later
                             generated if the corresponding mask bit is
                             cleared to 0.
-|31:1   |`WPRI`|WPRI      | Reserved for future use.
+|31:1   |`WPRI`|WPRI      | Reserved for standard use.
 |===
