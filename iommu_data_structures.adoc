@@ -596,7 +596,9 @@ conditions are true.
 . `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
 . `DC.tc.T2GPA` is 1 and `DC.iohgatp.MODE` is `Off` or is `Bare`
 . `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode
-    (<<PDTP_MODE_ENC>>)
+.. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
+.. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
+.. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
 . `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the
    supported modes
 .. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`

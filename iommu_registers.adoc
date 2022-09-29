@@ -76,9 +76,9 @@ the register returns 0 and writes to that offset are ignored.
                                      control>>            | if `capabilities.DBG==0`
 |616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
                                      response>>           | if `capabilities.DBG==0`
-|624   |Reserved        |58  |Reserved for future use
+|624   |Reserved        |64  |Reserved for future use
                               (`WPRI`)                    |
-|682   |_custom_        |78  |_Reserved for custom use
+|688   |_custom_        |72  |_Reserved for custom use
                               (`WARL`)_                   |
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause
                               to vector register>>        | No
@@ -143,8 +143,11 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'HPM'},
   {bits: 1, name: 'DBG'},
   {bits: 6, name: 'PAS'},
-  {bits: 10, name: 'reserved'},
-  {bits: 16, name: 'custom'},
+  {bits: 1, name: 'PD8'},
+  {bits: 1, name: 'PD17'},
+  {bits: 1, name: 'PD20'},
+  {bits: 15, name: 'reserved'},
+  {bits: 8, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
 
@@ -210,8 +213,11 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |30    |`HPM`     |RO         | IOMMU implements a hardware performance monitor.
 |31    |`DBG`      |RO        | IOMMU supports the translation-request interface
 |37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
-|47:38 | reserved  |RO        | Reserved for standard use
-|63:48 |_custom_   |RO        | _Reserved for custom use_
+|38    |`PD8`      |RO        | One level PDT with 8-bit process_id supported.
+|39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
+|40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
+|55:41 | reserved  |RO        | Reserved for standard use
+|63:56 |_custom_   |RO        | _Reserved for custom use_
 |===
 
 If `HPM` is supported then the IOMMU must implement the cycles counter and at
