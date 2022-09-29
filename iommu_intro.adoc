@@ -635,9 +635,8 @@ features:
 
 * Svnapot and Svpbmt extension.
 
-* PCIe ATS and PRI services. When ATS is supported the IOMMU may optionally
-  support the ability to translate to a GPA instead of a SPA in response to
-  a translation request.
+* PCIe ATS and PRI services. Support for translating an IOVA to a GPA instead
+  of a SPA in response to a translation request.
 
 * A hardware performance monitor (HPM).
 
