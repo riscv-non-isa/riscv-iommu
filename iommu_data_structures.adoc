@@ -514,14 +514,14 @@ identified by a VS-stage page table with a `process_id`.
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection. First stage translation is
                     not enabled.
-| 1    | `PD20`   | 20-bit process ID enabled. The directory has 3 levels.
-                    The root PDT has 8 entries and the next non-leaf
-                    level has 512 entries. The leaf level has 256 entries.
+| 1    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
+                    256 entries.The bits 19:8 of `process_id` must be 0.
 | 2    | `PD17`   | 17-bit process ID enabled. The directory has 2 levels.
                     The root PDT page has 512 entries and leaf level has
                     256 entries. The bits 19:17 of `process_id` must be 0.
-| 3    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
-                    256 entries.The bits 19:8 of `process_id` must be 0.
+| 3    | `PD20`   | 20-bit process ID enabled. The directory has 3 levels.
+                    The root PDT has 8 entries and the next non-leaf
+                    level has 512 entries. The leaf level has 256 entries.
 | 4-15 | --       | Reserved
 |===
 
