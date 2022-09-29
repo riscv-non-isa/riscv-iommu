@@ -91,6 +91,9 @@ Two formats of the device-context structure are supported:
 * *Extended Format* - is 64-bytes in size and extends the base format `DC` with
   additional fields to translate MSIs as specified in <<MSI_TRANS>>.
 
+If `capabilities.MSI_FLAT` is 1 then the Extended Format is used else the Base
+Format is used.
+
 The DDT used to locate the `DC` may be configured to be a 1, 2, or 3 level 
 radix-table depending on the maximum width of the `device_id` supported. The
 partitioning of the `device_id` to obtain the device directory indexes (DDI) to
@@ -259,7 +262,7 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format. The byte order of each of the doublewords
 in memory, little-endian or big-endian, is the endianness as determined by
-`fctrl.END` (<<FCTRL>>).
+`fctrl.END` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -288,7 +291,7 @@ don't-care and may be freely used by software.
 If the IOMMU supports PCIe ATS specification (see `capabilities` register),
 the `EN_ATS` bit is used to enable ATS transaction processing. If `EN_ATS`
 is set to 1, IOMMU supports the following inbound transactions; otherwise
-they are treated as unsupported transactions.
+they are treated as unsupported requests.
 
 * Translated read for execute transaction
 * Translated read transaction
@@ -320,7 +323,7 @@ supported.
 Hypervisors that configure `T2GPA` to 1 must ensure through protocol specific
 means that translated accesses are routed through the host such that the IOMMU
 may translate the GPA and then route the transaction based on PA to memory or
-to a peer device. For PCIe, for example, the Access Control Service (ACS) may
+to a peer device. For PCIe, for example, the Access Control Service (ACS) must
 be configured to always redirect peer-to-peer (P2P) requests upstream to the
 host.
 
@@ -355,7 +358,6 @@ Group Response" message and the behavior of the function if it receives the
 response with a PASID is undefined. The `PRPR` bit should be configured
 with the value held in the "PRG Response PASID Required" capability bit.
 ====
-
 
 Setting the disable-translation-fault - `DTF` - bit to 1 disables reporting of
 faults encountered in the address translation process. Setting `DTF` to 1 does
@@ -413,6 +415,15 @@ in the harts integrated into the system or a subset thereof.
 
 The root page table as determined by `iohgatp.PPN` is 16 KiB and must be aligned
 to a 16-KiB boundary.
+
+[NOTE]
+====
+The `GSCID` field of `iohgatp` identifies an address space. Configuring
+identical `GSCID` in two `DC` when the G-stage page-table referenced by the two
+`DC` are not identical then it is unpredictable whether the IOMMU uses the
+PTEs from the first page table or the second page table. These are the only
+expected behaviors.
+====
 
 .IO hypervisor guest address translation and protection (`iohgatp`) field
 [wavedrom, , ]
@@ -583,6 +594,7 @@ conditions are true.
 . `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
 . `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
 . `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
+. `DC.tc.T2GPA` is 1 and `DC.iohgatp.MODE` is `Off` or is `Bare`
 . `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode
 .. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
 .. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
@@ -683,7 +695,8 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 
 The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctrl.END` (<<FCTRL>>).
+determined by `fctrl.END` (<<FCTRL>>). The IOMMU may read the `PC` fields in any
+order.
 
 ==== Process-context fields
 
@@ -707,7 +720,7 @@ care and may be freely used by software.
 
 When Enable-Supervisory-access (`ENS`) is 1, transactions requesting supervisor
 privilege are allowed with this `process_id` else the transaction is treated as
-an unsupported transaction.
+an unsupported request.
 
 When `ENS` is 1, the `SUM` (permit Supervisor User Memory access) bit
 modifies the privilege with which supervisor privilege transactions access
@@ -749,6 +762,41 @@ translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. A guest OS may thus directly edit the VS-stage page table to limit
 access by the device to a subset of its memory and specify permissions for the
 device accesses.
+
+[NOTE]
+====
+The `PSCID` field of `PC` identified an address space. Configuring identical
+`PSCID` in two `PC` when the page-table referenced by the two `PC` are not
+identical then it is unpredictable whether the IOMMU uses the PTEs from the
+first page table or the second page table. These are the only expected
+behaviors.
+====
+
+[[PC_MISCONFIG]]
+==== Process-context configuration checks
+
+A `PC` with `V=1` is considered as misconfigured if any of the following
+conditions are true.
+
+. If any bits or encoding that are reserved for future standard use are set
+  within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
+. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
+. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
+. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
+. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
+
+[NOTE]
+====
+Some `PC` fields that hold a system-physical-addresses or 
+guest-physical-addresses. Some implementations may verify the validity of the
+addresses - e.g. the system-physical-address is not wider than that supported
+as determined by `capabilities.PAS`, etc. at the time of locating the `PC`.
+Such implementations may cause a "PDT entry misconfigured" (cause = 267) fault.
+
+Other implementations only detect such addresses to be invalid when the data
+structure referenced by these fields need to be accessed. Such implementations
+may detect access-violation faults in the process of making the acccess.
+====
 
 [[MSI_PT]]
 === MSI page tables
@@ -853,6 +901,7 @@ translate an MSI write the same as the actual MSI PTE, except that what
 would be the PTE’s accessed (A), dirty (D), and user (U) bits are all zeros. 
 An IOMMU needs to treat only these three bits differently for an MSI PTE 
 versus a regular RV64 leaf PTE.
+
 The address computation used to select a PTE from a regular RISC-V page table
 must be modified to select an MSI PTE’s first doubleword from an MSI page 
 table.  However, the extraction of an interrupt file number from a guest 
@@ -1147,7 +1196,6 @@ The process to translate an `IOVA` is as follows:
   "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request and `DC.tc.EN_ATS` is 0.
-..  Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the 
     `process_id` is wider than supported by `pdtp.MODE`.
@@ -1250,49 +1298,9 @@ is as follows:
   corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
   (cause = 268).
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If any bits or encoding that are reserved for future standard use are set
-  within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
-. If any of the following conditions are true then stop and report 
-  "DDT entry misconfigured" (cause = 259).
-.. `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`, 
-   or `DC.tc.PRPR` is 1
-.. `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
-.. `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
-.. `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
-.. `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
-.. `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode 
-    (<<PDTP_MODE_ENC>>)
-.. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the 
-   supported modes
-... `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
-... `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
-... `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
-... `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
-.. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
-.. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
-.. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
-.. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
-.. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare` 
-   and not `Flat`
-.. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
-   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
-.. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+. If the `DC` is misconfigured as determined by rules outlined in 
+  <<DC_MISCONFIG>> then stop and report "DDT entry misconfigured" (cause = 259).
 . The device-context has been successfully located and may be cached.
-
-[NOTE]
-====
-Some `DC` fields that hold a system-physical-addresses or 
-guest-physical-addresses. Some implementations may verify the validity
-of the addresses - e.g. the system-physical-address is not wider than 
-that supported as determined by `capabilities.PAS`, etc. at the time
-of locating the `DC`. Such implementations may cause a "DDT entry
-misconfigured" (cause = 259) fault.
-
-Other implementations only detect such addresses to be invalid when the
-data structure referenced by these fields need to be accessed. Such 
-implementations may detect access-violation faults in the process of 
-making the acccess.
-====
 
 [[GET_PC]]
 ==== Process to locate the Process-context
@@ -1331,30 +1339,9 @@ The process to locate the Process-context for a transaction using its
   (a.k.a. poisoned data), then stop and report "PDT data corruption" 
   (cause = 269).
 . If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
-. If any bits or encoding that are reserved for future standard use are set
-  within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-. If any of the following conditions are true then stop and report 
-  "PDT entry misconfigured" (cause = 267).
-.. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
-.. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
-.. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
-.. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
+. If the `PC` is misconfigured as determined by rules outlined in 
+  <<PC_MISCONFIG>> then stop and report "PDT entry misconfigured" (cause = 267).
 . The Process-context has been successfully located.
-
-[NOTE]
-====
-Some `PC` fields that hold a system-physical-addresses or 
-guest-physical-addresses. Some implementations may verify the validity
-of the addresses - e.g. the system-physical-address is not wider than 
-that supported as determined by `capabilities.PAS`, etc. at the time
-of locating the `PC`. Such implementations may cause a "PDT entry
-misconfigured" (cause = 267) fault.
-
-Other implementations only detect such addresses to be invalid when the
-data structure referenced by these fields need to be accessed. Such 
-implementations may detect access-violation faults in the process of 
-making the acccess.
-====
 
 [[MSI_TRANS]]
 ==== Process to translate addresses of MSIs
@@ -1468,7 +1455,6 @@ When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
 PTEs atomically. If `capabilities.AMO` is 0, the IOMMU ignores the A and D bits
 in the PTEs; the IOMMU does not update the A or D bits and does not cause any
 faults based on A and/or D bit being 0.
-
 
 The A and/or D bit updates by the IOMMU must follow the rules specified by the 
 Privileged specification for validity, permission checking, and atomicity. 
@@ -1691,6 +1677,7 @@ following conditions:
 * "Page Request" could not be queued due to the page-request queue being full 
   (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
+[[CACHING]]
 === Caching in-memory data structures
 
 To speed up Direct Memory Access (DMA) translations, the IOMMU may make use of
@@ -1726,3 +1713,48 @@ group of entries.
 |G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===
+
+=== Updating in-memory data structure entries
+
+The RISC-V memory model requires memory access from a hart to be single-copy
+atomic. When RV32 is implemented the size of a single-copy atomic memory access
+is up to 32-bits when RV64 is implemented the size of a single-copy atomic
+memory access is up to 64-bits. The size of a single-copy atomic memory access
+implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
+when the harts in the system implement RV32 and is required to be 64-bits when
+the harts in the system implement RV64.
+
+The IOMMU data structure entries have a `V` bit that when set to 1 indicates
+that the entry is valid.
+
+Software is allowed to make updates to a data structure entry that has the `V`
+bit set to 1. However, some rules as outlined below must be followed.
+
+* It is generally unsafe for software to update fields of a valid data structure
+  entry using a set of stores of width less than the minimal single-copy atomic
+  memory access supported by an IOMMU as it is legal for an IOMMU to read the
+  entry at any time, including when only some of the partial stores have taken
+  effect. +
++
+* For an update to an IOMMU data structure entry to be atomic, software must use
+  a single store of width equal to the minimal single-copy atomic memory access
+  supported by an IOMMU. +
++
+* If the update to a field will make the field inconsistent with another field
+  of the entry then software must first set `V` field to 0 and use the commands
+  outlined in <<CACHING>> to invalidate any previous copies of that entry that
+  may be in IOMMU caches before updating other fields of that entry. +
++
+* The IOMMU is not required to immediately observe the software update to an
+  entry. Software must use the commands outlined in <<CACHING>> to invalidate
+  any previous copies of that entry that may be in IOMMU caches to synchronize
+  the updates to the entry with the operation of the IOMMU.
+
+[NOTE]
+====
+If a data structure entry is changed, the IOMMU may use the old value of the
+entry or the new value of the entry and the choice is unpredictable till
+software uses the commands outlined in <<CACHING>> to invalidate any previous
+copies of that entry that may be in IOMMU caches to synchronize updates to the
+entry with the operation of the IOMMU. These are the only behaviors expected.
+====

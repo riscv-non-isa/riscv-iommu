@@ -111,6 +111,19 @@ The commands are interpreted as two 64-bit doublewords. The byte order of each
 of the doublewords in memory, little-endian or big-endian, is the endianness as
 determined by `fctrl.END` (<<FCTRL>>).
 
+The following commands are supported:
+
+.IOMMU command opcodes
+[width=100%]
+[%header, cols="12,^12,70"]
+|===
+|`opcode`  | Encoding ^| Description
+|`IOTINVAL`| 1        | IOMMU page-table cache invalidation commands.
+|`IOFENCE` | 2        | IOMMU command-queue fence commands.
+|`IOTDIR`  | 3        | IOMMU directory cache invalidation commands.
+|`ATS`     | 4        | IOMMU PCIe ATS commands.
+|===
+
 ==== IOMMU Page-Table cache invalidation commands
 
 [wavedrom, , ]
@@ -138,9 +151,9 @@ S/VS-stage and/or G-stage page tables in the IOMMU-address-translation-cache
 (IOATC). These caches may not observe modifications performed by software to 
 these data structures in memory.
 
-The IOMMU translation-table cache invalidation commands, IOTINVAL.VMA and 
-IOTINVAL.GVMA synchronize updates to in-memory S/VS-stage and G-stage 
-page table data structures respectively with the operation of the IOMMU and 
+The IOMMU translation-table cache invalidation commands, `IOTINVAL.VMA` and
+`IOTINVAL.GVMA` synchronize updates to in-memory S/VS-stage and G-stage
+page table data structures respectively with the operation of the IOMMU and
 invalidate the matching IOATC entries.
 
 The `GV` operand indicates if the Guest-Soft-Context ID (`GSCID`) operand is 
@@ -240,6 +253,28 @@ Simpler implementations may ignore the operand of `IOTINVAL.VMA` and/or
 address-translation entries.
 ====
 
+[NOTE]
+====
+A consequence of this specification is that an implementation may use any
+translation for an address that was valid at any time since the most recent
+`IOTINVAL` that subsumes that address. In particular, if a leaf PTE is
+modified but a subsuming `IOTINVAL` is not executed, either the old translation
+or the new translation will be used, but the choice is unpredictable. The
+behavior is otherwise well-defined.+
+                                                                              +
+In a conventional TLB design, it is possible for multiple entries to match a
+single address if, for example, a page is upgraded to a superpage without
+first clearing the original non-leaf PTE’s valid bit and executing an
+`IOTINVA.VMA` or `IOTINVAL.GVMA` as applicable with `AV=0`. In this case, a
+similar remark applies: it is unpredictable whether the old non-leaf PTE or
+the new leaf PTE is used, but the behavior is otherwise well defined.+
+                                                                              +
+Another consequence of this specification is that it is generally unsafe to
+update a PTE using a set of stores of a width less than the width of the PTE,
+as it is legal for the implementation to read the PTE at any time, including
+when only some of the partial stores have taken effect.
+====
+
 ==== IOMMU Command-queue Fence commands
 
 [wavedrom, , ]
@@ -262,15 +297,35 @@ The IOMMU fetches commands from the CQ in order but the IOMMU may execute the
 fetched commands out of order. The IOMMU advancing `cqh` is not a guarantee 
 that the commands fetched by the IOMMU have been executed or committed. 
 
-A `IOFENCE.C` command guarantees that all previous commands fetched from the CQ 
-have been completed and committed. 
+A `IOFENCE.C` command completion, as determined by `cqh` advancing past the
+index of the `IOFENCE.C` command in the CQ, guarantees that all previous
+commands fetched from the CQ have been completed and committed.
+
+If the `IOFENCE.C` times out waiting on completion of previous commands that are
+specified to have a timeout, then the `cmd_to` bit in `cqcsr` <<CSR>> is set to
+signal this condition. The `cqh` holds the index of the `IOFENCE.C` that timed
+out and all previous commands that are not specified to have a timeout have been
+completed and committed.
+
+[NOTE]
+====
+In this version of the specification, only the `ATS.INVAL` command is specified
+to have a timeout.
+====
 
 The commands may be used to order memory accesses from I/O devices connected to
 the IOMMU as viewed by the IOMMU, other RISC-V harts, and external devices or 
-co-processors. The `PR` and `PW` bits can be used to request that the IOMMU ensure 
-that all previous requests from devices that have already been processed by the
-IOMMU be committed to a global ordering point such that they can be observed by
-all RISC-V harts and IOMMUs in the machine. 
+co-processors.
+
+The `PR` bit, when set to 1, can be used to request that the IOMMU ensure
+that all previous read requests from devices that have already been processed
+by the IOMMU be committed to a global ordering point such that they can be
+observed by all RISC-V harts and IOMMUs in the machine.
+
+The `PW` bit, when set to 1, can be used to request that the IOMMU ensure
+that all previous write requests from devices that have already been processed
+by the IOMMU be committed to a global ordering point such that they can be
+observed by all RISC-V harts and IOMMUs in the machine.
 
 The wired-interrupt-signaling (`WIS`) bit when set to 1 causes a wired-interrupt
 from the command queue to be generated (by setting `cqcsr.fence_w_ip` - <<CSR>>)
@@ -293,6 +348,15 @@ ordering of all previous reads and writes. Ordering previous reads may be
 required if the reclaimed memory will be used to hold data that must not be made
 visible to the device.
 
+The `IOFENCE.C` with `PR` and/or `PW` set to 1 only ensures that requests that
+have been already processed by the IOMMU are committed to the global ordering
+point. Software must perform an an interconnect specific fence action if there
+is a need to ensure that all in-flight requests from a device that have not yet
+been processed by the IOMMU are observed. For PCIe, for example, a completion
+from device in response to a read from the device memory has the property of
+ensuring that previous posted writes are observed by the IOMMU as completions
+may not pass previous posted writes.
+
 The ordering guarantees are made for accesses to main-memory. For accesses to 
 I/O memory, the ordering guarantees are implementation and I/O protocol 
 defined.
@@ -314,7 +378,7 @@ program `ADDR[63:2]` to a memory location and use `IOFENCE.C` to set a flag in
 memory indicating command completion.
 ====
 
-==== IOMMU directory cache commands
+==== IOMMU directory cache invalidation commands
 
 [wavedrom, , ]
 ....
@@ -377,7 +441,7 @@ caches.
 `IOTINVAL` command has no effect on the IOMMU directory caches.
 ====
 
-==== IOMMU ATS commands
+==== IOMMU PCIe ATS commands
 
 This command is supported if `capabilities.ATS` is set to 1.
 
@@ -403,7 +467,8 @@ address range from the address translation cache in a device function. The
 `ATS.INVAL` command completes when an “Invalidation Completion” response message
 is received from the device or a protocol defined timeout occurs while waiting
 for a response. The IOMMU may advance the `cqh` and fetch more commands from 
-CQ while a response is awaited. 
+CQ while a response is awaited. If a timeout occurs, it is reported by a
+subsequent `IOFENCE.C` command is executed.
 
 [NOTE]
 ====
@@ -414,6 +479,13 @@ guaranteed to not complete before all previously fetched commands were executed
 and completed. A previously fetched ATS command to invalidate device ATC does 
 not complete till either the request times out or a valid response is received
 from the device.
+
+If one or more ATS invalidation commands preceeding the `IOFENCE.C` have timed
+out, then software may make the CQ operational again and resubmit the
+invalidation commands that may have timed out. If the `ATS.INVAL` commands
+queued before the `IOFENCE.C` were directed at multiple devices then software
+may resubmit these commands as `ATS.INVAL` and `IOFENCE.C` pairs to identify
+the device caused the timeout.
 ====
 
 The `ATS.PRGR` command instructs the IOMMU to send a “Page Request Group 
