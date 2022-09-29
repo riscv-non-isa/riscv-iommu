@@ -517,6 +517,14 @@ the contents of the bytes 8 and 9 of the message.
 If the `DSV` operand is 1, then a valid destination segment number is specified 
 by the `DSEG` operand.
 
+[NOTE]
+====
+A Hierarchy is a PCI Express I/O interconnect topology, wherein the
+Configuration Space addresses, referred to as the tuple of Bus/Device/Function
+Numbers, are unique. In some contexts, a Hierarchy is also called a Segment, and
+in Flit Mode, the Segment number is sometimes included in the ID of a Function.
+====
+
 [[FAULT_QUEUE]]
 === Fault/Event-Queue (`FQ`)
 Fault/Event queue is an in-memory queue data structure used to report events 

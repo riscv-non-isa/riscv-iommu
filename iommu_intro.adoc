@@ -17,9 +17,17 @@ within data structures supplied by software. For PCIe, for example, the
 originating device may be identified by the unique 16-bit triplet of PCI bus
 number (8-bit), device number (5-bit), and function number (3-bit)
 (collectively known as routing identifier or RID) and optionally up to 8-bit 
-segment number when the IOMMU supports multiple segments. This specification
+segment number when the IOMMU supports multiple Hierarchies. This specification
 refers to such unique device identifier as `device_id` and supports up to 
 24-bit wide identifiers.
+
+[NOTE]
+====
+A Hierarchy is a PCI Express I/O interconnect topology, wherein the
+Configuration Space addresses, referred to as the tuple of Bus/Device/Function
+Numbers, are unique. In some contexts, a Hierarchy is also called a Segment, and
+in Flit Mode, the Segment number is sometimes included in the ID of a Function.
+====
 
 Some devices may support shared virtual addressing which is the ability to
 share process address spaces with devices. Sharing process address spaces with
