@@ -27,15 +27,15 @@ Requests.
 The translation-request interface consists of following 64-bit WARL registers:
 
 * `tr_req_iova` (<<TRR_IOVA>>)
-* `tr_req_ctrl` (<<TRR_CTRL>>)
+* `tr_req_ctl` (<<TRR_CTRL>>)
 
 The translation-response interface consists of following 64-bit RO register:
 
 * `tr_response` (<<TRR_RSP>>)
 
 To request a translation, the `tr_req_iova` register is written first with
-the desired IOVA and the `tr_req_ctrl` register is written next. The 'Go/Busy` 
-bit is set in `tr_req_ctrl` to indicate a valid request in the registers.  The 
+the desired IOVA and the `tr_req_ctl` register is written next. The 'Go/Busy` 
+bit is set in `tr_req_ctl` to indicate a valid request in the registers.  The 
 `Go/Busy` bit is a read-write-sticky (RWS) bit that once set cannot be cleared
 by writing the register. The `Go/Busy` bit will be cleared to 0 by the IOMMU 
 when the process completes (successfully or due to encountering a fault). When 
@@ -44,7 +44,7 @@ register.
 
 The IOMMU behavior is `UNSPECIFIED` if:
 
-* The `tr_req_iova` or `tr_req_ctrl` are modified when the `Go/Busy` bit is 1.
+* The `tr_req_iova` or `tr_req_ctl` are modified when the `Go/Busy` bit is 1.
 * IOMMU configurations such as `ddtp.iommu_mode`, etc. are modified.
 
 The time to complete a translation request through this debug interface is

@@ -263,7 +263,7 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format. The byte order of each of the doublewords
 in memory, little-endian or big-endian, is the endianness as determined by
-`fctrl.END` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
+`fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -704,7 +704,7 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 
 The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctrl.END` (<<FCTRL>>). The IOMMU may read the `PC` fields in any
+determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `PC` fields in any
 order.
 
 ==== Process-context fields
@@ -846,7 +846,7 @@ individual MSI PTE from the table is also unspecified.
 
 Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order 
 for each of the two doublewords in memory, little-endian or big-endian, is the 
-endianness as determined by `fctrl.END` (<<FCTRL>>).
+endianness as determined by `fctl.BE` (<<FCTRL>>).
 
 Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`, 
 the PTE is invalid, and all other bits of both doublewords are ignored by an 
@@ -1415,9 +1415,9 @@ address and translating the address using the MSI page table is as follows:
 ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
 
 . If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. The IOMMU
-  capable of big-endian access to memory if the `END` bit in the `capabilities`
+  capable of big-endian access to memory if the `BE` bit in the `capabilities`
   register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation, 
-  the feature control register, `fctrl` (<<FCTRL>>), holds the configuration 
+  the feature control register, `fctl` (<<FCTRL>>), holds the configuration 
   bit that may be set to 1 to enable big-endian access to memory. If the IOMMU 
   is not capable or has not been configured for big-endian access to memory, 
   then stop and report "Transaction type disallowed" (cause = 260).
