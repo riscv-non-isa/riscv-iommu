@@ -269,7 +269,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 {reg: [
   {bits: 1, name: 'END'},
   {bits: 1, name: 'WIS'},
-  {bits: 14,  name: 'reserved'},
+  {bits: 1, name: 'ADFD'},
+  {bits: 13,  name: 'reserved'},
   {bits: 16,  name: 'custom'},
 ], config:{lanes: 1, hspace:1024}}
 ....
@@ -284,8 +285,10 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 little-endian accesses and when 1 as 
                                 big-endian accesses.
 |1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
-                                wired-interrupts.
-|15:2  |`reserved` |WPRI      | Reserved for standard use.
+                                wire-signaled-interrupts.
+|2     |`ADFD`     |WARL      | When 1, IOMMU faults due to A/D bits is
+                                disabled.
+|15:3  |`reserved` |WPRI      | Reserved for standard use.
 |31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
 

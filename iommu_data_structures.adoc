@@ -398,14 +398,16 @@ The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
 
 If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
-`GADE` is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not
-update the A or D bits and does not cause any faults based on A and/or D bit
-being 0.
+`GADE` is 0, the IOMMU behavior is determined by `fctl.ADFD` bit. If `fctl.ADFD`
+is 0 then the IOMMU causes a guest-page-fault. If `fctrl.ADFD` is 0, the IOMMU
+ignores the A and D bits in the PTEs; the IOMMU does not update the A or D bits
+and does not cause any faults based on A and/or D bit being 0.
 
 If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
-`SADE` is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not
-update the A or D bits and does not cause any faults based on A and/or D bit
-being 0.
+`SADE` is 0, the IOMMU behavior is determined by `fctl.ADFD` bit. If `fctl.ADFD`
+is 0 then the IOMMU causes a guest-page-fault. If `fctrl.ADFD` is 0, the IOMMU
+ignores the A and D bits in the PTEs; the IOMMU does not update the A or D bits
+and does not cause any faults based on A and/or D bit being 0.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
