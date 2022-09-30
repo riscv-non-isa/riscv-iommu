@@ -109,7 +109,7 @@ encodings 64 to 127 are designated for custom use.
 
 The commands are interpreted as two 64-bit doublewords. The byte order of each
 of the doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctrl.END` (<<FCTRL>>).
+determined by `fctl.BE` (<<FCTRL>>).
 
 The following commands are supported:
 
@@ -283,7 +283,7 @@ when only some of the partial stores have taken effect.
   {bits: 7, name: 'opcode', attr: 'IOFENCE(0x2)'},
   {bits: 3, name: 'func3',  attr: 'C-0x0'},
   {bits: 1, name: 'AV'},
-  {bits: 1, name: 'WIS'},
+  {bits: 1, name: 'WSI'},
   {bits: 1, name: 'PR'},
   {bits: 1, name: 'PW'},
   {bits: 18, name: 'rsvd'},
@@ -327,11 +327,11 @@ that all previous write requests from devices that have already been processed
 by the IOMMU be committed to a global ordering point such that they can be
 observed by all RISC-V harts and IOMMUs in the machine.
 
-The wired-interrupt-signaling (`WIS`) bit when set to 1 causes a wired-interrupt
+The wire-signaled-interrupts (`WSI`) bit when set to 1 causes a wired-interrupt
 from the command queue to be generated (by setting `cqcsr.fence_w_ip` - <<CSR>>)
 on completion of `IOFENCE.C`. This bit is reserved if the IOMMU does not support
 wired-interrupts or wired-interrupts have not been enabled 
-(i.e., `fctrl.WIS == 0`).
+(i.e., `fctl.WSI == 0`).
 
 [NOTE]
 ====
@@ -545,7 +545,7 @@ number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. 
 
 The fault records are interpreted as four 64-bit doublewords. The byte order of 
 each of the doublewords in memory, little-endian or big-endian, is the endianness
-as determined by `fctrl.END` (<<FCTRL>>).
+as determined by `fctl.BE` (<<FCTRL>>).
 
 .Fault-queue record
 [wavedrom, , ]
@@ -737,4 +737,4 @@ of the message) is held in the `PAYLOAD` field.
 
 The page-request-queue records are interpreted as two 64-bit doublewords. The byte
 order of each of the doublewords in memory, little-endian or big-endian, is the 
-endianness as determined by `fctrl.END` (<<FCTRL>>).
+endianness as determined by `fctl.BE` (<<FCTRL>>).

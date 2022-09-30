@@ -43,7 +43,7 @@ the register returns 0 and writes to that offset are ignored.
 |Offset|Name            |Size|Description                 | Is Optional?
 |0     |`capabilities`  |8   |<<CAP, Capabilities of the
                                      IOMMU>>              | No
-|8     |`fctrl`         |4   |<<FCTRL, Features control>> | No
+|8     |`fctl`          |4   |<<FCTRL, Features control>> | No
 |12    |_custom_        |4   |_Designated For custom use_ |
 |16    |`ddtp`          |8   |<<DDTP, Device directory
                               table pointer>>             | No
@@ -72,7 +72,7 @@ the register returns 0 and writes to that offset are ignored.
 |352   |`iohpmevt1-31`  |248 |<<EVT, HPM event selector>> | if `capabilities.HPM==0`
 |600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request
                                      IOVA>>               | if `capabilities.DBG==0`
-|608   |`tr_req_ctrl`   |8   |<<TRR_CTRL, Translation-request
+|608   |`tr_req_ctl`    |8   |<<TRR_CTRL, Translation-request
                                      control>>            | if `capabilities.DBG==0`
 |616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
                                      response>>           | if `capabilities.DBG==0`
@@ -83,14 +83,14 @@ the register returns 0 and writes to that offset are ignored.
 |760   |`icvec`         |4   |<<ICVEC, Interrupt cause
                               to vector register>>        | No
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration
-                                     Table>>              | if `capabilities.IGS==WIS`
+                                     Table>>              | if `capabilities.IGS==WSI`
 |1024  |Reserved        |3072|Reserved for standard use   |
 |===
 
 === Reset behavior
 The reset value is 0 for the following registers/fields.
 
-* `fctrl`
+* `fctl`
 * `cqcsr`
 * `fqcsr`
 * `pqcsr`
@@ -98,7 +98,7 @@ The reset value is 0 for the following registers/fields.
 Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`. The 
 reset value for `ddtp.busy` field must be 0.
 
-Reset value for `tr_req_ctrl.Go/Busy` field must be 0.
+Reset value for `tr_req_ctl.Go/Busy` field must be 0.
 
 After a reset the caches (<<CACHING>>) must have no valid entries.
 
@@ -138,7 +138,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'AMO'},
   {bits: 1, name: 'ATS'},
   {bits: 1, name: 'T2GPA'},
-  {bits: 1, name: 'END'},
+  {bits: 1, name: 'BE'},
   {bits: 2, name: 'IGS'},
   {bits: 1, name: 'HPM'},
   {bits: 1, name: 'DBG'},
@@ -190,22 +190,22 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
                                 page-request interface (PRI) is supported.
 |26    |`T2GPA`    |RO        | Returning guest-physical-address in ATS 
                                 translation completions is supported.
-|27    |`END`      |RO        | When 0, IOMMU supports one endianness (either little
+|27    |`BE`       |RO        | When 0, IOMMU supports one endianness (either little
                                 or big). When 1, IOMMU supports both endianness.
-                                The endianness is defined in `fctrl` register.
+                                The endianness is defined in `fctl` register.
 |29:28 |`IGS`      |RO       a| IOMMU interrupt generation support.
 
 [%header, cols="^1,1,3"]
 !===
                                 !Value  !Name      ! Description
-                                !0      ! `MSI`    ! IOMMU supports only MSI 
-                                                     generation.
-                                !1      ! `WIS`    ! IOMMU supports only wire
-                                                     interrupt generation.
+                                !0      ! `MSI`    ! IOMMU supports only message-
+                                                     signaled-interrupt generation.
+                                !1      ! `WSI`    ! IOMMU supports only wire-
+                                                     signaled-interrupt generation.
                                 !2      ! `BOTH`   ! IOMMU supports both MSI 
-                                                     and wire interrupt generation.
+                                                     and WSI generation.
                                                      The interrupt generation method
-                                                     must be defined in `fctrl`
+                                                     must be defined in `fctl`
                                                      register.
                                 !3      ! 0        ! Reserved for standard use
 !===
@@ -223,7 +223,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 If `HPM` is supported then the IOMMU must implement the cycles counter and at
 least 1 hardware performance monitoring counter must be implemented.
 
-At least one method, `MSI` or `WIS`, of generating interrupts from the IOMMU
+At least one method, `MSI` or `WSI`, of generating interrupts from the IOMMU
 must be supported.
 
 [NOTE]
@@ -250,7 +250,7 @@ discovered through other means.
 ====
 
 [[FCTRL]]
-=== Features-control register (`fctrl`)
+=== Features-control register (`fctl`)
 
 This register must be readable in any implementation. An implementation may 
 allow one or more fields in the register to be writable to support enabling
@@ -267,8 +267,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 1, name: 'END'},
-  {bits: 1, name: 'WIS'},
+  {bits: 1, name: 'BE'},
+  {bits: 1, name: 'WSI'},
   {bits: 14,  name: 'reserved'},
   {bits: 16,  name: 'custom'},
 ], config:{lanes: 1, hspace:1024}}
@@ -278,13 +278,13 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 [%header, cols="^1,2,^1,5"]
 |===
 |Bits  |Field      |Attribute | Description
-|0     |`END`      |WARL      | When 0, IOMMU accesses to memory resident data 
+|0     |`BE`       |WARL      | When 0, IOMMU accesses to memory resident data 
                                 structures (e.g. DDT, PDT, in-memory queues, 
                                 S/VS and G stage page tables) are performed as 
                                 little-endian accesses and when 1 as 
                                 big-endian accesses.
-|1     |`WIS`      |WARL      | When 1, IOMMU interrupts are signaled as 
-                                wired-interrupts.
+|1     |`WSI`      |WARL      | When 1, IOMMU interrupts are signaled as 
+                                wire-signaled-interrupts.
 |15:2  |`reserved` |WPRI      | Reserved for standard use.
 |31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
@@ -754,16 +754,16 @@ status of the command-queue.
                             (i.e.  `cqsr.cie == 0`). To re-enable command 
                             processing software should clear this bit by 
                             writing 1. 
-|11   |`fence_w_ip`|RW1C  | An IOMMU that supports only wired interrupts sets 
-                            `fence_w_ip` bit is set to indicate completion of a 
-                            `IOFENCE.C` command. An interrupt on setting 
+|11   |`fence_w_ip`|RW1C  | An IOMMU that supports only wire-signaled-interrupts
+                            sets `fence_w_ip` bit is set to indicate completion
+                            of an `IOFENCE.C` command. An interrupt on setting 
                             `fence_w_ip` if not already pending 
                             (i.e. `ipsr.cip == 1`) and `fence_w_ip` is 0. 
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
                             This bit is reserved if the IOMMU does not support
-                            wired-interrupts or wired-interrupts are not
-                            enabled (i.e., `fctrl.WIS == 0`).
+                            wire-signaled-interrupts or wire-signaled-interrupts
+                            are not enabled (i.e., `fctl.WSI == 0`).
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
                             IOMMU behavior on changing `cqb` when `busy` is 1 or 
@@ -1397,12 +1397,12 @@ The vector is used:
   configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An 
   IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
   or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
-  configured to generate interrupts as MSI by setting `fctrl.WIS` to 0.
-. By an IOMMU that generates wire based interrupts, to determine the wire 
-  to signal the interrupt. An IOMMU is capable of generating wire based 
-  interrupts if `capabilities.IGS==WIS` or if `capabilities.IGS==BOTH`. When 
-  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire based 
-  interrupts by setting `fctrl.WIS` to 1.
+  configured to generate interrupts as MSI by setting `fctl.WSI` to 0.
+. By an IOMMU that generates WSI, to determine the wire 
+  to signal the interrupt. An IOMMU is capable of generating wire-signaled-
+  interrupts if `capabilities.IGS==WSI` or if `capabilities.IGS==BOTH`. When 
+  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire-signaled-
+  interrupts by setting `fctl.WSI` to 1.
 
 If an implementation only supports a single vector then all bits of this
 register may be hardwired to 0 (WARL). Likewise if only two vectors are 
@@ -1468,8 +1468,8 @@ translation-request interface for debug. This register is present when
 
 
 [[TRR_CTRL]]
-=== Translation-request control (`tr_req_ctrl`)
-The `tr_req_ctrl` is a 64-bit WARL register used to implement a 
+=== Translation-request control (`tr_req_ctl`)
+The `tr_req_ctl` is a 64-bit WARL register used to implement a 
 translation-request interface for debug. This register is present when
 `capabilities.DBG == 1`.
 
@@ -1496,7 +1496,7 @@ translation-request interface for debug. This register is present when
 |Bits   |Field      |Attribute | Description
 | 0     |`Go/Busy`  |RW1S      | This bit is set to indicate a valid 
                                  request has been setup in the 
-                                 `tr_req_iova/tr_req_ctrl` registers
+                                 `tr_req_iova/tr_req_ctl` registers
                                  for the IOMMU to translate. +
                                                                                +
                                  The IOMMU indicates completion of the
@@ -1606,8 +1606,8 @@ IOMMU that supports generating IOMMU originated interrupts
 (i.e., `capabilities.IGS == MSI` or `capabilities.IGS == BOTH`) as MSI 
 implements a MSI configuration table that is indexed by the vector from `icvec`
 to determine a MSI table entry. Each MSI table entry for interrupt vector `x` 
-has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctrl_x`. These 
-registers are hard wired to 0 if `capabilities.IGS == WIS`.
+has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctl_x`. These 
+registers are hardwired to 0 if `capabilities.IGS == WSI`.
 
 If an access fault is detected on a MSI write using `msi_addr_x`, then the IOMMU
 reports a "IOMMU MSI write access fault" (cause 273) fault, with `TTYP` set to 0

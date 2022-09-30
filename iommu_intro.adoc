@@ -653,6 +653,5 @@ features:
 * A register interface for software to request an address translation to 
   support debug.
 
-Software may discover the supported features using the `capabilities`
-register of the IOMMU described in <<CAP>>.
+Supported features may be discovered using the `capabilities` register <<CAP>>.
 
