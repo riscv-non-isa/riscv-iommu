@@ -7,50 +7,50 @@ device directory table (DDT) that is traversed using the `device_id` is used to
 locate the `DC`.
 
 The address space used by a device may require single-stage or two-stage address
-translation and protection. Two-stage address translation may required when the 
-control of the device is passed through to a Guest OS. Single-stage address 
-translation using a S-stage page table may be used when the control of the 
-device is retained by the hypervisor or Host OS itself. 
+translation and protection. Two-stage address translation may required when the
+control of the device is passed through to a Guest OS. Single-stage address
+translation using a S-stage page table may be used when the control of the
+device is retained by the hypervisor or Host OS itself.
 
 When two-stage address translation is used the `DC` holds the PPN of the root
 G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates
 invalidations of cached address translations on a per-virtual-machine basis; and
 the G-stage address translation scheme.
 
-Some devices supports multiple contexts where each context may be associated 
+Some devices supports multiple contexts where each context may be associated
 with a different process and thus a different virtual address space. The context
-in such devices may be configured with a `process_id` that identifies the 
+in such devices may be configured with a `process_id` that identifies the
 address space. When making a memory access, such devices signal the `process_id`
 along with the `device_id` to identify the accessed address space. An example of
 such a device is a GPU that supports multiple process contexts, where each
-context is associated with a different user process, such that the GPU may 
+context is associated with a different user process, such that the GPU may
 access memory using the virtual address provided by the user process itself. To
 support selecting an address space associated with the `process_id`, the `DC`
 holds the PPN of the root Process Directory Table (PDT), a radix-tree data
 structure, indexed using fields of the `process_id` to locate a data structure
-called the Process Context (`PC`). 
+called the Process Context (`PC`).
 
 When a PDT is active, the controls for S-stage or VS-stage address translation
 are held in the (`PC`).
 
-When a PDT is not active, the controls for S-stage or VS-stage address 
+When a PDT is not active, the controls for S-stage or VS-stage address
 translation are be held in the `DC` itself.
 
-The S/VS-stage address translation controls include the PPN of the root 
+The S/VS-stage address translation controls include the PPN of the root
 S/VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
 invalidations of cached address translations on a per-address-space basis; and
 the S/VS-stage address translation scheme.
 
 To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
-redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from 
+redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from
 devices are simply memory writes, they would naturally be subject to the same
-address translation that an IOMMU applies to other memory writes. However, 
-the IOMMU architecture may treat MSIs directed to virtual machines specially, in 
-part to simplify software, and in part to allow optional support for 
+address translation that an IOMMU applies to other memory writes. However,
+the IOMMU architecture may treat MSIs directed to virtual machines specially, in
+part to simplify software, and in part to allow optional support for
 memory-resident interrupt files. To support this capability, the architecture
-adds to the device contexts an MSI address mask and address pattern, used together 
+adds to the device contexts an MSI address mask and address pattern, used together
 to recognize certain memory writes from the device as being MSIs; and the real
-physical address of an MSI page table for controlling the translation and/or 
+physical address of an MSI page table for controlling the translation and/or
 conversion of MSIs from the device.
 
 [NOTE]
@@ -58,35 +58,35 @@ conversion of MSIs from the device.
 A device context is given an independent page table for MSIs for two reasons:
 
 First, hypervisors running under Linux or a similar OS can benefit from separate
-control of MSI translations to help simplify the case when virtual harts are 
-migrated from one physical hart to another. When a virtual hart’s interrupt 
-files are mapped to guest interrupt files in the real machine, migration of the 
+control of MSI translations to help simplify the case when virtual harts are
+migrated from one physical hart to another. When a virtual hart’s interrupt
+files are mapped to guest interrupt files in the real machine, migration of the
 virtual hart causes the physical guest interrupt files underlying those virtual
-interrupt files to change. However, because on other systems (not RISC-V) the 
-migration of a virtual hart does not affect the mapping from guest physical 
-addresses to real physical addresses, the internal functions of Linux that 
+interrupt files to change. However, because on other systems (not RISC-V) the
+migration of a virtual hart does not affect the mapping from guest physical
+addresses to real physical addresses, the internal functions of Linux that
 perform this migration are not set up to modify an IOMMU’s address-translation
 tables to adjust for the changing physical locations of RISC-V virtual interrupt
-files. Giving a hypervisor control of a separate MSI translation table at an 
-IOMMU bypasses this limitation. The MSI page table can be modified at will by 
-the hypervisor and/or by the subsystem that manages interrupts without 
+files. Giving a hypervisor control of a separate MSI translation table at an
+IOMMU bypasses this limitation. The MSI page table can be modified at will by
+the hypervisor and/or by the subsystem that manages interrupts without
 coordinating with the many other OS components concerned with regular address
 translation.
 
-Second, specifying a separate MSI page table facilitates the use of 
-memory-resident interrupt files (MRIFs), which are introduced in Section 
-<<MRIF_PTE>>.  A dedicated MSI page table can easily support a special table 
+Second, specifying a separate MSI page table facilitates the use of
+memory-resident interrupt files (MRIFs), which are introduced in Section
+<<MRIF_PTE>>.  A dedicated MSI page table can easily support a special table
 entry format for MRIFs (Section <<MRIF_PTE>> that would be entirely foreign and
 difficult to retrofit to any other address-translation data structures.
 ====
 
 The `DC` further holds controls for the type of transactions that a device is
-allowed to generate. One example of such a control is whether the device is 
+allowed to generate. One example of such a control is whether the device is
 allowed to use the PCIe defined Address Translation Service (ATS).
 
 Two formats of the device-context structure are supported:
 
-* *Base Format* - is 32-bytes in size used when the special treatment of MSI 
+* *Base Format* - is 32-bytes in size used when the special treatment of MSI
   as specified in <<MSI_TRANS>> is not supported by the IOMMU.
 
 * *Extended Format* - is 64-bytes in size and extends the base format `DC` with
@@ -95,7 +95,7 @@ Two formats of the device-context structure are supported:
 If `capabilities.MSI_FLAT` is 1 then the Extended Format is used else the Base
 Format is used.
 
-The DDT used to locate the `DC` may be configured to be a 1, 2, or 3 level 
+The DDT used to locate the `DC` may be configured to be a 1, 2, or 3 level
 radix-table depending on the maximum width of the `device_id` supported. The
 partitioning of the `device_id` to obtain the device directory indexes (DDI) to
 traverse the DDT radix-tree table are as follows:
@@ -124,7 +124,7 @@ traverse the DDT radix-tree table are as follows:
 
 The PDT may be configured to be a 1, 2, or 3 level radix table depending on the
 maximum width of the `process_id` supported for that device.  The partitioning
-of the `process_id` to obtain the process directory indices (PDI) to traverse 
+of the `process_id` to obtain the process directory indices (PDI) to traverse
 the PDT radix-tree table are as follows:
 
 .`process_id` partitioning for PDT radix-tree traversal
@@ -158,11 +158,11 @@ is not prohibited by this specification.
 DDT is up to 3-level radix tree indexed using the device directory index (DDI)
 bits of the `device_id`.
 
-The following diagrams illustrate the DDT radix-tree. The PPN of the root 
+The following diagrams illustrate the DDT radix-tree. The PPN of the root
 device-directory-table is held in a memory-mapped register called the
-device-directory-table pointer (`ddtp`). 
+device-directory-table pointer (`ddtp`).
 
-Each valid non-leaf (`NL`) entry is 8-bytes in size and holds the PPN of the 
+Each valid non-leaf (`NL`) entry is 8-bytes in size and holds the PPN of the
 next device-directory-table.
 
 A valid leaf device-directory-table entry holds the device-context (`DC`).
@@ -241,7 +241,7 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
   {bits: 64,  name: 'Translation-control (tc)'},
   {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
   {bits: 64,  name: 'Translation-attributes (ta)'},
-  {bits: 64,  name: 'First-stage-context (fsc)'},  
+  {bits: 64,  name: 'First-stage-context (fsc)'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
@@ -306,9 +306,9 @@ If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA
 Translation Request from the device.  In this mode of operations, the ATC in the
 device caches a GPA as a translation for an IOVA and uses the GPA as the address
 in subsequent translated memory access transactions. Usually translated requests
-use a SPA and need no further translation to be performed by the IOMMU. However 
+use a SPA and need no further translation to be performed by the IOMMU. However
 when `T2GPA` is 1, translated requests from a device use a GPA and are
-translated by the IOMMU using the G-stage page table to a SPA. The `T2GPA` 
+translated by the IOMMU using the G-stage page table to a SPA. The `T2GPA`
 control enables a hypervisor to contain DMA from a device, even if the device
 misuses the ATS capability and attempts to access memory that is not associated
 with the VM.
@@ -319,7 +319,7 @@ When `T2GPA` is enabled, the addresses provided to the device in response to a
 PCIe ATS Translation Request cannot be directly routed by the I/O fabric
 (e.g. PCI switches) that connect the device to other peer devices and to host.
 Such addresses are also cannot be routed within the device when peer-to-peer
-transactions within the device (e.g. between functions of a device) are 
+transactions within the device (e.g. between functions of a device) are
 supported.
 
 Hypervisors that configure `T2GPA` to 1 must ensure through protocol specific
@@ -336,27 +336,27 @@ Request.
 As an alternative to setting `T2GPA` to 1, the hypervisor may establish a trust
 relationship with the device if authentication protocols are supported by the
 device. For PCIe, for example, the PCIe component measurement and authentication
-(CMA) capability provides a mechanism to verify the devices configuration and 
-firmware/executable (Measurement) and hardware identities (Authentication) to 
+(CMA) capability provides a mechanism to verify the devices configuration and
+firmware/executable (Measurement) and hardware identities (Authentication) to
 establish such a trust relationship.
 ====
 
-If `EN_PRI` bit is 0, then PCIe "Page Request" messages from the device are 
+If `EN_PRI` bit is 0, then PCIe "Page Request" messages from the device are
 invalid requests. A "Page Request" message received from a device is responded to
-with a "Page Request Group Response" message. Normally, a software handler 
-generates this response message. However, under some conditions the IOMMU itself 
-may generate a response. For IOMMU generated "Page Request Group Response" 
-messages the PRG-response-PASID-required (`PRPR`) bit when set to 1 indicates 
+with a "Page Request Group Response" message. Normally, a software handler
+generates this response message. However, under some conditions the IOMMU itself
+may generate a response. For IOMMU generated "Page Request Group Response"
+messages the PRG-response-PASID-required (`PRPR`) bit when set to 1 indicates
 that the IOMMU response message should include a PASID if the associated
 "Page Request" had a PASID.
 
 [NOTE]
 ====
-Functions that support PASID and have the "PRG Response PASID Required" 
+Functions that support PASID and have the "PRG Response PASID Required"
 capability bit set to 1, expect that "Page Request Group Response" messages will
-contain a PASID if the associated "Page Request" message had a PASID. If the 
-capability bit is 0, the function does not expect PASID on any "Page Request 
-Group Response" message and the behavior of the function if it receives the 
+contain a PASID if the associated "Page Request" message had a PASID. If the
+capability bit is 0, the function does not expect PASID on any "Page Request
+Group Response" message and the behavior of the function if it receives the
 response with a PASID is undefined. The `PRPR` bit should be configured
 with the value held in the "PRG Response PASID Required" capability bit.
 ====
@@ -365,7 +365,7 @@ Setting the disable-translation-fault - `DTF` - bit to 1 disables reporting of
 faults encountered in the address translation process. Setting `DTF` to 1 does
 not disable error responses from being generated to the device in response to
 faulting transactions. Setting `DTF` to 1 does not disable reporting of faults
-from the IOMMU that are not related to the address translation process. The 
+from the IOMMU that are not related to the address translation process. The
 faults that are not reported when `DTF` is 1 are listed in <<FAULT_CAUSE>>.
 
 [NOTE]
@@ -376,7 +376,7 @@ abnormal termination of a virtual machine.
 ====
 
 The `fsc` field of `DC` holds the context for first-stage translations (S-stage
-or VS-stage). If the `PDTV` bit is 1, the field holds the PPN of the root page 
+or VS-stage). If the `PDTV` bit is 1, the field holds the PPN of the root page
 of PDT.  If the `PDTV` bit is 0 and `iohgatp.MODE` is `Bare`, the `fsc` field
 holds the PPN of the root page of a S-stage page table (i.e. `iosatp`).
 if the `PDTV` bit is 0 and `iohgatp.MODE` is not `Bare`, the `fsc` field holds
@@ -384,7 +384,7 @@ the PPN of the root page of a VS-stage page table (i.e. `iovsatp`).
 
 The `PDTV` is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
-with its memory accesses. For PCIe, for example, if the request has a PASID 
+with its memory accesses. For PCIe, for example, if the request has a PASID
 then the PASID is used as the `process_id`.
 
 When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
@@ -486,7 +486,7 @@ When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
 `process_id`, the PDT is used to determine the S/VS-stage page table and
 associated `PSCID` for virtual address translation and protection.
 
-The `pdtp` field holds the PPN of the root PDT and the `MODE` field that 
+The `pdtp` field holds the PPN of the root PDT and the `MODE` field that
 determines the number of levels of the PDT.
 
 .Process-directory table pointer (`pdtp`) field (when `PDTV` is 1)
@@ -559,18 +559,18 @@ The `MODE` field is used to select the MSI address translation scheme.
 
 The MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`) fields
 are used to recognize certain memory writes from the device as being MSIs and
-to identify the 4-KiB pages of virtual interrupt files in the guest physical 
-address space of the relevant VM. An incoming 32-bit write made by a device is 
-recognized as an MSI write to a virtual interrupt file if the destination guest 
-physical page matches the supplied address pattern in all bit positions that are 
-zeros in the supplied address mask. In detail, a write to guest physical address 
+to identify the 4-KiB pages of virtual interrupt files in the guest physical
+address space of the relevant VM. An incoming 32-bit write made by a device is
+recognized as an MSI write to a virtual interrupt file if the destination guest
+physical page matches the supplied address pattern in all bit positions that are
+zeros in the supplied address mask. In detail, a write to guest physical address
 `A` is recognized as an MSI to a virtual interrupt file if:
 
 `(A >> 12) & ~msi_addr_mask = (msi_addr_pattern & ~msi_addr_mask)`
 
-where >> 12 represents shifting right by 12 bits, an ampersand (&) represents 
-bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of 
-the address mask. 
+where >> 12 represents shifting right by 12 bits, an ampersand (&) represents
+bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of
+the address mask.
 
 .MSI address mask (`msi_addr_mask`) field
 [wavedrom, , ]
@@ -603,7 +603,7 @@ conditions are true.
 . `DC.tc.EN_ATS` is 0 and `DC.tc.EN_PRI` is 1
 . `DC.tc.EN_PRI` is 0 and `DC.tc.PRPR` is 1
 . `capabilities.T2GPA` is 0 and `DC.tc.T2GPA` is 1
-. `DC.tc.T2GPA` is 1 and `DC.iohgatp.MODE` is `Off` or is `Bare`
+. `DC.tc.T2GPA` is 1 and `DC.iohgatp.MODE` is `Bare`
 . `DC.tc.PDTV` is 1 and `DC.fsc.pdtp.MODE` is not a supported mode
 .. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
 .. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
@@ -742,7 +742,7 @@ the state of `SUM`.
 
 ===== First-Stage context (`fsc`)
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
-is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide 
+is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide
 the controls for S-stage page or VS-stage address translation and protection
 respectively.
 
@@ -765,7 +765,7 @@ The software assigned process soft-context ID (`PSCID`) is used as the address
 space ID for the process identified by the S/VS-stage page table.
 
 When two-stage address translation is active (`iohgatp.MODE != Bare`), the `PPN`
-field holds a guest PPN of the root of a VS-stage page table. Addresses of the 
+field holds a guest PPN of the root of a VS-stage page table. Addresses of the
 VS-stage page table entries are then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. A guest OS may thus directly edit the VS-stage page table to limit
@@ -796,7 +796,7 @@ conditions are true.
 
 [NOTE]
 ====
-Some `PC` fields that hold a system-physical-addresses or 
+Some `PC` fields that hold a system-physical-addresses or
 guest-physical-addresses. Some implementations may verify the validity of the
 addresses - e.g. the system-physical-address is not wider than that supported
 as determined by `capabilities.PAS`, etc. at the time of locating the `PC`.
@@ -809,61 +809,61 @@ may detect access-violation faults in the process of making the acccess.
 
 [[MSI_PT]]
 === MSI page tables
-Whenever an IOMMU recognizes an incoming write from a device as an MSI by the 
+Whenever an IOMMU recognizes an incoming write from a device as an MSI by the
 method specified in the previous section, the MSI is translated or converted by
-consulting the MSI page table configured for the device, instead of using the 
+consulting the MSI page table configured for the device, instead of using the
 regular translation data structures that apply to all other memory accesses from
 the same device.
 
 Only naturally aligned 32-bit writes from a device are possible MSIs. For other
-forms of memory accesses by a device (such as reads, writes of other sizes, or 
-misaligned writes), the regular translation data structures are always applied, 
+forms of memory accesses by a device (such as reads, writes of other sizes, or
+misaligned writes), the regular translation data structures are always applied,
 even if the address matches that of a proper MSI.
 
-An MSI page table is a flat array of MSI page table entries (MSI PTEs), each 
+An MSI page table is a flat array of MSI page table entries (MSI PTEs), each
 16 bytes. MSI page tables have no multi-level hierarchy like regular RISC-V page
-tables do. Rather, every MSI PTE is a leaf entry specifying the translation or 
-conversion of writes made to a particular 4-KiB guest physical page that a 
-virtual interrupt file occupies (or may occupy) in the relevant virtual machine. 
+tables do. Rather, every MSI PTE is a leaf entry specifying the translation or
+conversion of writes made to a particular 4-KiB guest physical page that a
+virtual interrupt file occupies (or may occupy) in the relevant virtual machine.
 To select an individual MSI PTE from an MSI page table, the PTE array is indexed
-by the interrupt file number extracted from the destination guest physical 
-address of the incoming MSI write by the formula of the <<MSI_ID>>. Each 
-MSI PTE may specify either the address of a real guest interrupt file that 
-substitutes for the targeted virtual interrupt file (as in <<MSI_REDIR>>), or a 
-memory-resident interrupt file in which to store incoming MSIs for the virtual 
+by the interrupt file number extracted from the destination guest physical
+address of the incoming MSI write by the formula of the <<MSI_ID>>. Each
+MSI PTE may specify either the address of a real guest interrupt file that
+substitutes for the targeted virtual interrupt file (as in <<MSI_REDIR>>), or a
+memory-resident interrupt file in which to store incoming MSIs for the virtual
 interrupt file (as in <<MRIF_WRITE>>).
 
-The number of entries in an MSI page table is always a power of two, 
-specifically `2^k^` where `k` is the number of bits that are ones in the MSI 
-address mask used to extract the interrupt file number from the destination 
-guest physical address. If an MSI page table has 256 or fewer entries, the 
-start of the table is always aligned to a 4-KiB page address in real 
-physical memory. If an MSI page table has `2^k^ > 256` entries, the table must 
+The number of entries in an MSI page table is always a power of two,
+specifically `2^k^` where `k` is the number of bits that are ones in the MSI
+address mask used to extract the interrupt file number from the destination
+guest physical address. If an MSI page table has 256 or fewer entries, the
+start of the table is always aligned to a 4-KiB page address in real
+physical memory. If an MSI page table has `2^k^ > 256` entries, the table must
 be naturally aligned to a `2k` × 16-byte address boundary.  If an MSI page table
-is not aligned as required, all entries in the table appear to an IOMMU as 
-unspecified, and any address an IOMMU may compute and use for reading an 
+is not aligned as required, all entries in the table appear to an IOMMU as
+unspecified, and any address an IOMMU may compute and use for reading an
 individual MSI PTE from the table is also unspecified.
 
-Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order 
-for each of the two doublewords in memory, little-endian or big-endian, is the 
+Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order
+for each of the two doublewords in memory, little-endian or big-endian, is the
 endianness as determined by `fctrl.END` (<<FCTRL>>).
 
-Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`, 
-the PTE is invalid, and all other bits of both doublewords are ignored by an 
+Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`,
+the PTE is invalid, and all other bits of both doublewords are ignored by an
 IOMMU, making them free for software to use.
 
-If `V = 1`, bit 63 of the first doubleword is field `C` (Custom), designated for 
+If `V = 1`, bit 63 of the first doubleword is field `C` (Custom), designated for
 custom use. If an MSI PTE has `V = 1` and `C = 1`, interpretation of the rest of
 the PTE is `UNSPECIFIED`.
 
-If `V = 1` and the custom-use bit `C = 0`, then bit 2 of the first doubleword 
-is field `W` (Write-through).  If `W = 1`, the MSI PTE specifies write-through 
-mode for incoming MSIs, and if `W = 0`, it specifies MRIF mode. The 
+If `V = 1` and the custom-use bit `C = 0`, then bit 2 of the first doubleword
+is field `W` (Write-through).  If `W = 1`, the MSI PTE specifies write-through
+mode for incoming MSIs, and if `W = 0`, it specifies MRIF mode. The
 interpretation of an MSI PTE for each of these two modes is detailed further
 in the next two subsections.
 
 ==== MSI PTE, write-through mode
-When an MSI PTE has fields `V = 1`, `C = 0`, and `W = 1` (write-through mode), the 
+When an MSI PTE has fields `V = 1`, `C = 0`, and `W = 1` (write-through mode), the
 PTE’s complete format is:
 
 .MSI PTE, write-through mode
@@ -881,42 +881,42 @@ PTE’s complete format is:
 ], config:{lanes: 4, hspace: 1024, fontsize: 16}}
 ....
 
-Reserved bits of the first doubleword must be set to zeros by software. The second 
+Reserved bits of the first doubleword must be set to zeros by software. The second
 doubleword is ignored by an IOMMU so is free for software to use.
 
-An incoming MSI write is translated by replacing the write’s original 
-address bits 12 and above (the guest physical page number) with field `PPN` 
-(Physical Page Number) from the PTE, while retaining the original address 
-bits 11:0 (the page offset). This translated address is either zero-extended 
+An incoming MSI write is translated by replacing the write’s original
+address bits 12 and above (the guest physical page number) with field `PPN`
+(Physical Page Number) from the PTE, while retaining the original address
+bits 11:0 (the page offset). This translated address is either zero-extended
 or clipped at the upper end as needed to make it the width of a real physical
 address for the machine.
 
 An MSI PTE in write-through mode allows a hypervisor to route an MSI intended
-for a virtual interrupt file to go instead to a guest interrupt file of a 
+for a virtual interrupt file to go instead to a guest interrupt file of a
 real IMSIC in the machine.
 
 [NOTE]
 ====
-An IOMMU can maximize the overlap between the handling of MSI PTEs and 
+An IOMMU can maximize the overlap between the handling of MSI PTEs and
 regular RISC-V leaf PTEs as follows:
 
-For RV64, the first doubleword of an MSI PTE in write-through mode has the 
-same encoding as a regular RISC-V leaf PTE for Sv39, Sv48, Sv39x4, or 
-Sv48x4 page-based address translation, with PTE fields D, A, G, U, X, and R 
-all zeros and W = 1. Hence, the MSI PTE’s first doubleword appears the same 
-as a regular PTE that grants write permission (W = 1) but not read or 
-execute permissions (X = R = 0). This same-encoded regular PTE would 
-translate an MSI write the same as the actual MSI PTE, except that what 
-would be the PTE’s accessed (A), dirty (D), and user (U) bits are all zeros. 
-An IOMMU needs to treat only these three bits differently for an MSI PTE 
+For RV64, the first doubleword of an MSI PTE in write-through mode has the
+same encoding as a regular RISC-V leaf PTE for Sv39, Sv48, Sv39x4, or
+Sv48x4 page-based address translation, with PTE fields D, A, G, U, X, and R
+all zeros and W = 1. Hence, the MSI PTE’s first doubleword appears the same
+as a regular PTE that grants write permission (W = 1) but not read or
+execute permissions (X = R = 0). This same-encoded regular PTE would
+translate an MSI write the same as the actual MSI PTE, except that what
+would be the PTE’s accessed (A), dirty (D), and user (U) bits are all zeros.
+An IOMMU needs to treat only these three bits differently for an MSI PTE
 versus a regular RV64 leaf PTE.
 
 The address computation used to select a PTE from a regular RISC-V page table
-must be modified to select an MSI PTE’s first doubleword from an MSI page 
-table.  However, the extraction of an interrupt file number from a guest 
+must be modified to select an MSI PTE’s first doubleword from an MSI page
+table.  However, the extraction of an interrupt file number from a guest
 physical address to obtain the index for accessing the MSI page table already
-creates an unavoidable difference in PTE addressing. For RV32, the lower 
-32-bit word of an MSI PTE’s first doubleword has the same format as a leaf 
+creates an unavoidable difference in PTE addressing. For RV32, the lower
+32-bit word of an MSI PTE’s first doubleword has the same format as a leaf
 PTE for Sv32 or Sv32x4 page-based address translation, except again for what
 would be PTE bits A, D, and U, which must be treated differently.
 ====
@@ -924,7 +924,7 @@ would be PTE bits A, D, and U, which must be treated differently.
 [[MRIF_PTE]]
 ==== MSI PTE, MRIF mode
 
-If memory-resident interrupt files are supported and an MSI PTE has fields 
+If memory-resident interrupt files are supported and an MSI PTE has fields
 `V = 1`, `C = 0`, and `W = 0` (MRIF mode), the PTE’s complete format is:
 
 .MSI PTE, MRIF mode
@@ -950,12 +950,12 @@ Reserved bits of the PTE must be set to zeros by software.
 
 The PTEs `MRIF_ADDR[55:9]` field provides bits 55:9 of the physical address of a
 memory-resident interrupt file in which to store incoming MSIs, referred
-to as the destination MRIF. As every memory-resident interrupt file is 
-naturally aligned to a 512-byte address boundary, bits 8:0 of the 
+to as the destination MRIF. As every memory-resident interrupt file is
+naturally aligned to a 512-byte address boundary, bits 8:0 of the
 destination MRIFs address must be zero and are not specified in the PTE.
 
 The `N10` field provides the bit 10 and the `N90` field provides the bits 9:0 of
-a Notice Identifier (`NID`). Field `NPPN` (Notice Physical Page Number) and 
+a Notice Identifier (`NID`). Field `NPPN` (Notice Physical Page Number) and
 the `NID` together specify a destination and value for a notice MSI that is sent
 after each time the destination MRIF is updated as a result of consulting this
 PTE to store an incoming MSI.
@@ -963,31 +963,31 @@ PTE to store an incoming MSI.
 [NOTE]
 ====
 Typically, `NPPN` will be the page address of an IMSICs interrupt file in the
-real machine, and `NID` will be the interrupt identity to make pending in that 
+real machine, and `NID` will be the interrupt identity to make pending in that
 interrupt file to indicate that the destination MRIF may have changed. However,
-`NPPN` is not required to be a valid interrupt file address, and an IOMMU must 
-not attempt to restrict it to only such addresses. Any page address must be 
+`NPPN` is not required to be a valid interrupt file address, and an IOMMU must
+not attempt to restrict it to only such addresses. Any page address must be
 accepted for `NPPN`.
 ====
 
 When the IMSIC interrupt files in the system implement memory-mapped register
-`seteipnum_be` (See Advanced Interrupt Architecture) for receiving MSIs in 
-big-endian byte order, then an IOMMU must be able to store MSIs in both 
+`seteipnum_be` (See Advanced Interrupt Architecture) for receiving MSIs in
+big-endian byte order, then an IOMMU must be able to store MSIs in both
 little-endian and big-endian byte orders to the destination MRIF. If the IMSIC
-interrupt files in the system do not implement register `seteipnum_be`, an 
+interrupt files in the system do not implement register `seteipnum_be`, an
 IOMMU should ordinarily store only little-endian MSIs to the destination MRIF.
-The data of an incoming MSI is assumed to be in little-endian byte order if 
-bit 2 of the destination address is zero, and in big-endian byte order if bit 
+The data of an incoming MSI is assumed to be in little-endian byte order if
+bit 2 of the destination address is zero, and in big-endian byte order if bit
 2 of the destination address is one.
 
 [NOTE]
 ====
-While IOMMUs are expected typically to cache MSI PTEs that are configured in 
-write-through mode (`W = 1`), they might not cache PTEs configured in MRIF mode 
+While IOMMUs are expected typically to cache MSI PTEs that are configured in
+write-through mode (`W = 1`), they might not cache PTEs configured in MRIF mode
 (`W = 0`). Two reasons together justify not caching MSI PTEs in MRIF mode: First,
-the information and actions required to store an MSI to an MRIF are far 
+the information and actions required to store an MSI to an MRIF are far
 different than normal address translation; and second, by their nature, MSIs to
-MRIFs should occur less frequently. Hence, an IOMMU might perform MRIF-mode 
+MRIFs should occur less frequently. Hence, an IOMMU might perform MRIF-mode
 processing solely as an extension of cache-miss page table walks, leaving its
 address translation cache oblivious to MRIF-mode MSI PTEs.
 
@@ -996,28 +996,28 @@ perform suitable address translation cache invalidations when changing MSI PTEs.
 ====
 
 ===== Memory-resident interrupt files
-An IOMMU may optionally support memory-resident interrupt files (MRIFs). If 
-implemented (`capabilities.MSI_MRIF = 1`, <<CAP>>), the use of memory-resident 
-interrupt files can greatly increase the number of virtual harts that can be 
-given direct control of one or more physical devices in a system, assuming the 
+An IOMMU may optionally support memory-resident interrupt files (MRIFs). If
+implemented (`capabilities.MSI_MRIF = 1`, <<CAP>>), the use of memory-resident
+interrupt files can greatly increase the number of virtual harts that can be
+given direct control of one or more physical devices in a system, assuming the
 rest of the system can still handle the added load.
 
 Without memory-resident interrupt files, the number of virtual RISC-V harts that
 can directly receive MSIs from devices is limited by the total number of guest
-interrupt files implemented by all IMSICs in the system, because all MSIs to 
-RISC-V harts must go through IMSICs. For a single RISC-V hart, the number of 
-guest interrupt files is the `GEILEN` parameter defined by the Privileged 
+interrupt files implemented by all IMSICs in the system, because all MSIs to
+RISC-V harts must go through IMSICs. For a single RISC-V hart, the number of
+guest interrupt files is the `GEILEN` parameter defined by the Privileged
 Architecture, which can be at most 31 for RV32 and 63 for RV64.  With the use of
 memory-resident interrupt files, on the other hand, the total number of virtual
-RISC-V harts able to receive device MSIs is almost unbounded, constrained only 
+RISC-V harts able to receive device MSIs is almost unbounded, constrained only
 by the amount of real physical memory and the additional processing time needed
 to handle them. As its name implies, a memory-resident interrupt file is located
-in memory instead of within an IMSIC. <<MRIF_WRITE>> depicts how an IOMMU can 
+in memory instead of within an IMSIC. <<MRIF_WRITE>> depicts how an IOMMU can
 record an incoming MSI in an MRIF. When properly configured by a hypervisor, an
-IOMMU recognizes certain incoming MSIs as intended for a specific virtual 
-interrupt file, and records each such MSI by setting an interrupt-pending bit 
-stored within the MRIF data structure in ordinary memory. After each MSI is 
-recorded in an MRIF, the IOMMU also sends a notice MSI to the hypervisor to 
+IOMMU recognizes certain incoming MSIs as intended for a specific virtual
+interrupt file, and records each such MSI by setting an interrupt-pending bit
+stored within the MRIF data structure in ordinary memory. After each MSI is
+recorded in an MRIF, the IOMMU also sends a notice MSI to the hypervisor to
 inform it that the MRIF contents may have changed.
 
 [[MRIF_WRITE]]
@@ -1033,70 +1033,70 @@ inform it that the MRIF contents may have changed.
                                                                 +---------------+
 ....
 
-While a memory-resident interrupt file provides a place to record MSIs, it 
-cannot interrupt a hart directly the way an IMSIC’s guest interrupt files can. 
+While a memory-resident interrupt file provides a place to record MSIs, it
+cannot interrupt a hart directly the way an IMSIC’s guest interrupt files can.
 The notice MSIs that hypervisors receive only indicate that a virtual hart might
-need interrupting; a hypervisor is responsible for examining the MRIF contents 
-each time to determine whether actually to interrupt the virtual hart. 
-Furthermore, whereas an IMSIC’s guest interrupt file can directly act as a 
-supervisor-level interrupt file for a virtual hart, keeping a virtual hart’s 
-interrupt file in an MRIF while the virtual hart executes requires that the 
-hypervisor emulate a supervisor-level interrupt file for the virtual hart, 
+need interrupting; a hypervisor is responsible for examining the MRIF contents
+each time to determine whether actually to interrupt the virtual hart.
+Furthermore, whereas an IMSIC’s guest interrupt file can directly act as a
+supervisor-level interrupt file for a virtual hart, keeping a virtual hart’s
+interrupt file in an MRIF while the virtual hart executes requires that the
+hypervisor emulate a supervisor-level interrupt file for the virtual hart,
 hiding the underlying MRIF. Depending on how often the virtual hart touches its
 interrupt file and the implementation’s level of support for MRIFs, the cost of
-this emulation may be significant. Consequently, MRIFs are expected most often 
+this emulation may be significant. Consequently, MRIFs are expected most often
 to be used for virtual harts that are more-or-less “swapped out” of a physical
 hart due to being idle, or nearly so. When a hypervisor determines that an MSI
 that landed in an MRIF should wake up a particular virtual hart that was idle,
-the virtual hart can be assigned a guest interrupt file in an IMSIC and its 
-interrupt file moved from the MRIF into this guest interrupt file before the 
+the virtual hart can be assigned a guest interrupt file in an IMSIC and its
+interrupt file moved from the MRIF into this guest interrupt file before the
 virtual hart is resumed. The process of allocating a guest interrupt file for
-the newly wakened virtual hart may of course force the interrupt file of 
+the newly wakened virtual hart may of course force the interrupt file of
 another virtual hart to be evicted to its own MRIF.
 
 [NOTE]
 ====
 Not all systems need to accommodate large numbers of idle virtual harts. Many
-batch-processing servers, for example, strive to keep all virtual worker 
+batch-processing servers, for example, strive to keep all virtual worker
 threads as busy as possible from start to finish, throttled only by I/O delays
-and limits on processing resources. In such environments, support for MRIFs 
+and limits on processing resources. In such environments, support for MRIFs
 may not be useful, so long as parameter `GEILEN` is not too small.
 ====
 
-An IOMMU can have one of these three levels of support for memory-resident 
+An IOMMU can have one of these three levels of support for memory-resident
 interrupt files:
 
 [width=100%]
 [%header, cols="^12,^12,20"]
 |===
 |`capabilities.MSI_MRIF` | `capabilities.AMO` | MRIF support level
-|           0            |       0/1          | No MRIF 
+|           0            |       0/1          | No MRIF
 |           1            |       0            | MRIF without atomic update.
 |           1            |       1            | MRIF with atomic update.
 |===
 
-Memory-resident interrupt files are most efficient when the memory system 
-supports logical atomic memory operations (AMOs) corresponding to RISC-V 
-instructions `AMOAND` and `AMOOR`, for memory accesses made both from harts and 
-from the IOMMU. The `AMOAND` and `AMOOR` operations are required for atomic 
-update of a memory-resident interrupt file. A reduced level of support is 
+Memory-resident interrupt files are most efficient when the memory system
+supports logical atomic memory operations (AMOs) corresponding to RISC-V
+instructions `AMOAND` and `AMOOR`, for memory accesses made both from harts and
+from the IOMMU. The `AMOAND` and `AMOOR` operations are required for atomic
+update of a memory-resident interrupt file. A reduced level of support is
 possible without AMOs, relying solely on basic memory reads and writes.
 
-A memory-resident interrupt file occupies 512 bytes of memory, naturally 
-aligned to a 512-byte address boundary. The 512 bytes are organized as an 
-array of 32 pairs of 64-bit doublewords, 64 doublewords in all. Each 
-doubleword is in little-endian byte order (even for systems where all 
+A memory-resident interrupt file occupies 512 bytes of memory, naturally
+aligned to a 512-byte address boundary. The 512 bytes are organized as an
+array of 32 pairs of 64-bit doublewords, 64 doublewords in all. Each
+doubleword is in little-endian byte order (even for systems where all
 harts are big-endian-only).
 
 [NOTE]
 ====
-Big-endian-configured harts that make use of MRIFs are expected to 
+Big-endian-configured harts that make use of MRIFs are expected to
 implement the `REV8` byte-reversal instruction defined Zbb extesion.
-If `REV8` is not implemented, then the endianness conversion may be 
+If `REV8` is not implemented, then the endianness conversion may be
 implemented using a sequence of instructions.
 ====
 
-The pairs of doublewords contain the interrupt-pending and 
+The pairs of doublewords contain the interrupt-pending and
 interrupt-enable bits for external interrupt identities 1–2047, in this
 arrangement:
 
@@ -1114,73 +1114,73 @@ arrangement:
 |===
 
 
-In general, the pair of doublewords at address offsets `k × 16` and 
+In general, the pair of doublewords at address offsets `k × 16` and
 `k × 16 + 8` for integer `k` contain the interrupt-pending and interrupt-enable
-bits for external interrupt minor identities in the range `k × 64` to 
-`k × 64 + 63`. For identity `i` in this range, bit (`i` mod 64) of the first 
+bits for external interrupt minor identities in the range `k × 64` to
+`k × 64 + 63`. For identity `i` in this range, bit (`i` mod 64) of the first
 (even) doubleword is the interrupt-pending bit, and the same bit of the second
  (odd) doubleword is the interrupt-enable bit.
 
 [NOTE]
 ====
-The interrupt-pending and interrupt-enable bits are stored interleaved by 
+The interrupt-pending and interrupt-enable bits are stored interleaved by
 doublewords within an MRIF to facilitate the a future IOMMU extension examining
 the relevant enable bit to determine whether to send a notice MSI after updating
-a pending bit, rather than the current behavior of always sending a notice MSI 
-after an update without regard for the interrupt-enable bits. The memory 
+a pending bit, rather than the current behavior of always sending a notice MSI
+after an update without regard for the interrupt-enable bits. The memory
 arrangement matters only when MRIFs are supported without atomic update.
 ====
 
-Bit 0 of the first doubleword of an MRIF stores a faux interrupt-pending bit 
+Bit 0 of the first doubleword of an MRIF stores a faux interrupt-pending bit
 for nonexistent interrupt 0. If a write from an I/O device appears to be an MSI
 that should be stored in an MRIF, yet the data to write (the interrupt identity)
-is zero, the IOMMU acts as though zero were a valid interrupt identity, 
+is zero, the IOMMU acts as though zero were a valid interrupt identity,
 setting bit 0 of the target MRIF’s first doubleword and sending a notice MSI as
 usual.
 
-All MRIFs are the size to accommodate 2047 valid interrupt identities, the 
-maximum allowed for an IMSIC interrupt file. If a system’s actual IMSICs have 
-interrupt files that implement only `N` interrupt identities, `N` < 2047, then 
+All MRIFs are the size to accommodate 2047 valid interrupt identities, the
+maximum allowed for an IMSIC interrupt file. If a system’s actual IMSICs have
+interrupt files that implement only `N` interrupt identities, `N` < 2047, then
 the contents of MRIFs for identities greater than `N` may be ignored by software.
-IOMMUs, however, treat every MRIF as though all interrupt identities in the range 
-0–2047 are valid, even as software ignores invalid identity 0 and all identities 
+IOMMUs, however, treat every MRIF as though all interrupt identities in the range
+0–2047 are valid, even as software ignores invalid identity 0 and all identities
 greater than `N`.
 
 [NOTE]
 ====
-There is no need to specify to an IOMMU a desired size `N` for an MRIF smaller 
-than 2047 valid interrupt identities. The only use an IOMMU would make of this 
-information would be to discard any MSIs indicating an interrupt identity greater 
-than `N`. If devices are properly configured by software, such errant MSIs should 
-not occur; but even if they do, it is just as effective for software to ignore 
-spurious interrupt identities after they have been recorded in an MRIF as for an 
+There is no need to specify to an IOMMU a desired size `N` for an MRIF smaller
+than 2047 valid interrupt identities. The only use an IOMMU would make of this
+information would be to discard any MSIs indicating an interrupt identity greater
+than `N`. If devices are properly configured by software, such errant MSIs should
+not occur; but even if they do, it is just as effective for software to ignore
+spurious interrupt identities after they have been recorded in an MRIF as for an
 IOMMU to discard them before recording them in the MRIF. It is likewise unnecessary
 for IOMMUs to check for and discard MSIs indicating an invalid interrupt identity
 of zero.
 ====
 
-The data component of an MSI write specifies the interrupt identity to raise in 
-the destination interrupt file. (Recall <<MSI_REDIR>>) This data may be in 
-little-endian or big-endian byte order. If an IOMMU supports memory-resident 
-interrupt files, it can store to an MRIF MSIs of the same endianness that the 
-IOMMU is configured to operate in. All IMSIC interrupt files are required to 
-accept MSIs in little-endian byte order written to memory-mapped register 
-`seteipnum_le`. IMSIC interrupt files may also accept MSIs in big-endian byte 
+The data component of an MSI write specifies the interrupt identity to raise in
+the destination interrupt file. (Recall <<MSI_REDIR>>) This data may be in
+little-endian or big-endian byte order. If an IOMMU supports memory-resident
+interrupt files, it can store to an MRIF MSIs of the same endianness that the
+IOMMU is configured to operate in. All IMSIC interrupt files are required to
+accept MSIs in little-endian byte order written to memory-mapped register
+`seteipnum_le`. IMSIC interrupt files may also accept MSIs in big-endian byte
 order if register `seteipnum_be` is implemented alongside `seteipnum_le`.
-If the interrupt identity indicated by an MSI’s data (when interpreted in the 
+If the interrupt identity indicated by an MSI’s data (when interpreted in the
 correct byte order) is in the range 0–2047, an IOMMU stores the MSI to an MRIF
-by setting to one the interrupt-pending bit in the MRIF for that identity. If 
-atomic update is supported for MRIFs, the pending bit is set using an `AMOOR` 
+by setting to one the interrupt-pending bit in the MRIF for that identity. If
+atomic update is supported for MRIFs, the pending bit is set using an `AMOOR`
 operation, else it is set using a non-atomic read-modify-write sequence. After
-the interrupt-pending bit is set in the MRIF, the IOMMU sends the notice MSI 
-that software has configured for the MRIF. The exact process of storing an MSI 
+the interrupt-pending bit is set in the MRIF, the IOMMU sends the notice MSI
+that software has configured for the MRIF. The exact process of storing an MSI
 to an MRIF is specified more precisely in <<MSI_TRANS>>.
 
 [[P2IOVA]]
 === Process to translate an IOVA
 
 The process to translate an IOVA uses the hardware IDs (`device_id` and
-`process_id`) to locate the Device-Context and the Process-Context. The 
+`process_id`) to locate the Device-Context and the Process-Context. The
 Device-context and Process-context provide the root PPN of the page tables,
 `PSCID`, `GSCID`, and other control parameters that affect the address
 translation and protection process. When address translation caches
@@ -1193,17 +1193,17 @@ The process to translate an `IOVA` is as follows:
   disallowed" (cause = 256).
 . If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
   stop and report "Transaction type disallowed" (cause = 260); else go to step
-  19 with translated address same as the `IOVA`.
+  21 with translated address same as the `IOVA`.
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
-. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device 
+. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
   context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
   `DDI[2]` be `device_id[23:16]`.
-. If `capabilities.MSI_FLAT` is 1 then the IOMMU uses extended-format device 
+. If `capabilities.MSI_FLAT` is 1 then the IOMMU uses extended-format device
   context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
   `DDI[2]` be `device_id[23:15]`.
-. The `device_id` is wider than that supported by the IOMMU mode if any of the 
-  following conditions hold. If the following conditions hold then stop and 
+. The `device_id` is wider than that supported by the IOMMU mode if any of the
+  following conditions hold. If the following conditions hold then stop and
   report "Transaction type disallowed" (cause = 260).
 .. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
 .. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
@@ -1214,33 +1214,33 @@ The process to translate an `IOVA` is as follows:
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request and `DC.tc.EN_ATS` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 0.
-..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the 
+..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the
     `process_id` is wider than supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
-  process is complete. Go to step 19.
-. If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a 
+  process is complete. Go to step 21.
+. If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a
   GPA. Go to step 17 with following page table information:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
-. If `DC.tc.PDTV` is set to 0 then go to step 15 with the following page table 
+. If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be value in `DC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `DC.fsc.PPN` field
 .. Let `PSCID` be value in `DC.ta.PSCID` field
 .. Let `iohgatp` be value in `DC.iohgatp` field
 .. If a G-stage page table is not active in the device-context
-     (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
+     (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
      it is a VS-stage page table.
 . If `DPE` is 1 and there is no `process_id` associated with the transaction
   then let `process_id` be the default value of 0.
 . If `DPE` is 0 and there is no `process_id` associated with the transaction
-  then then go to step 16 with the following page table information:
+  then then go to step 17 with the following page table information:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
-. If `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table 
+. If `DC.fsc.pdtp.MODE = Bare` then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
@@ -1249,32 +1249,32 @@ The process to translate an `IOVA` is as follows:
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
-. Go to step 15 with the following page table information:
+. Go to step 17 with the following page table information:
 .. Let `iosatp.MODE` be value in `PC.fsc.MODE` field
 .. Let `iosatp.PPN` be value in `PC.fsc.PPN` field
 .. Let `PSCID` be value in `PC.ta.PSCID` field
 .. Let `iohgatp` be value in `DC.iohgatp` field
 .. If a G-stage page table is not active in the device-context
-   (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else 
+   (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
    it is a VS-stage page table.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
   RISC-V privileged specification. If a fault is detecting by the single stage
-  address translation process then stop and report the fault. Go to step 19.
+  address translation process then stop and report the fault.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
   privileged specification to perform the VS-stage address translation to
   determine the GPA accessed by the transaction. If a fault is detecting by the
-  two stage address translation process then stop and report the fault. If the 
+  two stage address translation process then stop and report the fault. If the
   translation process is completed then let `A` be the translated GPA.
-. If all of the following conditions hold then MSI address translations using 
-  MSI page tables is enabled and the transaction is eligible for MSI address 
+. If all of the following conditions hold then MSI address translations using
+  MSI page tables is enabled and the transaction is eligible for MSI address
   translation and the MSI address translation process specified in <<MSI_TRANS>>
   is invoked. If the GPA `A` is determined to be not an MSI then the process
-  continues at step 18. If a fault is detected by the MSI adddress translation
+  continues at step 20. If a fault is detected by the MSI adddress translation
   process then stop and report the fault.
 .. Address `A` is a 32-bit aligned address.
-.. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is 
+.. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is
    an ATS translation request.
 .. `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
    is enabled.
@@ -1287,14 +1287,14 @@ The process to translate an `IOVA` is as follows:
 
 When the translation process reports a fault, and the request is a Untranslated
 request, a Translated request, or a message the IOMMU requests the IO bridge to
-abort the transaction. Guidelines for handling faulting transactions in the IO 
-bridge are provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the 
-fault/event reporting mechanism and fault record formats specified in 
-<<FAULT_QUEUE>>. 
+abort the transaction. Guidelines for handling faulting transactions in the IO
+bridge are provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the
+fault/event reporting mechanism and fault record formats specified in
+<<FAULT_QUEUE>>.
 
-If the fault was detected by a PCIe ATS Translation Request then the IOMMU may 
+If the fault was detected by a PCIe ATS Translation Request then the IOMMU may
 provide a PCIe protocol defined response instead of reporting fault to software
-or causing an abort. The handling of faulting PCIe ATS Translation Requests is 
+or causing an abort. The handling of faulting PCIe ATS Translation Requests is
 specified in <<ATS_FAULTS>>.
 
 [[GET_DC]]
@@ -1320,18 +1320,18 @@ is as follows:
 . Let `DC` be value of `DC_SIZE` bytes at address `a + DDI[0] * DC_SIZE`. If
   `capabilities.MSI_FLAT` is 1 then `DC_SIZE` is 64-bytes else it is 32-bytes.
   If accessing `DC` violates a PMA or PMP check, then stop and report
-  "DDT entry load access fault" (cause = 257). If `DC` access detects a data 
+  "DDT entry load access fault" (cause = 257). If `DC` access detects a data
   corruption (a.k.a. poisoned data), then stop and report "DDT data corruption"
   (cause = 268).
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If the `DC` is misconfigured as determined by rules outlined in 
+. If the `DC` is misconfigured as determined by rules outlined in
   <<DC_MISCONFIG>> then stop and report "DDT entry misconfigured" (cause = 259).
 . The device-context has been successfully located and may be cached.
 
 [[GET_PC]]
 ==== Process to locate the Process-context
 
-The device-context provides the PDT root page PPN (`pdtp.ppn`).  When 
+The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 `DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the G-stage page table pointed to by `DC.iohgatp`.
@@ -1346,86 +1346,86 @@ The process to locate the Process-context for a transaction using its
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
 . If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
-  G-stage address translation of `a` then stop and the fault detected by the 
+  G-stage address translation of `a` then stop and the fault detected by the
   G-stage address translation process. The translated `a` is used in subsequent
-  steps. 
+  steps.
 . If `i == 0` go to step 9.
-. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If 
-  accessing `pdte` violates a PMA or PMP check, then stop and report 
+. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
+  accessing `pdte` violates a PMA or PMP check, then stop and report
   "PDT entry load access fault" (cause = 265).
-. If `pdte` access detects a data corruption (a.k.a. poisoned data), then 
+. If `pdte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "PDT data corruption" (cause = 269).
 . If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If if any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
 . Let `PC` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
-  violates a PMA or PMP check, then stop and report "PDT entry load access 
-  fault" (cause = 265). If `PC` access detects a data corruption 
-  (a.k.a. poisoned data), then stop and report "PDT data corruption" 
+  violates a PMA or PMP check, then stop and report "PDT entry load access
+  fault" (cause = 265). If `PC` access detects a data corruption
+  (a.k.a. poisoned data), then stop and report "PDT data corruption"
   (cause = 269).
 . If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
-. If the `PC` is misconfigured as determined by rules outlined in 
+. If the `PC` is misconfigured as determined by rules outlined in
   <<PC_MISCONFIG>> then stop and report "PDT entry misconfigured" (cause = 267).
 . The Process-context has been successfully located.
 
 [[MSI_TRANS]]
 ==== Process to translate addresses of MSIs
 
-When an I/O device is configured directly by a guest operating system, MSIs 
+When an I/O device is configured directly by a guest operating system, MSIs
 from the device are expected to be targeted to virtual IMSICs within the guest
-OSs virtual machine, using guest physical addresses that are inappropriate 
-and unsafe for the real machine. An IOMMU must recognize certain incoming 
-writes from such devices as MSIs and convert them as needed for the real 
-machine. 
+OSs virtual machine, using guest physical addresses that are inappropriate
+and unsafe for the real machine. An IOMMU must recognize certain incoming
+writes from such devices as MSIs and convert them as needed for the real
+machine.
 
-MSIs originating from a single device that require conversion are expected 
+MSIs originating from a single device that require conversion are expected
 to have been configured at the device by a single guest OS running within one
-RISC-V virtual machine. Assuming the VM itself conforms to the Advanced 
+RISC-V virtual machine. Assuming the VM itself conforms to the Advanced
 Interrupt Architecture, MSIs are sent to virtual harts within the VM by writing
 to the memory-mapped registers of the interrupt files of virtual IMSICs. Each of
-these virtual interrupt files occupies a separate 4-KiB page in the VMs guest 
-physical address space, the same as real interrupt files do in a real machines 
-physical address space. A write to a guest physical address can thus be 
-recognized as an MSI to a virtual hart if the write is to a page occupied by 
+these virtual interrupt files occupies a separate 4-KiB page in the VMs guest
+physical address space, the same as real interrupt files do in a real machines
+physical address space. A write to a guest physical address can thus be
+recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM
 
-When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>), 
-the process to identify a incoming 32-bit aligned `IOVA` from a device as a MSI 
+When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
+the process to identify a incoming 32-bit aligned `IOVA` from a device as a MSI
 address and translating the address using the MSI page table is as follows:
 
 . Let `A` be the 32-bit aligned `GPA`
 . Let `DC` be the device-context located using the `device_id` of the device
   using the process outlined in <<GET_DC>>.
 . Determine if the address `A` is an MSI address as specified in <<MSI_ID>>.
-. If the address is not determined to be an MSI then stop this process and 
-  instead use the regular translation data structures to do the address 
+. If the address is not determined to be an MSI then stop this process and
+  instead use the regular translation data structures to do the address
   translation.
-. Extract an interrupt file number `I` from `A` as 
+. Extract an interrupt file number `I` from `A` as
   `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
-  to generic bit extract performed by RISC-V instruction `BEXT`, defined by the 
-  Zbs extension). The bit extract function `extract(x, y)` 
-  discards all bits from `x` whose matching bits in the same positions in the 
-  mask `y` are zeros, and packs the remaining bits from `x` contiguously at the 
-  least-significant end of the result, keeping the same bit order as `x` and 
-  filling any other bits at the most-significant end of the result with zeros. 
+  to generic bit extract performed by RISC-V instruction `BEXT`, defined by the
+  Zbs extension). The bit extract function `extract(x, y)`
+  discards all bits from `x` whose matching bits in the same positions in the
+  mask `y` are zeros, and packs the remaining bits from `x` contiguously at the
+  least-significant end of the result, keeping the same bit order as `x` and
+  filling any other bits at the most-significant end of the result with zeros.
   For example, if the bits of `x` and `y` are
-** `x = a b c d e f g h` 
+** `x = a b c d e f g h`
 ** `y = 1 0 1 0 0 1 1 0`
 ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
 
 . If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. The IOMMU
   capable of big-endian access to memory if the `END` bit in the `capabilities`
-  register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation, 
-  the feature control register, `fctrl` (<<FCTRL>>), holds the configuration 
-  bit that may be set to 1 to enable big-endian access to memory. If the IOMMU 
-  is not capable or has not been configured for big-endian access to memory, 
+  register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation,
+  the feature control register, `fctrl` (<<FCTRL>>), holds the configuration
+  bit that may be set to 1 to enable big-endian access to memory. If the IOMMU
+  is not capable or has not been configured for big-endian access to memory,
   then stop and report "Transaction type disallowed" (cause = 260).
 . Let `m` be `(DC.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
-  accessing `msipte` violates a PMA or PMP check, then stop and report 
+  accessing `msipte` violates a PMA or PMP check, then stop and report
   "MSI PTE load access fault" (cause = 261).
-. If `msipte` access detects a data corruption (a.k.a. poisoned data), then 
+. If `msipte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "MSI PT data corruption" (cause = 270).
 . If `msipte.V == 0`, then stop and report "MSI PTE not valid" (cause = 262).
 . If `msipte.C == 1`, then further process is to interpret the PTE is
@@ -1442,34 +1442,34 @@ address and translating the address using the MSI page table is as follows:
    (cause = 263).
 .. If any bits or encoding that are reserved for future standard use are
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 263).
-.. If the transaction is a PCIe ATS translation request then return a Success 
+.. If the transaction is a PCIe ATS translation request then return a Success
    response with R, W, and U bit set to 1. See <<ATS_FAULTS>> for further
    details on this processing.
-.. Let `D` be the 32-bit data associated with the write. The byte order of 
+.. Let `D` be the 32-bit data associated with the write. The byte order of
    `D` is determined by bit 2 of `A`.
 .. If `A[11:3]` or `D[31:11]` is not zero, then stop and report "Transaction
    type disallowed" (cause = 260).
-.. If the IOMMU supports atomic memory operations 
-   (`capabilities.AMO` is 1, <<CAP>>), then, in the destination MRIF 
-   (at address `msipte.MRIF_ADDR[55:9] * 512`), set the interrupt-pending bit 
+.. If the IOMMU supports atomic memory operations
+   (`capabilities.AMO` is 1, <<CAP>>), then, in the destination MRIF
+   (at address `msipte.MRIF_ADDR[55:9] * 512`), set the interrupt-pending bit
    for interrupt identity `D` to 1 using an `AMOOR` operation for atomic update.
-.. If the IOMMU does not support atomic memory operations then, in the 
-   destination MRIF (at address `msipte.MRIF_ADDR[55:9] * 512`), set the 
-   interrupt-pending bit for interrupt identity `D` to 1 using a non-atomic 
+.. If the IOMMU does not support atomic memory operations then, in the
+   destination MRIF (at address `msipte.MRIF_ADDR[55:9] * 512`), set the
+   interrupt-pending bit for interrupt identity `D` to 1 using a non-atomic
    read-modify-write sequence.
-.. If accessing MRIF violates a PMA or PMP check, then stop and report 
-   "MRIF access fault" (cause = 264). 
-.. If the MRIF access detects a data corruption (a.k.a poisoned data), then 
+.. If accessing MRIF violates a PMA or PMP check, then stop and report
+   "MRIF access fault" (cause = 264).
+.. If the MRIF access detects a data corruption (a.k.a poisoned data), then
    stop and report "MSI MRIF data corruption" (cause = 271).
-.. Zero-extend the 11-bit `(msipte.N10 << 10) | msipte.N90` value to 32 bits, 
-   and do a 32-bit write of this value in little-endian byte order to the 
-   address `msipte.NPPN << 12` (i.e., physical page number `NPPN`, page 
+.. Zero-extend the 11-bit `(msipte.N10 << 10) | msipte.N90` value to 32 bits,
+   and do a 32-bit write of this value in little-endian byte order to the
+   address `msipte.NPPN << 12` (i.e., physical page number `NPPN`, page
    offset zero).
-.. The following rules must be followed to order the write to the destination 
+.. The following rules must be followed to order the write to the destination
    MRIF and the write to the notice physical page number (`NPPN`):
-... All writes older than the incoming MSI that was transformed by this 
-    process must be globally visible before the write to the destination 
-    MRIF or to the `NPPN` becomes globally visible; unless protocol specific 
+... All writes older than the incoming MSI that was transformed by this
+    process must be globally visible before the write to the destination
+    MRIF or to the `NPPN` becomes globally visible; unless protocol specific
     relaxation is allowed (e.g. PCIe relaxed ordering) or is not required.
 ... The write to destination MRIF must be globally visible before the write to
     `NPPN` becomes globally visible.
@@ -1482,21 +1482,21 @@ PTEs atomically. If `capabilities.AMO` is 0, the IOMMU ignores the A and D bits
 in the PTEs; the IOMMU does not update the A or D bits and does not cause any
 faults based on A and/or D bit being 0.
 
-The A and/or D bit updates by the IOMMU must follow the rules specified by the 
-Privileged specification for validity, permission checking, and atomicity. 
+The A and/or D bit updates by the IOMMU must follow the rules specified by the
+Privileged specification for validity, permission checking, and atomicity.
 
-The PTE update must be globally visible before a memory access using the 
-translated address provided by the IOMMU becomes globally visible. 
+The PTE update must be globally visible before a memory access using the
+translated address provided by the IOMMU becomes globally visible.
 
-Specifically, When the translated address is provided to a device in an ATS 
+Specifically, When the translated address is provided to a device in an ATS
 Translation completion, the PTE update must be globally visible before a memory
 access from the device using the translated address becomes globally visible.
 
 [NOTE]
 ====
-The A and D bits are never cleared by the IOMMU. If the supervisor software does 
-not rely on accessed and/or dirty bits, e.g. if it does not swap memory pages to 
-secondary storage or if the pages are being used to map I/O space, it should 
+The A and D bits are never cleared by the IOMMU. If the supervisor software does
+not rely on accessed and/or dirty bits, e.g. if it does not swap memory pages to
+secondary storage or if the pages are being used to map I/O space, it should
 set them to 1 in the PTE to improve performance.
 ====
 
@@ -1508,7 +1508,7 @@ report the detected fault.
 
 [[ATS_FAULTS]]
 === PCIe ATS translation request handling
-ATS translation requests that encounter a configuration error results in a 
+ATS translation requests that encounter a configuration error results in a
 Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
 
@@ -1520,7 +1520,7 @@ belong to this category:
 * PDT entry load access fault (cause = 265)
 * PDT entry misconfigured (cause = 267)
 
-If there is a permanent error or if ATS transactions are disabled then a 
+If there is a permanent error or if ATS transactions are disabled then a
 Unsupported Request (UR) response is generated. The following cause codes
 belong to this category:
 
@@ -1531,9 +1531,9 @@ belong to this category:
 * Transaction type disallowed (cause = 260)
 
 When translation could not be completed due to PDT entry being not present, MSI
-PTE being not present, or first and/or second stage PTE being not present or 
-misconfigured then a Success Response with R and W bits set to 0 is generated. 
-The translated address returned with such completions is `UNSPECIFIED`. The 
+PTE being not present, or first and/or second stage PTE being not present or
+misconfigured then a Success Response with R and W bits set to 0 is generated.
+The translated address returned with such completions is `UNSPECIFIED`. The
 following cause codes belong to this category:
 
 * Instruction page fault (cause = 12)
@@ -1546,20 +1546,20 @@ following cause codes belong to this category:
 * MSI PTE not valid (cause = 262)
 
 If the translation request has a PASID with "Privilege Mode Requested" field set
-to 0, or the request does not have a PASID then the request does not target 
-privileged memory. If the U-bit that indicates if the memory is accessible to 
+to 0, or the request does not have a PASID then the request does not target
+privileged memory. If the U-bit that indicates if the memory is accessible to
 user mode is 0 then a Success response with R and W bits set to 0 is generated.
 
-If the translation request has a PASID with "Privilege Mode Requested" field set 
+If the translation request has a PASID with "Privilege Mode Requested" field set
 to 1, then the request targets privileged memory. If the U-bit that indicates if
-the page is accessible to user mode is 1 and the `SUM` bit in `ta` field of the 
-process-context is 0 then a Success response with R and W bits set to 0 is 
+the page is accessible to user mode is 1 and the `SUM` bit in `ta` field of the
+process-context is 0 then a Success response with R and W bits set to 0 is
 generated.
 
-If the translation could be successfully completed but the requested 
-permissions are not present (Execute requested but no execute permission; 
+If the translation could be successfully completed but the requested
+permissions are not present (Execute requested but no execute permission;
 no-write not requested and no write permission; no read permission)
-then a Success response is returned with the denied permission (R, W or X) 
+then a Success response is returned with the denied permission (R, W or X)
 set to 0 and the other permission bits set to value determined from the
 page tables. The X permission is granted only if the R permission is also
 granted. Execute-only translations are not compatible with PCIe ATS as PCIe
@@ -1572,7 +1572,7 @@ denied.
 
 If the translation request has an address determined to be an MSI address using
 the rules defined by the <<MSI_ID>> but the MSI PTE is configured in MRIF
-mode then a Success response is generated with R, W, and U bit set to 1. The U 
+mode then a Success response is generated with R, W, and U bit set to 1. The U
 bit being set to 1 in the response instructs the device that it must only use
 Untranslated requests to access the implied 4 KiB memory range.
 
@@ -1580,9 +1580,9 @@ Untranslated requests to access the implied 4 KiB memory range.
 ====
 When a MSI PTE is configured in MRIF mode, a MSI write with data value `D`
 requires the IOMMU to set the interrupt-pending bit for interrupt identity `D`
-in the MRIF. A translation request from a device to a GPA that is mapped 
-through a MRIF mode MSI PTE is not eligible to receive a translated address. 
-This is accomplished by setting "Untranslated Access Only" (U) field of the 
+in the MRIF. A translation request from a device to a GPA that is mapped
+through a MRIF mode MSI PTE is not eligible to receive a translated address.
+This is accomplished by setting "Untranslated Access Only" (U) field of the
 returned response to 1.
 ====
 
@@ -1590,17 +1590,17 @@ When a Success response is generated for a ATS translation request, the setting
 of the Priv, N, CXL.io, Global, and AMA fields is as follows:
 
 * Priv field of the ATS translation completion is always set to 0 if the request
-  does not have a PASID. When a PASID is present then the Priv field is set to 
-  the value in "Privilege Mode Requested" field as the permissions provided 
+  does not have a PASID. When a PASID is present then the Priv field is set to
+  the value in "Privilege Mode Requested" field as the permissions provided
   correspond to those the privilege mode indicate in the request.
 * N field of the ATS translation completion is always set to 0. The device may
-  use other means to determine if the No-snoop flag should be set in the 
+  use other means to determine if the No-snoop flag should be set in the
   translated requests.
-* Global field is set to the value determined from the S/VS-stage page tables 
-  if translation could be successfully completed and the request had a PASID 
-  preset. In all other cases, including MSI address translations, this field 
+* Global field is set to the value determined from the S/VS-stage page tables
+  if translation could be successfully completed and the request had a PASID
+  preset. In all other cases, including MSI address translations, this field
   is set to 0.
-* If requesting device is not a CXL device then CXL.io is set to 0. 
+* If requesting device is not a CXL device then CXL.io is set to 0.
 * If requesting device is a CXL type 1 or type 2 device
 ** If the address is determined to be a MSI then the CXL.io bit is set to 1.
 ** If the memory type, as determined by the Svpbmt extension, is NC or IO then
@@ -1608,7 +1608,7 @@ of the Priv, N, CXL.io, Global, and AMA fields is as follows:
    of the setting of this bit is `UNSPECIFIED`. If the Svpbmt extension is not
    supported then the setting of this bit is `UNSPECIFIED`.
 ** In all other cases the setting of this bit is `UNSPECIFIED`.
-* The AMA field is by default set to 000b. The IOMMU may support an 
+* The AMA field is by default set to 000b. The IOMMU may support an
   implementation specific method to provide other encodings.
 
 [NOTE]
@@ -1623,54 +1623,54 @@ No faults are logged in the fault queue for PCIe ATS Translation Requests.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
-To process a "Page Request" or "Stop Marker" message, the IOMMU first locates 
-the device-context to determine if ATS and PRI are enabled for the requestor. 
+To process a "Page Request" or "Stop Marker" message, the IOMMU first locates
+the device-context to determine if ATS and PRI are enabled for the requestor.
 If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
- IOMMU queues the message into an in-memory queue called the 
+ IOMMU queues the message into an in-memory queue called the
 page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
 
-When PRI is enabled for a device, the IOMMU may still be unable to report 
-"Page Request" or "Stop Marker" messages through the `PQ` due to error 
-conditions such as the queue being disabled, queue being full, or the IOMMU 
-encountering access faults when attempting to access queue memory. These error 
+When PRI is enabled for a device, the IOMMU may still be unable to report
+"Page Request" or "Stop Marker" messages through the `PQ` due to error
+conditions such as the queue being disabled, queue being full, or the IOMMU
+encountering access faults when attempting to access queue memory. These error
 conditions are specified in <<PRQ>>.
 
 If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
 device-context for the requestor.
 
-If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable 
-to locate the `DC` to determine the `EN_PRI` configuration, or the request 
-could not be queued into `PQ` then the IOMMU behavior depends on the type 
-of "Page Request". 
+If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable
+to locate the `DC` to determine the `EN_PRI` configuration, or the request
+could not be queued into `PQ` then the IOMMU behavior depends on the type
+of "Page Request".
 
 * If the "Page Request" does not require a response, i.e. the "Last Request in
-  PRG" field of the message is set to 0, then such message are silently 
+  PRG" field of the message is set to 0, then such message are silently
   discarded. "Stop Marker" messages do not require a response and are always
   silently discarded on such errors.
 * If the "Page Request" needs a response, then the IOMMU itself may generate
   a "Page Request Group Response" message to the device.
 
 When the IOMMU generates the response, the status field of the response depends
-on the cause of the error. 
+on the cause of the error.
 
-The status is set to Response Failure if the following faults are encountered: 
+The status is set to Response Failure if the following faults are encountered:
 
 * `ddtp.iommu_mode` is `Off`
-* DDT entry load access fault (cause = 257) 
-* DDT entry misconfigured (cause = 259) 
+* DDT entry load access fault (cause = 257)
+* DDT entry misconfigured (cause = 259)
 * DDT entry not valid (cause = 258)
 * Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
 * Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)
 
-The status is set to Invalid Request if the following faults are encountered: 
+The status is set to Invalid Request if the following faults are encountered:
 
 * `ddtp.iommu_mode` is `Bare`
 * `EN_PRI` is set to 0
 
-The status is set to Success if no other faults were encountered but the 
-"Page Request" could not be queued due to the page-request queue being full 
+The status is set to Success if no other faults were encountered but the
+"Page Request" could not be queued due to the page-request queue being full
 (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [NOTE]
@@ -1678,23 +1678,23 @@ The status is set to Success if no other faults were encountered but the
 When SR-IOV VF is used as an unit of allocation, a hypervisor may disable page
 requests from one of the virtual functions by setting `EN_PRI` to 0. However the
 page-request interface is shared by the PF and all VFs.  The IOMMU protocol
-specific logic classifies this condition (cause = 260) as a non-catastrophic 
-failure, an Invalid Request, in its response to avoid the shared PRI in the 
+specific logic classifies this condition (cause = 260) as a non-catastrophic
+failure, an Invalid Request, in its response to avoid the shared PRI in the
 device being disabled for all PFs/VFs.
 ====
 
 [NOTE]
 ====
-A "Stop Marker" is encoded as a "Page Request" with a PASID but with the L, W, 
+A "Stop Marker" is encoded as a "Page Request" with a PASID but with the L, W,
 and R fields set to 1, 0, and 0 respectively.
 ====
 
-For IOMMU generated "Page Request Group Response" messages that have status 
-Invalid Request or Success, the PRG-response-PASID-required (`PRPR`) bit when 
+For IOMMU generated "Page Request Group Response" messages that have status
+Invalid Request or Success, the PRG-response-PASID-required (`PRPR`) bit when
 set to 1 indicates that the IOMMU response message should include a PASID if the
-associated "Page Request" had a PASID. 
+associated "Page Request" had a PASID.
 
-For IOMMU generated "Page Request Group Response" with response code set to 
+For IOMMU generated "Page Request Group Response" with response code set to
 Response Failure, if the "Page Request" had a PASID then response is generated
 with a PASID.
 
@@ -1703,7 +1703,7 @@ following conditions:
 
 * Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
 * Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)
-* "Page Request" could not be queued due to the page-request queue being full 
+* "Page Request" could not be queued due to the page-request queue being full
   (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [[CACHING]]
@@ -1715,8 +1715,8 @@ process-directory-table, S/VS and G-stage translation tables, MSI page
 tables. These caches are collectively referred to as the IOMMU Address
 Translation Caches (IOATC).
 
-This specification does not allow the caching of S/VS/G-stage PTEs whose `V` 
-(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear, 
+This specification does not allow the caching of S/VS/G-stage PTEs whose `V`
+(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,
 Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
 PTEs whose `V` bit is clear.
