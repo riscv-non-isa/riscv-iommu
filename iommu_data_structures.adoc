@@ -415,8 +415,29 @@ are associated to a VM with a common G-stage page table, the hypervisor is
 expected to program the same `GSCID` in each `iohgatp`. The `MODE` field is used
 to select the G-stage address translation scheme.
 
-The G-stage page table format and `MODE` encoding follow the format defined by
-the privileged specification.
+The G-stage page table formats are as defined by the privileged specification.
+
+The encoding of the `iohgatp` `MODE` field identifies the paged virtual-memory
+schemes and its settings are as follows:
+
+[[IOHGATP_MODE_ENC]]
+.Encoding of `iohgatp.MODE` field
+[width=75%]
+[%header, cols="3,3,20"]
+|===
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection.
+| 1    | `Sv32x4` | Page-based 34-bit virtual addressing (2-bit extension
+                    of Sv32).
+| 2-7  | --       | Reserved for standard use.
+| 8    | `Sv39x4` | Page-based 41-bit virtual addressing (2-bit extension
+                    of Sv39).
+| 9    | `Sv48x4` | Page-based 50-bit virtual addressing (2-bit extension
+                    of Sv48).
+| 10   | `Sv57x4` | Page-based 59-bit virtual addressing (2-bit extension
+                    of Sv57).
+| 11-15| --       | Reserved for standard use.
+|===
 
 Implementations are not required to support all defined mode settings for
 `iohgatp`. The IOMMU only needs to support the modes also supported by the MMU
@@ -478,8 +499,23 @@ respectively.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The encoding of the `iosatp`/`iovsatp` `MODE` field are as the same as the
-encoding for `MODE` field in the `satp` CSR.
+The encoding of the `iosatp`/`iovsatp` `MODE` field identifies the paged
+virtual-memory schemes and its settings are as follows:
+
+[[IOSATP_MODE_ENC]]
+.Encoding of `iosatp/iovsatp.MODE` field
+[width=75%]
+[%header, cols="3,3,20"]
+|===
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection.
+| 1    | `Sv32`   | Page-based 32-bit virtual addressing.
+| 2-7  | --       | Reserved for standard use.
+| 8    | `Sv39`   | Page-based 39-bit virtual addressing.
+| 9    | `Sv48`   | Page-based 48-bit virtual addressing.
+| 10   | `Sv57`   | Page-based 57-bit virtual addressing.
+| 11-15| --       | Reserved for standard use.
+|===
 
 When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
 (`pdtp`). When the device supports multiple process contexts, selected by the
@@ -758,8 +794,7 @@ respectively.
 
 A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a S/VS-stage
 page table and the `MODE` used to determine the S/VS-stage address translation
-scheme. The `MODE` field encoding are as defined for the `MODE` field in the
-`satp`/`vsatp` CSR.
+scheme. The `MODE` field encoding are as defined in <<IOSATP_MODE_ENC>>.
 
 The software assigned process soft-context ID (`PSCID`) is used as the address
 space ID for the process identified by the S/VS-stage page table.
