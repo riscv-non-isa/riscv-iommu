@@ -1286,11 +1286,10 @@ The process to translate an `IOVA` is as follows:
 . Translation process is complete
 
 When the translation process reports a fault, and the request is a Untranslated
-request, a Translated request, or a message the IOMMU requests the IO bridge to
-abort the transaction. Guidelines for handling faulting transactions in the IO
-bridge are provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the
-fault/event reporting mechanism and fault record formats specified in
-<<FAULT_QUEUE>>.
+request or a Translated request, the IOMMU requests the IO bridge to abort the
+transaction. Guidelines for handling faulting transactions in the IO bridge are
+provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the fault/event
+reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
 
 If the fault was detected by a PCIe ATS Translation Request then the IOMMU may
 provide a PCIe protocol defined response instead of reporting fault to software
