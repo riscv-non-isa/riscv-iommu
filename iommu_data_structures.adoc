@@ -1795,7 +1795,7 @@ address accesses the same memory location in both little-endian and big-endian
 mode of operation.
 
 The byte order of each double word in memory, little-endian or big-endian, is
-the endianness of as determined by `fctl.BE` or by `DC.ta.SBE` as follows:
+the endianness of as determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 
 [[ENDIAN_CONFIG]]
 .Endianness of memory access to data structures
@@ -1806,8 +1806,8 @@ the endianness of as determined by `fctl.BE` or by `DC.ta.SBE` as follows:
 | Device directory table     | `fctl.BE`
 | G-stage page table         | `fctl.BE`
 | MSI page table             | `fctl.BE`
-| Process directory Table    | `fctl.SBE`
-| S/VS-stage page table      | `fctl.SBE`
+| Process directory Table    | `DC.tc.SBE`
+| S/VS-stage page table      | `DC.tc.SBE`
 |===
 
 [NOTE]
