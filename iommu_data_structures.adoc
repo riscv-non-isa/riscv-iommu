@@ -280,7 +280,7 @@ The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
   {bits: 1,  name: 'GADE'},
   {bits: 1,  name: 'SADE'},
   {bits: 1,  name: 'DPE'},
-  {bits: 1,  name: 'VSBE'},
+  {bits: 1,  name: 'SBE'},
   {bits: 21, name: 'reserved'},
   {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
@@ -406,10 +406,9 @@ If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
 update the A or D bits and does not cause any faults based on A and/or D bit
 being 0.
 
-When two-stage address translation is active, the `VSBE` bit controls whether
-implicit memory accesses to PDT entries and VS-stage PTEs are little-endian
-(`VSBE=0`) or big-endian (`VSBE=1`). The supported values of `VSBE` are the same
-as that of the `fctl.SBE` field.
+If `SBE` is 0, implicit memory accesses to PDT entries and VS-stage PTEs are
+little-endian else they are big-endian. The supported values of `SBE` are the
+same as that of the `fctl.BE` field.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
@@ -627,9 +626,7 @@ conditions are true.
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
-. `capabilities.BE` is 0 and `fctl.SBE != DC.tc.VSBE`
-. `capabilities.BE` is 1 and endianness configured in `DC.tc.VSBE` is
-  not supported.
+. `capabilities.BE` is 0 and `fctl.BE != DC.tc.SBE`
 
 [NOTE]
 ====
@@ -851,7 +848,7 @@ individual MSI PTE from the table is also unspecified.
 
 Every 16-byte MSI PTE is interpreted as two 64-bit doublewords. The byte order 
 for each of the two doublewords in memory, little-endian or big-endian, is the 
-endianness as determined by `fctl.SBE` (<<FCTRL>>).
+endianness as determined by `fctl.BE` (<<FCTRL>>).
 
 Bit 0 of the first doubleword of an MSI PTE is field `V` (Valid). When `V = 0`,
 the PTE is invalid, and all other bits of both doublewords are ignored by an
@@ -1798,7 +1795,7 @@ address accesses the same memory location in both little-endian and big-endian
 mode of operation.
 
 The byte order of each double word in memory, little-endian or big-endian, is
-the endianness of as determined by`fctl.SBE` or by `DC.ta.VSBE` as follows:
+the endianness of as determined by `fctl.BE` or by `DC.ta.SBE` as follows:
 
 [[ENDIAN_CONFIG]]
 .Endianness of memory access to data structures
@@ -1806,25 +1803,19 @@ the endianness of as determined by`fctl.SBE` or by `DC.ta.VSBE` as follows:
 [%header, cols="16,4"]
 |===
 ^|Data Structure             ^| Controlled by
-| Device directory table     | `fctl.SBE`
-| Process directory Table +
-  (When single-stage address
-   translation is active)    | `fctl.SBE`
-| S-stage page table         | `fctl.SBE`
-| G-stage page table         | `fctl.SBE`
-| MSI page table             | `fctl.SBE`
-| Process directory Table +
-  (When two-stage address
-   translation is active)    | `fctl.VSBE`
-| VS-stage page table        | `fctl.VSBE`
+| Device directory table     | `fctl.BE`
+| G-stage page table         | `fctl.BE`
+| MSI page table             | `fctl.BE`
+| Process directory Table    | `fctl.SBE`
+| S/VS-stage page table      | `fctl.SBE`
 |===
 
 [NOTE]
 ====
 The `PSCID` field of first-stage context, along with the `GSCID` (when two-stage
 address translation is active), identifies an address space. Configuring an
-identical `GSCID` and `PSCID` in two DC but with different `VSBE` may lead to
-the IOMMU interpreting a VS-stage PTE as big-endian form or little-endian. These
+identical `GSCID` and `PSCID` in two DC but with different `SBE` may lead to
+the IOMMU interpreting a S/VS-stage PTE as big-endian form or little-endian. These
 are the only behaviors are expected.
 ====
 

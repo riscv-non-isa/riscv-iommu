@@ -109,7 +109,7 @@ encodings 64 to 127 are designated for custom use.
 
 The commands are interpreted as two 64-bit doublewords. The byte order of each
 of the doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctl.SBE` (<<FCTRL>>).
+determined by `fctl.BE` (<<FCTRL>>).
 
 The following commands are supported:
 
@@ -545,7 +545,7 @@ number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. 
 
 The fault records are interpreted as four 64-bit doublewords. The byte order of 
 each of the doublewords in memory, little-endian or big-endian, is the endianness
-as determined by `fctl.SBE` (<<FCTRL>>).
+as determined by `fctl.BE` (<<FCTRL>>).
 
 .Fault-queue record
 [wavedrom, , ]
@@ -737,4 +737,4 @@ of the message) is held in the `PAYLOAD` field.
 
 The page-request-queue records are interpreted as two 64-bit doublewords. The byte
 order of each of the doublewords in memory, little-endian or big-endian, is the 
-endianness as determined by `fctl.SBE` (<<FCTRL>>).
+endianness as determined by `fctl.BE` (<<FCTRL>>).
