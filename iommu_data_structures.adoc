@@ -1533,7 +1533,8 @@ When translation could not be completed due to PDT entry being not present, MSI
 PTE being not present, or first and/or second stage PTE being not present or
 misconfigured then a Success Response with R and W bits set to 0 is generated.
 The translated address returned with such completions is `UNSPECIFIED`. The
-following cause codes belong to this category:
+following cause codes belong to this category. No faults are logged in the fault
+queue for these cases.
 
 * Instruction page fault (cause = 12)
 * Read page fault (cause = 13)
@@ -1618,7 +1619,6 @@ an implementation-defined method for detemining PMA for the translated address
 to set the CXL.io bit.
 ====
 
-No faults are logged in the fault queue for PCIe ATS Translation Requests.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
