@@ -1288,11 +1288,10 @@ The process to translate an `IOVA` is as follows:
 . Translation process is complete
 
 When the translation process reports a fault, and the request is a Untranslated
-request, a Translated request, or a message the IOMMU requests the IO bridge to
-abort the transaction. Guidelines for handling faulting transactions in the IO
-bridge are provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the
-fault/event reporting mechanism and fault record formats specified in
-<<FAULT_QUEUE>>.
+request or a Translated request, the IOMMU requests the IO bridge to abort the
+transaction. Guidelines for handling faulting transactions in the IO bridge are
+provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the fault/event
+reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
 
 If the fault was detected by a PCIe ATS Translation Request then the IOMMU may
 provide a PCIe protocol defined response instead of reporting fault to software
@@ -1532,11 +1531,10 @@ belong to this category:
 * DDT entry misconfigured (cause = 259)
 * Transaction type disallowed (cause = 260)
 
-When translation could not be completed due to PDT entry being not present, MSI
-PTE being not present, or first and/or second stage PTE being not present or
-misconfigured then a Success Response with R and W bits set to 0 is generated.
-The translated address returned with such completions is `UNSPECIFIED`. The
-following cause codes belong to this category:
+When translation could not be completed due to following causes a Success
+Response with R and W bits set to 0 is generated. No faults are logged in
+the fault queue on these error. The translated address returned with such
+completions is `UNSPECIFIED`.
 
 * Instruction page fault (cause = 12)
 * Read page fault (cause = 13)
@@ -1621,7 +1619,6 @@ an implementation-defined method for detemining PMA for the translated address
 to set the CXL.io bit.
 ====
 
-No faults are logged in the fault queue for PCIe ATS Translation Requests.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
