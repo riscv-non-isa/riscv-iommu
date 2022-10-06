@@ -1138,7 +1138,7 @@ harts are big-endian-only).
 [NOTE]
 ====
 Big-endian-configured harts that make use of MRIFs are expected to
-implement the `REV8` byte-reversal instruction defined Zbb extesion.
+implement the `REV8` byte-reversal instruction defined Zbb extension.
 If `REV8` is not implemented, then the endianness conversion may be
 implemented using a sequence of instructions.
 ====
@@ -1656,7 +1656,7 @@ of the Priv, N, CXL.io, Global, and AMA fields is as follows:
 ====
 The IO bridge may override the CXL.io bit in the ATS translation completion
 based on the PMA of the translated address. Other implementations may provide
-an implementation-defined method for detemining PMA for the translated address
+an implementation-defined method for determining PMA for the translated address
 to set the CXL.io bit.
 ====
 

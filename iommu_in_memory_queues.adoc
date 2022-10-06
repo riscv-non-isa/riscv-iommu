@@ -235,7 +235,7 @@ is illegal.
 Conceptually, an implementation might contain two address-translation caches: 
 one that maps guest virtual addresses to guest physical addresses, and another
 that maps guest physical addresses to supervisor physical addresses. 
-`IOTINVAL.GVMA` need not invalidte the former cache, but it must invalidate 
+`IOTINVAL.GVMA` need not invalidate the former cache, but it must invalidate 
 entries from the latter cache that match the `IOTINVAL.GVMA` address and
 `GSCID` operands.
 
@@ -480,7 +480,7 @@ and completed. A previously fetched ATS command to invalidate device ATC does
 not complete till either the request times out or a valid response is received
 from the device.
 
-If one or more ATS invalidation commands preceeding the `IOFENCE.C` have timed
+If one or more ATS invalidation commands preceding the `IOFENCE.C` have timed
 out, then software may make the CQ operational again and resubmit the
 invalidation commands that may have timed out. If the `ATS.INVAL` commands
 queued before the `IOFENCE.C` were directed at multiple devices then software
@@ -598,7 +598,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |269   | PDT data corruption                 | No
 |270   | MSI PT data corruption              | No
 |271   | MSI MRIF data corruption            | No
-|272   | Internal datapath error             | No
+|272   | Internal data path error            | No
 |273   | IOMMU MSI write access fault        | Yes
 |===
 

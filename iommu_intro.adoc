@@ -272,7 +272,7 @@ complexity from application and device drivers.
 ////
 Please in ditaa figures don't use the minus key '-' in your keyboard when
 typing text (like 'non-privileged' in the figure below).
-'-' is a special character that is used by ditta to draw lines, not text.
+'-' is a special character that is used by ditaa to draw lines, not text.
 Instead use a different unicode character that looks similar.
 The figure below uses the unicode character with code U+2212 instead of the '-'
 character of your keyboard (which has the unicode code U+002B).
