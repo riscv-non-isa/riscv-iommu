@@ -1818,9 +1818,9 @@ determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 ====
 The `PSCID` field of first-stage context, along with the `GSCID` (when two-stage
 address translation is active), identifies an address space. Configuring an
-identical `GSCID` and `PSCID` in two DC but with different `SBE` may lead to
-the IOMMU interpreting a S/VS-stage PTE as big-endian form or little-endian. These
-are the only behaviors are expected.
+identical `GSCID` and `PSCID` in two DC but with different `SBE` is not expected
+and if done may lead to the IOMMU interpreting a S/VS-stage PTE as big-endian
+or little-endian. These are the only behaviors are expected.
 ====
 
 [NOTE]
