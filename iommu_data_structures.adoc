@@ -261,7 +261,10 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 ....
 
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
-64-bit doublewords in extended-format. The IOMMU may read the `DC` fields in any order.
+64-bit doublewords in extended-format.  The byte order of each of the
+doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any
+order.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -706,8 +709,9 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The `PC` is interpreted as two 64-bit doublewords. The IOMMU may read the `PC`
-fields in any order.
+The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `DC.tc.SBE`. The IOMMU may read the `PC` fields in any order.
 
 ==== Process-context fields
 
@@ -1794,8 +1798,8 @@ must implement byte-invariant addressing such that a byte access to a given
 address accesses the same memory location in both little-endian and big-endian
 mode of operation.
 
-The byte order of each double word in memory, little-endian or big-endian, is
-the endianness of as determined by `fctl.BE` or by `DC.tc.SBE` as follows:
+The endianness of implicit memory access to in-memory data structures is
+determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 
 [[ENDIAN_CONFIG]]
 .Endianness of memory access to data structures
