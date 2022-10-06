@@ -1477,22 +1477,23 @@ address and translating the address using the MSI page table is as follows:
     `NPPN` becomes globally visible.
 . MSI address translation process is complete.
 
-=== PTE accessed (A) and dirty (D) bit updates
+=== IOMMU updating of PTE accessed (A) and dirty (D) updates
 
 When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
-PTEs atomically. If `capabilities.AMO` is 0, the IOMMU ignores the A and D bits
-in the PTEs; the IOMMU does not update the A or D bits and does not cause any
-faults based on A and/or D bit being 0.
+PTEs atomically. When updating of A and D bits in G-stage PTEs is enabled
+(`DC.tc.GADE=1`) and/or updating of A and D bits in S/VS-stage PTEs is enabled
+(`DC.tc.SADE=1`) the following rules apply:
 
-The A and/or D bit updates by the IOMMU must follow the rules specified by the
-Privileged specification for validity, permission checking, and atomicity.
+. The A and/or D bit updates by the IOMMU must follow the rules specified by the
+  Privileged specification for validity, permission checking, and atomicity.
 
-The PTE update must be globally visible before a memory access using the
-translated address provided by the IOMMU becomes globally visible.
-
-Specifically, When the translated address is provided to a device in an ATS
-Translation completion, the PTE update must be globally visible before a memory
-access from the device using the translated address becomes globally visible.
+. The PTE update must be globally visible before a memory access using the
+  translated address provided by the IOMMU becomes globally visible. +
++
+  Specifically, when a translated address is provided to a device in an ATS +
+  Translation completion, the PTE update must be globally visible before a +
+  memory access from the device using the translated address becomes globally + 
+  visible.
 
 [NOTE]
 ====
