@@ -261,9 +261,10 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 ....
 
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
-64-bit doublewords in extended-format. The byte order of each of the doublewords
-in memory, little-endian or big-endian, is the endianness as determined by
-`fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any order.
+64-bit doublewords in extended-format.  The byte order of each of the
+doublewords in memory, little-endian or big-endian, is the endianness as
+determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any
+order.
 
 ==== Device-context fields
 ===== Translation control (`tc`)
@@ -282,7 +283,8 @@ in memory, little-endian or big-endian, is the endianness as determined by
   {bits: 1,  name: 'GADE'},
   {bits: 1,  name: 'SADE'},
   {bits: 1,  name: 'DPE'},
-  {bits: 22, name: 'reserved'},
+  {bits: 1,  name: 'SBE'},
+  {bits: 21, name: 'reserved'},
   {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -408,6 +410,10 @@ If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
 is 0 then the IOMMU causes a guest-page-fault. If `fctrl.ADFD` is 1, the IOMMU
 ignores the A and D bits in the PTEs; the IOMMU does not update the A or D bits
 and does not cause any faults based on A and/or D bit being 0.
+
+If `SBE` is 0, implicit memory accesses to PDT entries and S/VS-stage PTEs are
+little-endian else they are big-endian. The supported values of `SBE` are the
+same as that of the `fctl.BE` field.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
@@ -664,6 +670,7 @@ conditions are true.
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+. `capabilities.BE` is 0 and `fctl.BE != DC.tc.SBE`
 
 [NOTE]
 ====
@@ -676,7 +683,7 @@ implementations may cause a "DDT entry misconfigured" (cause = 259) fault.
 Other implementations only detect such addresses to be invalid when the data
 structure referenced by these fields need to be accessed. Such
 implementations may detect access-violation faults in the process of making the
-acccess.
+access.
 ====
 
 === Process-Directory-Table (PDT)
@@ -745,8 +752,7 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 
 The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `PC` fields in any
-order.
+determined by `DC.tc.SBE`. The IOMMU may read the `PC` fields in any order.
 
 ==== Process-context fields
 
@@ -845,7 +851,7 @@ Such implementations may cause a "PDT entry misconfigured" (cause = 267) fault.
 
 Other implementations only detect such addresses to be invalid when the data
 structure referenced by these fields need to be accessed. Such implementations
-may detect access-violation faults in the process of making the acccess.
+may detect access-violation faults in the process of making the access.
 ====
 
 [[MSI_PT]]
@@ -1312,7 +1318,7 @@ The process to translate an `IOVA` is as follows:
   MSI page tables is enabled and the transaction is eligible for MSI address
   translation and the MSI address translation process specified in <<MSI_TRANS>>
   is invoked. If the GPA `A` is determined to be not an MSI then the process
-  continues at step 20. If a fault is detected by the MSI adddress translation
+  continues at step 20. If a fault is detected by the MSI address translation
   process then stop and report the fault.
 .. Address `A` is a 32-bit aligned address.
 .. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is
@@ -1454,13 +1460,6 @@ address and translating the address using the MSI page table is as follows:
 ** `y = 1 0 1 0 0 1 1 0`
 ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
 
-. If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. The IOMMU
-  capable of big-endian access to memory if the `BE` bit in the `capabilities`
-  register (<<CAP>>) is 1. When the IOMMU is capable of big-endian operation, 
-  the feature control register, `fctl` (<<FCTRL>>), holds the configuration 
-  bit that may be set to 1 to enable big-endian access to memory. If the IOMMU 
-  is not capable or has not been configured for big-endian access to memory, 
-  then stop and report "Transaction type disallowed" (cause = 260).
 . Let `m` be `(DC.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
   accessing `msipte` violates a PMA or PMP check, then stop and report
@@ -1487,6 +1486,9 @@ address and translating the address using the MSI page table is as follows:
    details on this processing.
 .. Let `D` be the 32-bit data associated with the write. The byte order of
    `D` is determined by bit 2 of `A`.
+.. If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. If big-endian
+   MSIs are not supported by the IOMMU then stop and report "Transaction type
+   disallowed" (cause = 260).
 .. If `A[11:3]` or `D[31:11]` is not zero, then stop and report "Transaction
    type disallowed" (cause = 260).
 .. If the IOMMU supports atomic memory operations
@@ -1824,4 +1826,46 @@ entry or the new value of the entry and the choice is unpredictable till
 software uses the commands outlined in <<CACHING>> to invalidate any previous
 copies of that entry that may be in IOMMU caches to synchronize updates to the
 entry with the operation of the IOMMU. These are the only behaviors expected.
+====
+
+=== Endianness of in-memory data structures
+
+The RISC-V memory model specifies byte-invariance for the entire address space.
+When mixed-endian mode of operation is supported, the IO bridge and the IOMMU
+must implement byte-invariant addressing such that a byte access to a given
+address accesses the same memory location in both little-endian and big-endian
+mode of operation.
+
+The endianness of implicit memory access to in-memory data structures is
+determined by `fctl.BE` or by `DC.tc.SBE` as follows:
+
+[[ENDIAN_CONFIG]]
+.Endianness of memory access to data structures
+[width=75%]
+[%header, cols="16,4"]
+|===
+^|Data Structure             ^| Controlled by
+| Device directory table     | `fctl.BE`
+| G-stage page table         | `fctl.BE`
+| MSI page table             | `fctl.BE`
+| Process directory Table    | `DC.tc.SBE`
+| S/VS-stage page table      | `DC.tc.SBE`
+|===
+
+[NOTE]
+====
+The `PSCID` field of first-stage context, along with the `GSCID` (when two-stage
+address translation is active), identifies an address space. Configuring an
+identical `GSCID` and `PSCID` in two DC but with different `SBE` is not expected
+and if done may lead to the IOMMU interpreting a S/VS-stage PTE as big-endian
+or little-endian. These are the only behaviors are expected.
+====
+
+[NOTE]
+====
+Software must use an appropriate software sequence to swap bytes as necessary to
+create a mutually agreed to data representation when sharing data with an IO
+agent that does not share its endianness. Software must use an LR/SC sequence to
+perform atomic operations in non-native endian format when the data shared with
+such IO agents must be accessed atomically.
 ====
