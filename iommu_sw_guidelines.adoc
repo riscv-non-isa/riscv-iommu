@@ -23,9 +23,9 @@ The guidelines for initializing the IOMMU are as follows:
 . Stop and report failure if `capabilities.version` is not supported.
 . Read the feature control register (`fctl`).
 . Stop and report failure if big-endian memory access is needed and the 
-  `capabilities.BE` field is 0 (i.e. only one endianness) and `fctl.BE` is
+  `capabilities.END` field is 0 (i.e. only one endianness) and `fctl.BE` is
   0 (i.e. little endian).
-. If big-endian memory access is needed and the `capabilities.BE` field is 1
+. If big-endian memory access is needed and the `capabilities.END` field is 1
   (i.e. both endianness supported), set `fctl.BE` to 1 (i.e. big endian)
   if the field is not already 1.
 . Stop and report failure if wired-signaled-interrupts are needed for IOMMU

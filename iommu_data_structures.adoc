@@ -670,7 +670,7 @@ conditions are true.
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
-. `capabilities.BE` is 0 and `fctl.BE != DC.tc.SBE`
+. `capabilities.END` is 0 and `fctl.BE != DC.tc.SBE`
 
 [NOTE]
 ====
