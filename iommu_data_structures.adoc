@@ -284,8 +284,8 @@ order.
   {bits: 1,  name: 'SADE'},
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
-  {bits: 1,  name: `GADFE`},
-  {bits: 1,  name: `SADFE`},
+  {bits: 1,  name: 'GADFE'},
+  {bits: 1,  name: 'SADFE'},
   {bits: 19, name: 'reserved'},
   {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
