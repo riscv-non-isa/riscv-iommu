@@ -752,3 +752,22 @@ of the message) is held in the `PAYLOAD` field.
 The page-request-queue records are interpreted as two 64-bit doublewords. The byte
 order of each of the doublewords in memory, little-endian or big-endian, is the 
 endianness as determined by `fctl.BE` (<<FCTRL>>).
+
+The `PAYLOAD` holds the message body and its fields are as specified by the PCIe
+specification. The `PAYLOAD` field is formatted as follows:
+
+.`PAYLOAD` of a "Page request" message
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 1, name: 'R'},
+  {bits: 1, name: 'W'},
+  {bits: 1, name: 'L'},
+  {bits: 9, name: 'Page Request Group Index'},
+  {bits: 20, name: 'Page Address[31:12]'},
+  {bits: 32, name: 'Page Address[63:32]'},
+], config:{lanes: 2, hspace:1024, fontsize:12}}
+....
+
+
