@@ -146,7 +146,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'PD8'},
   {bits: 1, name: 'PD17'},
   {bits: 1, name: 'PD20'},
-  {bits: 15, name: 'reserved'},
+  {bits: 1, name: 'ADFE'},
+  {bits: 14, name: 'reserved'},
   {bits: 8, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
@@ -216,7 +217,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |38    |`PD8`      |RO        | One level PDT with 8-bit process_id supported.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
-|55:41 | reserved  |RO        | Reserved for standard use
+|41    |`ADFE`     |RO        | When 1, the IOMMU supports enabling A/D faults.
+|55:42 | reserved  |RO        | Reserved for standard use
 |63:56 |_custom_   |RO        | _Designated for custom use_
 |===
 
@@ -269,8 +271,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 {reg: [
   {bits: 1, name: 'BE'},
   {bits: 1, name: 'WSI'},
-  {bits: 1, name: 'ADFD'},
-  {bits: 13,  name: 'reserved'},
+  {bits: 14,  name: 'reserved'},
   {bits: 16,  name: 'custom'},
 ], config:{lanes: 1, hspace:1024}}
 ....
