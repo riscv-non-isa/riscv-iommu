@@ -399,17 +399,11 @@ compatibility, and must be ignored by hardware.
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
 
-If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
-`GADE` is 0, the IOMMU behavior is determined by `fctl.ADFD` bit. If `fctl.ADFD`
-is 0 then the IOMMU causes a guest-page-fault. If `fctrl.ADFD` is 1, the IOMMU
-ignores the A and D bits in the PTEs; the IOMMU does not update the A or D bits
-and does not cause any faults based on A and/or D bit being 0.
+If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically else
+the IOMMU causes a guest-page-fault.
 
-If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
-`SADE` is 0, the IOMMU behavior is determined by `fctl.ADFD` bit. If `fctl.ADFD`
-is 0 then the IOMMU causes a guest-page-fault. If `fctrl.ADFD` is 1, the IOMMU
-ignores the A and D bits in the PTEs; the IOMMU does not update the A or D bits
-and does not cause any faults based on A and/or D bit being 0.
+If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically else
+the IOMMU causes a page-fault.
 
 If `SBE` is 0, implicit memory accesses to PDT entries and S/VS-stage PTEs are
 little-endian else they are big-endian. The supported values of `SBE` are the
