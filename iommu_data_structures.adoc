@@ -284,7 +284,8 @@ order.
   {bits: 1,  name: 'SADE'},
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
-  {bits: 21, name: 'reserved'},
+  {bits: 1,  name: 'SXL'},
+  {bits: 20, name: 'reserved'},
   {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -415,6 +416,17 @@ If `SBE` is 0, implicit memory accesses to PDT entries and S/VS-stage PTEs are
 little-endian else they are big-endian. The supported values of `SBE` are the
 same as that of the `fctl.BE` field.
 
+The `SXL` field controls the supported paged virtual-memory schemes as defined
+in <<IOSATP_MODE_ENC>>. If `fctl.GXL` is 1 then `SXL` field must be 1; otherwise
+the legal values for the `SXL` field are the same as that of the `fctl.GXL`.
+
+When `SXL` is 1, the following rules apply:
+
+* If the S/VS-stage page table is not `Bare` then a page fault occurs if the
+  `IOVA` has bits beyond bit 31 set to 1.
+* If the G-stage page table is not `Bare`, then a guest page fault occurs if
+  the GPA has bits beyond bit 33 set to 1.
+
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
 virtual machine identified by a guest soft-context ID (`GSCID`), to facilitate
@@ -424,15 +436,18 @@ expected to program the same `GSCID` in each `iohgatp`. The `MODE` field is used
 to select the G-stage address translation scheme.
 
 The G-stage page table formats are as defined by the Privileged specification.
+The `fctl.GXL` field controls the supported address-translation schemes for
+guest physical addresses as defined in <<IOHGATP_MODE_ENC>>.
 
 The `iohgatp` `MODE` field identifies the paged virtual-memory schemes and its
 encodings are as follows:
 
 [[IOHGATP_MODE_ENC]]
-.Encoding of `iohgatp.MODE` field
+.Encodings of `iohgatp.MODE` field
 [width=75%]
 [%header, cols="3,3,20"]
 |===
+3+|               `fctl.GXL=0`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
@@ -442,9 +457,14 @@ encodings are as follows:
                     of Sv48).
 | 10   | `Sv57x4` | Page-based 59-bit virtual addressing (2-bit extension
                     of Sv57).
-| 11-14| --       | Reserved for standard use.
-| 15    | `Sv32x4`| Page-based 34-bit virtual addressing (2-bit extension
+| 11-15| --       | Reserved for standard use.
+3+|               `fctl.GXL=1`
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection.
+| 1-7  | --       | Reserved for standard use.
+| 8    | `Sv32x4` | Page-based 34-bit virtual addressing (2-bit extension
                     of Sv32).
+| 9-15 | --       | Reserved for standard use.
 |===
 
 Implementations are not required to support all defined mode settings for
@@ -510,6 +530,8 @@ respectively.
 The S/VS-stage page table formats are as defined by the Privileged
 specification.
 
+The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
+
 The `iosatp`/`iovsatp` `MODE` identifies the paged virtual-memory schemes and
 is encoded as follows:
 
@@ -518,14 +540,21 @@ is encoded as follows:
 [width=75%]
 [%header, cols="3,3,20"]
 |===
+3+|               `DC.tc.SXL=0`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
 | 8    | `Sv39`   | Page-based 39-bit virtual addressing.
 | 9    | `Sv48`   | Page-based 48-bit virtual addressing.
 | 10   | `Sv57`   | Page-based 57-bit virtual addressing.
-| 11-14| --       | Reserved for standard use.
-| 15   | `Sv32`   | Page-based 32-bit virtual addressing.
+| 11-13| --       | Reserved for standard use.
+| 14-15| --       | Designated for custom use.
+3+|               `DC.tc.SXL=1`
+|Value | Name     | Description
+| 0    | `Bare`   | No translation or protection.
+| 1-7  | --       | Reserved for standard use.
+| 8    | `Sv32`   | Page-based 32-bit virtual addressing.
+| 9-15 | --       | Reserved for standard use.
 |===
 
 When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
