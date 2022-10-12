@@ -700,6 +700,8 @@ conditions are true.
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
 . `capabilities.END` is 0 and `fctl.BE != DC.tc.SBE`
+. `fctl.SXL` is 1 and `DC.tc.SXL` is 0
+. `DC.tc.SXL` value is not a legal value
 
 [NOTE]
 ====
