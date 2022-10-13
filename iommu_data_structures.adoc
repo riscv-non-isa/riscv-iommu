@@ -392,9 +392,7 @@ then the PASID is used as the `process_id`.
 When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
 value of `process_id` for translating requests without a valid `process_id`.
 
-When `PDTV` is 0, the `DPE` bit is reserved for future standard extension. Until
-its use is defined, the bit should be cleared by software for forward
-compatibility, and must be ignored by hardware.
+When `PDTV` is 0, the `DPE` bit is reserved for future standard extension.
 
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
@@ -661,6 +659,7 @@ conditions are true.
 .. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
 .. `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
 .. `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
+. `DC.tc.PDTV` is 0 and `DC.tc.DPE` is 1
 . `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
 . `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
 . `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
