@@ -1517,11 +1517,11 @@ translating the address using the MSI page table is as follows:
 .. If the transaction is a PCIe ATS translation request then return a Success
    response with R, W, and U bit set to 1. See <<ATS_FAULTS>> for further
    details on this processing.
-.. If any of the following conditions are true then then stop and report
-   "Transaction type disallowed" (cause = 260).
-... Memory access is a read
-... Write access is for a data size other than 32-bits
-... Address of the write access is not 32-bit aligned
+.. If the memory access is a read then the IOMMU may either return zero as the
+   read value or may abort the transaction as an Unsupported Request. These
+   are the only expected behaviors and the process continues at step 15.
+.. If the write access is for a data size other than 32-bits or if the address
+   is not 32-bit aligned then discard the write access and go to step 15.
 .. Let `D` be the 32-bit data associated with the write. The byte order of
    `D` is determined by bit 2 of `A`.
 .. If bit 2 of `A` is 1, i.e. the MSI is in big-endian byte order. If big-endian
@@ -1553,7 +1553,7 @@ translating the address using the MSI page table is as follows:
     relaxation is allowed (e.g. PCIe relaxed ordering) or is not required.
 ... The write to destination MRIF must be globally visible before the write to
     `NPPN` becomes globally visible.
-.. Request the IO bridge to discard the incoming write access.
+.. Discard the incoming write access.
 . MSI address translation process is complete.
 
 === IOMMU updating of PTE accessed (A) and dirty (D) updates
