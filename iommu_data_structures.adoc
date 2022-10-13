@@ -391,9 +391,8 @@ with its memory accesses. For PCIe, for example, if the request has a PASID
 then the PASID is used as the `process_id`.
 
 When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
-value of `process_id` for translating requests without a valid `process_id`.
-
-When `PDTV` is 0, the `DPE` bit is reserved for future standard extension.
+value of `process_id` for translating requests without a valid `process_id`. When
+`PDTV` is 0, the `DPE` bit is reserved for future standard extension.
 
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
@@ -416,10 +415,11 @@ the legal values for the `SXL` field are the same as that of the `fctl.GXL`.
 
 When `SXL` is 1, the following rules apply:
 
-* If the S/VS-stage page table is not `Bare` then a page fault occurs if the
-  `IOVA` has bits beyond bit 31 set to 1.
-* If the G-stage page table is not `Bare`, then a guest page fault occurs if
-  the GPA has bits beyond bit 33 set to 1.
+* If the S/VS-stage page table is not `Bare` then a page fault corresponding to
+  the original access type occurs if the `IOVA` has bits set beyond bit 31.
+* If the G-stage page table is not `Bare`, then a guest page fault corresponding
+  to the original access type occurs if the incoming GPA has bits set beyond bit
+  33.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
@@ -441,7 +441,7 @@ encodings are as follows:
 [width=75%]
 [%header, cols="3,3,20"]
 |===
-3+|               `fctl.GXL=0`
+3+^|               `fctl.GXL=0`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
@@ -452,7 +452,7 @@ encodings are as follows:
 | 10   | `Sv57x4` | Page-based 59-bit virtual addressing (2-bit extension
                     of Sv57).
 | 11-15| --       | Reserved for standard use.
-3+|               `fctl.GXL=1`
+3+^|               `fctl.GXL=1`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
@@ -534,7 +534,7 @@ is encoded as follows:
 [width=75%]
 [%header, cols="3,3,20"]
 |===
-3+|               `DC.tc.SXL=0`
+3+^|               `DC.tc.SXL=0`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
@@ -543,7 +543,7 @@ is encoded as follows:
 | 10   | `Sv57`   | Page-based 57-bit virtual addressing.
 | 11-13| --       | Reserved for standard use.
 | 14-15| --       | Designated for custom use.
-3+|               `DC.tc.SXL=1`
+3+^|               `DC.tc.SXL=1`
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
