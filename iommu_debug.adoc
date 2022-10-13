@@ -10,9 +10,10 @@ translate an IOVA (<<P2IOVA>>) as an Untranslated Request. The result of the
 translation, if the process completes successfully, is reported to through the
 translation-response registers. If the process stops due to faults then the
 faults are reported normally in the fault-queue and the translation-response
-registers updated with a failure indicator. If the IOVA is determined to be an
-MSI (<<MSI_ID>>) and the corresponding MSI PTE is in MRIF mode, then the process
-stops and reports a "Transaction type disallowed" (cause = 260) fault.
+registers updated with a failure indicator. If the IOVA is determined to be the
+that of a virtual interrupt file (<<MSI_ID>>) and the corresponding MSI PTE is
+in MRIF mode, then the process stops and reports a "Transaction type disallowed"
+(cause = 260) fault.
 
 When the process to translate an IOVA is invoked for this purpose, the IOMMU
 must not cache S/VS-stage PTEs, G-stage PTEs, DDT entries, PDT entries, or MSI

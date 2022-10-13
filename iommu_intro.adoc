@@ -96,8 +96,9 @@ applies to other memory writes. However, the Advanced Interrupt Architecture
 requires that IOMMUs treat MSIs directed to virtual machines specially, in
 part to simplify software, and in part to allow optional support for
 memory-resident interrupt files. The device context is configured by software
-with parameters to identify memory writes as MSI and to be translated using a
-MSI address translation table configured by software in the device context.
+with parameters to identify memory accesses to a virtual interrupt file and to
+be translated using a MSI address translation table configured by software in
+the device context.
 
 === Glossary
 .Terms and definitions
@@ -248,10 +249,6 @@ corruptions by limiting the memory that can be accessed by devices using DMA.
 Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System 
 configures the IOMMU to use the S-stage page table to translate IOVA to SPA and
 thereby limit the addresses that may be accessed.
-
-The OS may also use the MSI address translation capability to dynamically
-redirect interrupts from one RISC-V hart to another without needing to reprogram
-the devices themselves.
 
 Legacy 32-bit devices cannot access the memory above 4 GiB. The integration of
 the IOMMU, through its address remapping capability, offers a simple mechanism
@@ -636,10 +633,10 @@ features:
 
 * Hardware updating of PTE Accessed and Dirty bits.
 
-* Identifying MSI writes and MSI address translation, using MSI page tables, to
-  redirect MSIs to interrupt files in an IMSIC using MSI PTEs in write-through
-  mode and redirecting MSI to memory-resident-interrupt-files using MSI PTEs in
-  MRIF mode.
+* Identifying memory accesses to a virtual interrupt file and MSI address
+  translation, using MSI page tables, to redirect MSIs to interrupt files in an
+  IMSIC using MSI PTEs in pass-through mode and redirecting MSI to
+  memory-resident-interrupt-files using MSI PTEs in MRIF mode.
 
 * Svnapot and Svpbmt extension.
 
@@ -648,7 +645,7 @@ features:
 
 * A hardware performance monitor (HPM).
 
-* MSI and wire-based-interrupts to request service from software. 
+* MSI and wire-signaled-interrupts to request service from software. 
 
 * A register interface for software to request an address translation to 
   support debug.

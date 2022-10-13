@@ -180,7 +180,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |19    |`Sv57x4`   |RO        | Page-based 59-bit virtual addressing for G-stage
                                 translation is supported.
 |21:20 | reserved  |RO        | Reserved for standard use.
-|22    |`MSI_FLAT` |RO        | MSI address translation using Write-through 
+|22    |`MSI_FLAT` |RO        | MSI address translation using Pass-through
                                 mode MSI PTE is supported.
 |23    |`MSI_MRIF` |RO        | MSI address translation using MRIF mode MSI PTE
                                 is supported.
