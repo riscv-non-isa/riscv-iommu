@@ -269,7 +269,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 {reg: [
   {bits: 1, name: 'BE'},
   {bits: 1, name: 'WSI'},
-  {bits: 14,  name: 'reserved'},
+  {bits: 1, name: 'GXL'},
+  {bits: 13,  name: 'reserved'},
   {bits: 16,  name: 'custom'},
 ], config:{lanes: 1, hspace:1024}}
 ....
@@ -285,7 +286,10 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 big-endian accesses.
 |1     |`WSI`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wire-signaled-interrupts.
-|15:2  |`reserved` |WPRI      | Reserved for standard use.
+|2     |`GXL`      |WARL      | Controls the address-translation schemes that
+                                may be used for guest physical addresses as
+                                defined in <<IOHGATP_MODE_ENC>>.
+|15:3  |`reserved` |WPRI      | Reserved for standard use.
 |31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
 
