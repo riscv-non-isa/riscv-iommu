@@ -1344,17 +1344,12 @@ The process to translate an `IOVA` is as follows:
   determine the GPA accessed by the transaction. If a fault is detecting by the
   two stage address translation process then stop and report the fault. If the
   translation process is completed then let `A` be the translated GPA.
-. If all of the following conditions hold then MSI address translations using
-  MSI page tables is enabled and the transaction is eligible for MSI address
-  translation and the MSI address translation process specified in <<MSI_TRANS>>
-  is invoked. If the GPA `A` is determined to be not an MSI then the process
-  continues at step 20. If a fault is detected by the MSI address translation
-  process then stop and report the fault.
-.. Address `A` is a 32-bit aligned address.
-.. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is
-   an ATS translation request.
-.. `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
-   is enabled.
+. If MSI address translations using MSI page tables is enabled
+  (`DC.msiptp.MODE != Bare`) then the MSI address translation process specified
+  in <<MSI_TRANS>> is invoked. If the GPA `A` is determined to be not an MSI
+  then the process continues at step 20. If a fault is detected by the MSI
+  address translation process then stop and report the fault else the process
+  continues at step 21.
 . If a G-stage page table is active in the device-context then use the
   G-stage address translation process specified in Section 8.5 of the RISC-V
   privileged specification to translate the GPA `A` to determine the SPA accessed
