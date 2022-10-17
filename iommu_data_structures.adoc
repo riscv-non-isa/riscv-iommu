@@ -1346,10 +1346,10 @@ The process to translate an `IOVA` is as follows:
   translation process is completed then let `A` be the translated GPA.
 . If MSI address translations using MSI page tables is enabled
   (`DC.msiptp.MODE != Bare`) then the MSI address translation process specified
-  in <<MSI_TRANS>> is invoked. If the GPA `A` is determined to be not an MSI
-  then the process continues at step 20. If a fault is detected by the MSI
-  address translation process then stop and report the fault else the process
-  continues at step 21.
+  in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be the
+  address of a virtual interrupt file then the process continues at step 20. If
+  a fault is detected by the MSI address translation process then stop and
+  report the fault else the process continues at step 21.
 . If a G-stage page table is active in the device-context then use the
   G-stage address translation process specified in Section 8.5 of the RISC-V
   privileged specification to translate the GPA `A` to determine the SPA accessed
@@ -1462,8 +1462,9 @@ recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM
 
 When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
-the process to identify a incoming `IOVA` from a device as a MSI address and
-translating the address using the MSI page table is as follows:
+the process to identify a incoming `IOVA` from a device as the address of a
+virtual interrupt file and translating the address using the MSI page table is
+as follows:
 
 . Let `A` be the `GPA`
 . Let `DC` be the device-context located using the `device_id` of the device
