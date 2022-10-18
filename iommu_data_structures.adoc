@@ -443,7 +443,7 @@ encodings are as follows:
 | 10   | `Sv57x4` | Page-based 59-bit virtual addressing (2-bit extension
                     of Sv57).
 | 11-14| --       | Reserved for standard use.
-| 15   | `Sv32x4` | Page-based 59-bit virtual addressing (2-bit extension
+| 15    | `Sv32x4`| Page-based 34-bit virtual addressing (2-bit extension
                     of Sv32).
 |===
 
@@ -526,7 +526,6 @@ is encoded as follows:
 | 10   | `Sv57`   | Page-based 57-bit virtual addressing.
 | 11-14| --       | Reserved for standard use.
 | 15   | `Sv32`   | Page-based 32-bit virtual addressing.
-| 14-15| --       | Designated for custom use.
 |===
 
 When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
