@@ -431,6 +431,8 @@ expected to program the same `GSCID` in each `iohgatp`. The `MODE` field is used
 to select the G-stage address translation scheme.
 
 The G-stage page table formats are as defined by the Privileged specification.
+The `fctl.GXL` field controls the supported address-translation schemes for
+guest physical addresses as defined in <<IOHGATP_MODE_ENC>>.
 
 The `iohgatp` `MODE` field identifies the paged virtual-memory schemes and its
 encodings are as follows:
