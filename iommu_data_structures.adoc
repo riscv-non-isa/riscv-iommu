@@ -1433,9 +1433,8 @@ recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM
 
 When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
-the process to identify a incoming `IOVA` from a device as the address of a
-virtual interrupt file and translating the address using the MSI page table is
-as follows:
+the process to identify an incoming `IOVA` as the address of a virtual interrupt
+file and translating the address using the MSI page table is as follows:
 
 . Let `A` be the `GPA`
 . Let `DC` be the device-context located using the `device_id` of the device
