@@ -9,8 +9,8 @@ For each I/O device connected to the system through an IOMMU, software can
 configure at the IOMMU a device context, which associates with the device a
 specific virtual address space and other per-device parameters. By giving
 each device its own separate device context at an IOMMU, each device can be
-individually configured for a different software master, usually a guest OS or
-the main (host) OS. On every memory access made from a device, hardware
+individually configured for a separate operating system, which may be a guest OS or
+the main (host) OS. On every memory access initiated by a device, hardware
 indicates to the IOMMU the originating device by some form of unique device
 identifier, which the IOMMU uses to locate the appropriate device context
 within data structures supplied by software. For PCIe, for example, the
@@ -36,7 +36,7 @@ complexity from application and device drivers. After binding to a device,
 applications can instruct it to perform DMA on application statically or 
 dynamically allocated buffers. To support such addressing, software can 
 configure one or more process contexts into the device context. On every memory
-access made from a device, the hardware indicates to the IOMMU a unique process
+access initiated by a device, the hardware indicates to the IOMMU a unique process
 identifier, which the IOMMU uses in conjunction with the unique device 
 identifier to locate the appropriate process context configured by software in
 the device context. For PCIe, for example, the process context may be identified
@@ -393,7 +393,7 @@ supported by regular RISC-V page-based address translation.
 ==== Guest OS
 
 The presence of an IOMMU allows each device to be individually configured
-for a different software master, usually a guest OS or the main (host) OS.
+for a separate operating system, which may be a guest OS or the main (host) OS.
 
 On implementations of the IOMMU that support two stages of translation (VS-stage
 and G-stage), the G-stage translation (or second stage of translation) is
@@ -501,10 +501,10 @@ inbound transactions. The data associated with the inbound transactions is not
 processed by the IOMMU. The IOMMU behaves like a look-aside IP to the IO Bridge
 and has several interfaces (see <<fig:iommu-interfaces>>):
 
-* Host interface: it is a slave interface to the IOMMU for the harts to access
+* Host interface: it is a interface to the IOMMU for the harts to access
   its memory-mapped registers and perform global configuration and/or maintenance
   operations.
-* Device Translation Request interface: it is a slave interface, which receives
+* Device Translation Request interface: it is a interface, which receives
   the translation requests from the IO Bridge. On this interface the IO Bridge
   provides information about the request such as:
 .. The hardware identities associated with transaction - the `device_id` and
@@ -526,14 +526,14 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
    translation requests out of order, such information may be used by the IO
    Bridge to correlate completions to previous requests.
 * Data Structure interface: it is used by the IOMMU for implicit access to
-  memory. It is a master interface to the IO Bridge and is used to fetch the
+  memory. It is a requester interface to the IO Bridge and is used to fetch the
   required data structure from main memory. This interface is used to access:
 .. The device and process directories to get the context information and
    translation rules.
 .. The G-stage and/or S/VS-stage page table entries to translate the IOVA.
 .. The in-memory queues (command-queue, fault-queue, and page-request-queue)
    used to interface with software.
-* Device Translation Completion interface: it is a master interface which
+* Device Translation Completion interface: it is a interface which
   provides the completion response from the IOMMU for previously requested
   address translations. The completion interface may provide information
   such as:
@@ -591,10 +591,10 @@ address on the device translation completion interface to the IO Bridge. The
 PMA in IO Bridge may use the provided PBMT to override the PMA(s) for the
 associated memory pages.
 
-The PMP may use the hardware ID of the bus master to determine physical memory
-access privileges. As the IOMMU itself is a bus master for its implicit
-accesses, the IOMMU hardware ID may be used by the PMP to select the appropriate
-access control rules.
+The PMP may use the hardware ID of the bus access initiator to determine
+physical memory access privileges. As the IOMMU itself is a bus access initiator
+for its implicit accesses, the IOMMU hardware ID may be used by the PMP to select
+the appropriate access control rules.
 
 [NOTE]
 ====
