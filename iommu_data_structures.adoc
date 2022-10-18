@@ -456,6 +456,7 @@ encodings are as follows:
 | 1-7  | --       | Reserved for standard use.
 | 8    | `Sv32x4` | Page-based 34-bit virtual addressing (2-bit extension
                     of Sv32).
+| 11-15| --       | Reserved for standard use.
 |===
 
 Implementations are not required to support all defined mode settings for
