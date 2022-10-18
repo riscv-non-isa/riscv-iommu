@@ -284,7 +284,8 @@ order.
   {bits: 1,  name: 'SADE'},
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
-  {bits: 21, name: 'reserved'},
+  {bits: 1,  name: 'SXL'},
+  {bits: 20, name: 'reserved'},
   {bits: 32, name: 'Designated for custom use'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
@@ -435,7 +436,7 @@ The `iohgatp` `MODE` field identifies the paged virtual-memory schemes and its
 encodings are as follows:
 
 [[IOHGATP_MODE_ENC]]
-.Encoding of `iohgatp.MODE` field
+.Encodings of `iohgatp.MODE` field
 [width=75%]
 [%header, cols="3,3,20"]
 |===
@@ -456,7 +457,7 @@ encodings are as follows:
 | 1-7  | --       | Reserved for standard use.
 | 8    | `Sv32x4` | Page-based 34-bit virtual addressing (2-bit extension
                     of Sv32).
-| 11-15| --       | Reserved for standard use.
+| 9-15 | --       | Reserved for standard use.
 |===
 
 Implementations are not required to support all defined mode settings for
@@ -521,6 +522,8 @@ respectively.
 
 The S/VS-stage page table formats are as defined by the Privileged
 specification.
+
+The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
 The `iosatp`/`iovsatp` `MODE` identifies the paged virtual-memory schemes and
 is encoded as follows:
