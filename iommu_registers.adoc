@@ -80,7 +80,7 @@ the register returns 0 and writes to that offset are ignored.
                               (`WPRI`)                    |
 |688   |_custom_        |72  |_Designated for custom use
                               (`WARL`)_                   |
-|760   |`icvec`         |4   |<<ICVEC, Interrupt cause
+|760   |`icvec`         |8   |<<ICVEC, Interrupt cause
                               to vector register>>        | No
 |768   |`msi_cfg_tbl`   |256 |<<MSI, MSI Configuration
                                      Table>>              | if `capabilities.IGS==WSI`
@@ -269,7 +269,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 {reg: [
   {bits: 1, name: 'BE'},
   {bits: 1, name: 'WSI'},
-  {bits: 1, name: 'ADFD'},
+  {bits: 1, name: 'GXL'},
   {bits: 13,  name: 'reserved'},
   {bits: 16,  name: 'custom'},
 ], config:{lanes: 1, hspace:1024}}
@@ -286,8 +286,9 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 big-endian accesses.
 |1     |`WSI`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wire-signaled-interrupts.
-|2     |`ADFD`     |WARL      | When 1, IOMMU faults due to A/D bits is
-                                disabled.
+|2     |`GXL`      |WARL      | Controls the address-translation schemes that
+                                may be used for guest physical addresses as
+                                defined in <<IOHGATP_MODE_ENC>>.
 |15:3  |`reserved` |WPRI      | Reserved for standard use.
 |31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
@@ -889,7 +890,7 @@ status of the fault-queue.
                             by writing 1 to the bit. An interrupt is generated 
                             if not already pending (i.e. `ipsr.fip == 1`) and 
                             not masked (i.e. `fqsr.fie == 0`).
-|10:15 |`reserved`|WPRI  | Reserved for standard use
+|15:10 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
                            IOMMU behavior on changing `fqb` when `busy` is 1 
                            or `fqon` is 1 is `UNSPECIFIED`. The 
@@ -1387,64 +1388,6 @@ analysis of at least two streams of IO it is recommended to support seven
 programmable counters.
 ====
 
-
-[[ICVEC]]
-=== Interrupt-cause-to-vector register (`icvec`)
-
-Interrupt-cause-to-vector register maps a cause to a vector.  All causes can 
-be mapped to same vector or a cause can be given a unique vector. 
-
-The vector is used:
-
-. By an IOMMU that generates interrupts as MSI, to index into MSI 
-  configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An 
-  IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
-  or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
-  configured to generate interrupts as MSI by setting `fctl.WSI` to 0.
-. By an IOMMU that generates WSI, to determine the wire 
-  to signal the interrupt. An IOMMU is capable of generating wire-signaled-
-  interrupts if `capabilities.IGS==WSI` or if `capabilities.IGS==BOTH`. When 
-  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire-signaled-
-  interrupts by setting `fctl.WSI` to 1.
-
-If an implementation only supports a single vector then all bits of this
-register may be hardwired to 0 (WARL). Likewise if only two vectors are 
-supported then only bit 0 for each cause could be writable.
-
-.Interrupt-cause-to-vector register fields
-
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 4, name: 'civ'},
-  {bits: 4, name: 'fiv'},
-  {bits: 4, name: 'pmiv'},
-  {bits: 4, name: 'piv'},
-  {bits: 16, name: 'reserved'},
-  {bits: 32, name: 'custom'},
-], config:{lanes: 4, hspace:1024}}
-....
-
-[width=100%]
-[%header, cols="^1,1,^1,6"]
-|===
-|Bits   |Field    |Attribute | Description
-| 3:0   |`civ`    |WARL      | The command-queue-interrupt-vector (`civ`) 
-                               is the vector number assigned to the 
-                               command-queue-interrupt. 
-| 7:4   |`fiv`    |WARL      | The fault-queue-interrupt-vector (`fiv`) is the
-                               vector number assigned to the 
-                               fault-queue-interrupt.
-| 11:8  |`pmiv`   |WARL      | The performance-monitoring-interrupt-vector
-                               (`pmiv`) is the vector number assigned to the
-                               performance-monitoring-interrupt. 
-| 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
-                               is the vector number assigned to the
-                               page-request-queue-interrupt.
-| 31:16 |`reserved`|WPRI     | Reserved for standard use
-| 63:32 |_custom_  |WPRI     | _Designated for custom use_
-|===
-
 [[TRR_IOVA]]
 === Translation-request IOVA (`tr_req_iova`)
 The `tr_req_iova` is a 64-bit WARL register used to implement a 
@@ -1601,6 +1544,63 @@ This register is present when `capabilities.DBG == 1`.
 !===
 |59:54 |reserved |RO          | Reserved for standard use
 |63:60 a|_custom_|RO         a| _Designated for custom use_
+|===
+
+[[ICVEC]]
+=== Interrupt-cause-to-vector register (`icvec`)
+
+Interrupt-cause-to-vector register maps a cause to a vector.  All causes can
+be mapped to same vector or a cause can be given a unique vector.
+
+The vector is used:
+
+. By an IOMMU that generates interrupts as MSI, to index into MSI
+  configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An
+  IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
+  or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
+  configured to generate interrupts as MSI by setting `fctl.WSI` to 0.
+. By an IOMMU that generates WSI, to determine the wire
+  to signal the interrupt. An IOMMU is capable of generating wire-signaled-
+  interrupts if `capabilities.IGS==WSI` or if `capabilities.IGS==BOTH`. When
+  `capabilities.IGS==BOTH` the IOMMU may be configured to generate wire-signaled-
+  interrupts by setting `fctl.WSI` to 1.
+
+If an implementation only supports a single vector then all bits of this
+register may be hardwired to 0 (WARL). Likewise if only two vectors are
+supported then only bit 0 for each cause could be writable.
+
+.Interrupt-cause-to-vector register fields
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 4, name: 'civ'},
+  {bits: 4, name: 'fiv'},
+  {bits: 4, name: 'pmiv'},
+  {bits: 4, name: 'piv'},
+  {bits: 16, name: 'reserved'},
+  {bits: 32, name: 'custom'},
+], config:{lanes: 4, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,1,^1,6"]
+|===
+|Bits   |Field    |Attribute | Description
+| 3:0   |`civ`    |WARL      | The command-queue-interrupt-vector (`civ`)
+                               is the vector number assigned to the
+                               command-queue-interrupt.
+| 7:4   |`fiv`    |WARL      | The fault-queue-interrupt-vector (`fiv`) is the
+                               vector number assigned to the
+                               fault-queue-interrupt.
+| 11:8  |`pmiv`   |WARL      | The performance-monitoring-interrupt-vector
+                               (`pmiv`) is the vector number assigned to the
+                               performance-monitoring-interrupt.
+| 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
+                               is the vector number assigned to the
+                               page-request-queue-interrupt.
+| 31:16 |`reserved`|WPRI     | Reserved for standard use
+| 63:32 |_custom_  |WPRI     | _Designated for custom use
 |===
 
 [[MSI]]
