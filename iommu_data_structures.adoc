@@ -307,7 +307,7 @@ they are treated as unsupported requests.
 If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU performs the
 two-stage address translation to determine the permissions and the size of the
 translation to be provided in the completion of a PCIe ATS Translation Request
-from the device. However, the IOMMU returns a GPA, instead of a SPA, as the 
+from the device. However, the IOMMU returns a GPA, instead of a SPA, as the
 translation of an IOVA in the response. In this mode of operations, the ATC in the
 device caches a GPA as a translation for an IOVA and uses the GPA as the address
 in subsequent translated memory access transactions. Usually translated requests
