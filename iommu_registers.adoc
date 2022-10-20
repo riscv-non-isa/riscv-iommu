@@ -280,9 +280,9 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 |===
 |Bits  |Field      |Attribute | Description
 |0     |`BE`       |WARL      | When 0, IOMMU accesses to memory resident data 
-                                structures (e.g. DDT, PDT, in-memory queues, 
-                                S/VS and G stage page tables) are performed as 
-                                little-endian accesses and when 1 as 
+                                structures, as specified in <<ENDIAN_CONFIG>>,
+                                and accesses to in-memory queues are performed
+                                as little-endian accesses and when 1 as 
                                 big-endian accesses.
 |1     |`WSI`      |WARL      | When 1, IOMMU interrupts are signaled as 
                                 wire-signaled-interrupts.

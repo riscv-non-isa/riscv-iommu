@@ -304,9 +304,11 @@ they are treated as unsupported requests.
 * PCIe ATS Translation Request
 * PCIe ATS Invalidation Completion Message
 
-If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA
-, instead of a SPA, as the translation of an IOVA in response to a  PCIe ATS
-Translation Request from the device.  In this mode of operations, the ATC in the
+If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU performs the
+two-stage address translation to determine the permissions and the size of the
+translation to be provided in the completion of a PCIe ATS Translation Request
+from the device. However, the IOMMU returns a GPA, instead of a SPA, as the
+translation of an IOVA in the response. In this mode of operations, the ATC in the
 device caches a GPA as a translation for an IOVA and uses the GPA as the address
 in subsequent translated memory access transactions. Usually translated requests
 use a SPA and need no further translation to be performed by the IOMMU. However
@@ -321,7 +323,7 @@ with the VM.
 When `T2GPA` is enabled, the addresses provided to the device in response to a
 PCIe ATS Translation Request cannot be directly routed by the I/O fabric
 (e.g. PCI switches) that connect the device to other peer devices and to host.
-Such addresses are also cannot be routed within the device when peer-to-peer
+Such addresses also cannot be routed within the device when peer-to-peer
 transactions within the device (e.g. between functions of a device) are
 supported.
 
@@ -906,14 +908,13 @@ substitutes for the targeted virtual interrupt file (as in <<MSI_REDIR>>), or a
 memory-resident interrupt file in which to store incoming MSIs for the virtual
 interrupt file (as in <<MRIF_WRITE>>).
 
-The number of entries in an MSI page table is always a power of two,
-specifically `2^k^` where `k` is the number of bits that are ones in the MSI
-address mask used to extract the interrupt file number from the destination
-guest physical address. If an MSI page table has 256 or fewer entries, the
-start of the table is always aligned to a 4-KiB page address in real
-physical memory. If an MSI page table has `2^k^ > 256` entries, the table must
-be naturally aligned to a `2k` × 16-byte address boundary.  If an MSI page table
-is not aligned as required, all entries in the table appear to an IOMMU as
+The number of entries in an MSI page table is `2^k^` where `k` is the number of
+bits that are ones in the MSI address mask used to extract the interrupt file
+number from the destination guest physical address. If an MSI page table has 256
+or fewer entries, the start of the table is aligned to a 4-KiB page address
+in real physical memory. If an MSI page table has `2^k^ > 256` entries, the table
+must be naturally aligned to a `2k` × 16-byte address boundary.  If an MSI page
+table is not aligned as required, all entries in the table appear to an IOMMU as
 unspecified, and any address an IOMMU may compute and use for reading an
 individual MSI PTE from the table is also unspecified.
 
@@ -1474,9 +1475,7 @@ address and translating the address using the MSI page table is as follows:
   instead use the regular translation data structures to do the address
   translation.
 . Extract an interrupt file number `I` from `A` as
-  `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
-  to generic bit extract performed by RISC-V instruction `BEXT`, defined by the
-  Zbs extension). The bit extract function `extract(x, y)`
+  `I = extract(A >> 12, DC.msi_addr_mask)`. The bit extract function `extract(x, y)`
   discards all bits from `x` whose matching bits in the same positions in the
   mask `y` are zeros, and packs the remaining bits from `x` contiguously at the
   least-significant end of the result, keeping the same bit order as `x` and
