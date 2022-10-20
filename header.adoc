@@ -1,8 +1,8 @@
 [[header]]
 :description: RISC-V IOMMU Specification Document
 :company: RISC-V.org
-:revdate: 3/2022
-:revnumber: 0.1
+:revdate: 10/2022
+:revnumber: 0.9
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
