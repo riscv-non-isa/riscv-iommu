@@ -621,7 +621,7 @@ The `MODE` field is used to select the MSI address translation scheme.
 |===
 |Value | Name     | Description
 | 0    | `Bare`   | No translation or protection. Recognition of accesses to
-                    a virtual interrup file using MSI address mask and
+                    a virtual interrupt file using MSI address mask and
                     pattern is not performed.
 | 1    | `Flat`   | Flat MSI page table
 |===
