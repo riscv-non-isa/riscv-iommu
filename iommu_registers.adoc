@@ -710,17 +710,19 @@ status of the command-queue.
                             queue when set to 1. Changing `cqen` from 0 to 1
                             sets the `cqh` and `cqt` to 0. The command-queue 
                             may take some time to be active following setting 
-                            the `cqen` to 1. When the command queue is active,
-                            the `cqon` bit reads 1. +
+                            the `cqen` to 1. During this delay the `busy` bit
+                            is 1. When the command queue is active, the `cqon`
+                            bit reads 1. +
                                                                               +
-                            When `cqen` is changed from 1 to 0, the command 
-                            queue may stay active till the commands already 
-                            fetched from the command-queue are being processed 
-                            and/or there are outstanding implicit loads from 
-                            the command-queue.  When the command-queue turns 
-                            off, the `cqon` bit reads 0, `cqh` is set to 0, 
-                            `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`, 
-                            `cmd_to`, `cqmf`, `fence_w_ip` are set to 0. +
+                            When `cqen` is changed from 1 to 0, the command
+                            queue may stay active (with `busy` asserted) till
+                            the commands already fetched from the command-queue
+                            are being processed and/or there are outstanding
+                            implicit loads from the command-queue.  When the
+                            command-queue turns off, the `cqon` bit reads 0,
+                            `cqh` is set to 0, `cqt` is set to 0 and the
+                            `cqcsr` bits `cmd_ill`, `cmd_to`, `cqmf`,
+                            `fence_w_ip` are set to 0. +
                                                                               +
                             When the `cqon` bit reads 0, the IOMMU guarantees 
                             that no implicit memory accesses to the command 
@@ -853,18 +855,19 @@ status of the fault-queue.
 |0     |`fqen`|RW        | The fault-queue enable bit enables the fault-queue 
                            when set to 1. +
                                                                                +
-                           Changing `fqen`  from 0 to 1, resets the `fqh` and 
+                           Changing `fqen` from 0 to 1, resets the `fqh` and
                            `fqt` to 0.
                            The fault-queue may take some time to be active
-                           following setting the `fqen` to 1. When the fault 
-                           queue is active, the `fqon` bit reads 1. +
+                           following setting the `fqen` to 1. During this delay
+                           the `busy` bit is 1. When the fault queue is active,
+                           the `fqon` bit reads 1. +
                                                                                +
                            When `fqen` is changed from 1 to 0, the fault-queue 
-                           may stay active till in-flight fault-recording is 
-                           completed. When the fault-queue is off, the `fqon` 
-                           bit reads 0, the `fqon` bit reads 0, `fqh` is set to
-                           0, `fqt` is set to 0 and the `fqcsr` bits `fqof`, and
-                           `fqmf` are set to 0. +
+                           may stay active (with `busy` asserted) till in-flight
+                           fault-recording is completed. When the fault-queue is
+                           off, the `fqon` bit reads 0, the `fqon` bit reads 0,
+                           `fqh` is set to 0, `fqt` is set to 0 and the `fqcsr`
+                           bits `fqof`, and `fqmf` are set to 0. +
                                                                                +
                            The IOMMU guarantees that there are no 
                            in-flight implicit writes to the fault-queue in 
@@ -948,19 +951,21 @@ status of the page-request-queue.
 |0     |`pqen`   |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. +
                                                                                +
-                              Changing `pqen` from 0 to 1, resets the `pqh` 
+                              Changing `pqen` from 0 to 1, resets the `pqh`
                               and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
-                              `pqof` to 0. The page-request-queue may take 
-                              some time to be active following setting the 
-                              `pqen` to 1. When the page-request-queue is 
+                              `pqof` to 0. The page-request-queue may take
+                              some time to be active following setting the
+                              `pqen` to 1. During this delay the `busy` bit
+                              is 1. When the page-request-queue is
                               active, the `pqon` bit reads 1. +
                                                                                +
-                              When `pqen` is changed from 1 to 0, the 
-                              page-request-queue may stay active till in-flight 
-                              page-request writes are completed. When the
-                              page-request-queue turns off, the `pqon` bit 
-                              reads 0, `pqh` is set to 0, `pqt` is set to 0 and 
-                              the `pqcsr` bits `pqof`, and `pqmf` are set to 0. +
+                              When `pqen` is changed from 1 to 0, the
+                              page-request-queue may stay active (with `busy`
+                              asserted) till in-flight page-request writes are
+                              completed. When the page-request-queue turns off,
+                              the `pqon` bit reads 0, `pqh` is set to 0, `pqt`
+                              is set to 0 and the `pqcsr` bits `pqof`, and
+                              `pqmf` are set to 0. +
                                                                                +
                               When `pqon` reads 0, the IOMMU guarantees that 
                               there are no older in-flight implicit writes to 
