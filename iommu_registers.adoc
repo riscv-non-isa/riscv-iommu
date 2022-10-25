@@ -796,7 +796,7 @@ status of the command-queue.
 |31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
-When `cmd_ill` or `cqmf` is 1 in `cqcsr` the `cqt` references the command in the
+When `cmd_ill` or `cqmf` is 1 in `cqcsr` the `cqh` references the command in the
 CQ that caused these error. Previous commands may have completed, timed out, or
 their execution aborted by the IOMMU.
 
@@ -810,7 +810,7 @@ that successfully completed.
 The `cmd_to` bit is set when a `IOFENCE.C` command detects that one or more
 previous commands that are specified to have timeouts have timed out but all
 other commands previous to the `IOFENCE.C` have completed. When `cmd_to` is 1
-`cqt` references the `IOFENCE.C` command that detected the timeout.
+`cqh` references the `IOFENCE.C` command that detected the timeout.
 
 [NOTE]
 ====
