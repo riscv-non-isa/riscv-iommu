@@ -711,15 +711,16 @@ status of the command-queue.
                             the `cqh`, `cqt` and the `cqcsr` bits `cmd_ill`,
                             `cmd_to`, `cqmf`, `fence_w_ip` are set to 0.
                             The command-queue may take some time to be
-                            active following setting the `cqen` to 1. When the
-                            command queue is active, the `cqon` bit reads 1. +
+                            active following setting the `cqen` to 1.  During 
+                            this delay the `busy` bit is 1. When the command 
+                            queue is active, the `cqon` bit reads 1. +
                                                                               +
                             When `cqen` is changed from 1 to 0, the command 
-                            queue may stay active till the commands already 
-                            fetched from the command-queue are being processed 
-                            and/or there are outstanding implicit loads from 
-                            the command-queue.  When the command-queue turns 
-                            off the `cqon` bit reads 0.
+                            queue may stay active (with `busy` asserted) till
+                            the commands already fetched from the command-queue
+                            are being processed and/or there are outstanding 
+                            implicit loads from the command-queue.  When the
+                            command-queue turns off the `cqon` bit reads 0.
                                                                               +
                             When the `cqon` bit reads 0, the IOMMU guarantees 
                             that no implicit memory accesses to the command 
@@ -795,7 +796,7 @@ status of the command-queue.
 |31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
-When `cmd_ill` or `cqmf` is 1 in `cqcsr` the `cqt` references the command in the
+When `cmd_ill` or `cqmf` is 1 in `cqcsr` the `cqh` references the command in the
 CQ that caused these error. Previous commands may have completed, timed out, or
 their execution aborted by the IOMMU.
 
@@ -809,7 +810,7 @@ that successfully completed.
 The `cmd_to` bit is set when a `IOFENCE.C` command detects that one or more
 previous commands that are specified to have timeouts have timed out but all
 other commands previous to the `IOFENCE.C` have completed. When `cmd_to` is 1
-`cqt` references the `IOFENCE.C` command that detected the timeout.
+`cqh` references the `IOFENCE.C` command that detected the timeout.
 
 [NOTE]
 ====
@@ -855,13 +856,14 @@ status of the fault-queue.
                            Changing `fqen`  from 0 to 1, sets the `fqh`, `fqt`,
                            and the `fqcsr` bits `fqof`, and `fqmf` to 0.
                            The fault-queue may take some time to be active
-                           following setting the `fqen` to 1. When the fault
-                           queue is active, the `fqon` bit reads 1. +
+                           following setting the `fqen` to 1.  During this delay
+                           the `busy` bit is 1. When the fault queue is active,
+                           the `fqon` bit reads 1. +
                                                                                +
                            When `fqen` is changed from 1 to 0, the fault-queue 
-                           may stay active till in-flight fault-recording is 
-                           completed. When the fault-queue is off the `fqon`
-                           bit reads 0.
+                           may stay active (with `busy` asserted) till in-flight
+                           fault-recording is completed. When the fault-queue is
+                           off the `fqon` bit reads 0.
                                                                                +
                            The IOMMU guarantees that there are no 
                            in-flight implicit writes to the fault-queue in 
@@ -945,18 +947,19 @@ status of the page-request-queue.
 |0     |`pqen`   |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. +
                                                                                +
-                              Changing `pqen` from 0 to 1, resets the `pqh` 
+                              Changing `pqen` from 0 to 1, resets the `pqh`
                               and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
-                              `pqof` to 0. The page-request-queue may take 
-                              some time to be active following setting the 
-                              `pqen` to 1. When the page-request-queue is 
+                              `pqof` to 0. The page-request-queue may take
+                              some time to be active following setting the
+                              `pqen` to 1. During this delay the `busy` bit
+                              is 1. When the page-request-queue is
                               active, the `pqon` bit reads 1. +
                                                                                +
                               When `pqen` is changed from 1 to 0, the 
-                              page-request-queue may stay active till in-flight 
-                              page-request writes are completed. When the
-                              page-request-queue turns off the `pqon` bit
-                              reads 0. +
+                              page-request-queue may stay active  (with `busy`
+                              asserted) till in-flight page-request writes are
+                              completed. When the page-request-queue turns off
+                              the `pqon` bit reads 0. +
                                                                                +
                               When `pqon` reads 0, the IOMMU guarantees that 
                               there are no older in-flight implicit writes to 
