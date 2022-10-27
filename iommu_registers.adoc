@@ -394,6 +394,13 @@ In RV32, only the low order 32-bits of the register (22-bit `PPN` and
 This 64-bits register (RW) holds the PPN of the root page of the command-queue
 and number of entries in the queue. Each command is 16 bytes.
 
+The IOMMU behavior on writing `cqb` when `cqcsr.busy` or `cqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `cqb` is to first
+disable the command-queue by clearing `cqen` and wait for both `cqcsr.busy` and
+`cqon` to be 0 before changing the `cqb`. The status of bits `31:cqb.LOG2SZ` in
+`cqt` following a write to `cqb` is 0 and the bits `cqb.LOG2SZ-1:0` in `cqt`
+assume a valid but otherwise `UNSPECIFIED` value.
+
 .Command-queue base register fields
 [wavedrom, , ]
 ....
@@ -488,6 +495,13 @@ the software queues the next command for the IOMMU.
 
 This 64-bits register (RW) holds the PPN of the root page of the fault-queue
 and number of entries in the queue. Each fault record is 32 bytes.
+
+The IOMMU behavior on writing `fqb` when `fqcsr.busy` or `fqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `fqb` is to first
+disable the fault-queue by clearing `fqen` and wait for both `fqcsr.busy` and
+`fqon` to be 0 before changing the `fqb`. The status of bits `31:fqb.LOG2SZ`
+in `fqh` following a write to `fqb` is 0 and the bits `fqb.LOG2SZ-1:0` in `fqh`
+assume a valid but otherwise `UNSPECIFIED` value.
 
 .Fault queue base register fields
 
@@ -585,6 +599,13 @@ IOMMU queues the next fault record.
 This 64-bits register (RW) holds the PPN of the root page of the 
 page-request-queue and number of entries in the queue. Each page-request
 message is 16 bytes.
+
+The IOMMU behavior on writing `pqb` when `pqcsr.busy` or `pqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `pqb` is to first
+disable the page-request-queue by clearing `pqen` and wait for both `pqcsr.busy`
+and `pqon` to be 0 before changing the `pqb`. The status of bits `31:pqb.LOG2SZ`
+in `pqh` following a write to `pqb` is 0 and the bits `pqb.LOG2SZ-1:0` in `pqh`
+assume a valid but otherwise `UNSPECIFIED` value.
 
 .Page-Request-queue base register fields
 
@@ -707,19 +728,19 @@ status of the command-queue.
 |===
 |Bits |Field   |Attribute | Description
 |0    |`cqen`  |RW        | The command-queue-enable bit enables the command-
-                            queue when set to 1. Changing `cqen` from 0 to 1
-                            sets the `cqh` and `cqt` to 0. The command-queue 
-                            may take some time to be active following setting 
-                            the `cqen` to 1. When the command queue is active,
-                            the `cqon` bit reads 1. +
+                            queue when set to 1. +
+                                                                              +
+                            Changing `cqen` from 0 to 1 resets the `cqh` to 0.
+                            The command-queue may take some time to be active
+                            following setting the `cqen` to 1. When the command
+                            queue is active, the `cqon` bit reads 1. +
                                                                               +
                             When `cqen` is changed from 1 to 0, the command 
                             queue may stay active till the commands already 
                             fetched from the command-queue are being processed 
                             and/or there are outstanding implicit loads from 
                             the command-queue.  When the command-queue turns 
-                            off, the `cqon` bit reads 0, `cqh` is set to 0, 
-                            `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`, 
+                            off, the `cqon` bit reads 0, the `cqcsr` bits `cmd_ill`,
                             `cmd_to`, `cqmf`, `fence_w_ip` are set to 0. +
                                                                               +
                             When the `cqon` bit reads 0, the IOMMU guarantees 
@@ -770,12 +791,6 @@ status of the command-queue.
                             are not enabled (i.e., `fctl.WSI == 0`).
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
-                            IOMMU behavior on changing `cqb` when `busy` is 1 or 
-                            `cqon` is 1 is `UNSPECIFIED`. The software 
-                            recommended sequence to change `cqb` is to first 
-                            disable the command-queue by clearing `cqen` and 
-                            waiting for both `busy` and `cqon` to be 0 before 
-                            changing the `cqb`.
 |17   |`busy`   |RO       | A write to `cqcsr` may require the IOMMU to perform
                             many operations that may not occur synchronously 
                             to the write. When a write is observed by the 
@@ -853,8 +868,7 @@ status of the fault-queue.
 |0     |`fqen`|RW        | The fault-queue enable bit enables the fault-queue 
                            when set to 1. +
                                                                                +
-                           Changing `fqen`  from 0 to 1, resets the `fqh` and 
-                           `fqt` to 0.
+                           Changing `fqen` from 0 to 1, resets the `fqh` to 0.
                            The fault-queue may take some time to be active
                            following setting the `fqen` to 1. When the fault 
                            queue is active, the `fqon` bit reads 1. +
@@ -862,9 +876,8 @@ status of the fault-queue.
                            When `fqen` is changed from 1 to 0, the fault-queue 
                            may stay active till in-flight fault-recording is 
                            completed. When the fault-queue is off, the `fqon` 
-                           bit reads 0, the `fqon` bit reads 0, `fqh` is set to
-                           0, `fqt` is set to 0 and the `fqcsr` bits `fqof`, and
-                           `fqmf` are set to 0. +
+                           bit reads 0 and the `fqcsr` bits `fqof`, and `fqmf`
+                           are set to 0. +
                                                                                +
                            The IOMMU guarantees that there are no 
                            in-flight implicit writes to the fault-queue in 
@@ -892,12 +905,6 @@ status of the fault-queue.
                             not masked (i.e. `fqsr.fie == 0`).
 |15:10 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
-                           IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `fqon` is 1 is `UNSPECIFIED`. The 
-                           recommended sequence to change `fqb` is to first 
-                           disable the fault-queue by clearing `fqen` and 
-                           waiting for both `busy` and `fqon` to be 0 before 
-                           changing `fqb`.
 |17    |`busy`|RO        | Write to `fqcsr` may require the IOMMU to perform 
                            many operations that may not occur synchronously to 
                            the write.
@@ -949,7 +956,7 @@ status of the page-request-queue.
                               page-request-queue when set to 1. +
                                                                                +
                               Changing `pqen` from 0 to 1, resets the `pqh` 
-                              and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
+                              to 0 and clears `pqcsr` bits `pqmf` and
                               `pqof` to 0. The page-request-queue may take 
                               some time to be active following setting the 
                               `pqen` to 1. When the page-request-queue is 
@@ -959,8 +966,8 @@ status of the page-request-queue.
                               page-request-queue may stay active till in-flight 
                               page-request writes are completed. When the
                               page-request-queue turns off, the `pqon` bit 
-                              reads 0, `pqh` is set to 0, `pqt` is set to 0 and 
-                              the `pqcsr` bits `pqof`, and `pqmf` are set to 0. +
+                              reads 0 and the `pqcsr` bits `pqof`, and `pqmf`
+                              are set to 0. +
                                                                                +
                               When `pqon` reads 0, the IOMMU guarantees that 
                               there are no older in-flight implicit writes to 
@@ -1017,13 +1024,6 @@ status of the page-request-queue.
                               <<ATS_PRI>>.
 |15:10 |`reserved`|WPRI     | Reserved for standard use
 |16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1. +
-                                                                               +
-                              IOMMU behavior on changing `pqb` when `busy` is 1
-                              or `pqon` is 1 is `UNSPECIFIED`. The 
-                              recommended sequence to change `pqb` is to first 
-                              disable the page-request queue by clearing `pqen`
-                              and waiting for both `busy` and `pqon` to be 0 
-                              before changing `pqb`.
 |17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to 
                               perform many operations that may not occur 
                               synchronously to the write. When a write is 
