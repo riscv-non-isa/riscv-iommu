@@ -1111,14 +1111,10 @@ file and translating the address using the MSI page table is as follows:
    (cause = 263).
 .. If any bits or encoding that are reserved for future standard use are
    set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 263).
-.. If the transaction is a PCIe ATS translation request then return a Success
-   response with R, W, and U bit set to 1. See <<ATS_FAULTS>> for further
-   details on this processing.
 .. The address of the destination MRIF is `msipte.MRIF_Address[55:9] * 512`.
 .. The destination address of the notice MSI is `msipte.NPPN << 12`.
-.. Let `NID` be `(msipte.N10 << 10) | msipte.N[9:0]`.
-.. The data value for notice MSI is the 11-bit `NID` value zero-extended to
-   32-bits.
+.. Let `NID` be `(msipte.N10 << 10) | msipte.N[9:0]`. The data value for notice
+   MSI is the 11-bit `NID` value zero-extended to 32-bits.
 . MSI address translation process is complete.
 
 [NOTE]
