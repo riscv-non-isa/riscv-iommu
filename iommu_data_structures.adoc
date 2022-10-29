@@ -1470,14 +1470,12 @@ file and translating the address using the MSI page table is as follows:
   stop this process and instead use the regular translation data structures to
   do the address translation.
 . Extract an interrupt file number `I` from `A` as
-  `I = extract(A >> 12, DC.msi_addr_mask)`. The extract function here is similar
-  to generic bit extract performed by RISC-V instruction `BEXT`, defined by the
-  Zbs extension). The bit extract function `extract(x, y)`
-  discards all bits from `x` whose matching bits in the same positions in the
-  mask `y` are zeros, and packs the remaining bits from `x` contiguously at the
-  least-significant end of the result, keeping the same bit order as `x` and
-  filling any other bits at the most-significant end of the result with zeros.
-  For example, if the bits of `x` and `y` are
+  `I = extract(A >> 12, DC.msi_addr_mask)`. The bit extract function
+  `extract(x, y)` discards all bits from `x` whose matching bits in the same
+  positions in the mask `y` are zeros, and packs the remaining bits from `x`
+  contiguously at the least-significant end of the result, keeping the same bit
+  order as `x` and filling any other bits at the most-significant end of the
+  result with zeros. For example, if the bits of `x` and `y` are:
 ** `x = a b c d e f g h`
 ** `y = 1 0 1 0 0 1 1 0`
 ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
