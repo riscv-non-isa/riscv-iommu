@@ -10,8 +10,8 @@ locate_process_context(
     process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id, 
     uint32_t *cause, uint64_t *iotval2, uint8_t TTYP) {
     uint64_t a, gst_page_sz;
-    uint8_t i, LEVELS, status;
-    uint8_t GR, GW, GX, GD, GPBMT;
+    uint8_t i, LEVELS, status, gst_fault;
+    gpte_t g_pte;
     pdte_t pdte;
     uint8_t PDI[3];
 
@@ -77,11 +77,19 @@ step_2:
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
     //    is used in subsequent steps.
-    if ( g_stage_address_translation(a, 1, 0, 0, 1,
-            DC->iohgatp, cause, iotval2, &a, &gst_page_sz, &GR, &GW, &GX, &GD, &GPBMT,
-            1, process_id, 0, 0, device_id, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
-            DC->iohgatp.GSCID, TTYP, DC->tc.GADE) )
+    if ( ( gst_fault = g_stage_address_translation(a, 1, device_id, 1, 0, 0, 1, process_id,
+                           0, 0, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
+                           DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, &a,
+                           &gst_page_sz, &g_pte) ) ) {
+        if ( gst_fault == GST_PAGE_FAULT ) {
+            *cause = 21;            // Read guest page fault
+            *iotval2 = (a & ~0x3);
+            *iotval2 |= 1;
+        } else {
+            *cause = 265;           // PDT entry load access fault
+        }
         return 1;
+    }
 
     // 3. If `i == 0` go to step 9.
     if ( i == 0 ) goto step_9;
