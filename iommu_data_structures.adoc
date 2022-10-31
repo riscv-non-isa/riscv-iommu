@@ -665,10 +665,10 @@ the address mask.
 ==== Device-context configuration checks
 
 A `DC` with `V=1` is considered as misconfigured if any of the following
-conditions are true.
+conditions are true. If misconfigured then, stop and report "DDT entry
+misconfigured" (cause = 259).
 
 . If any bits or encoding that are reserved for future standard use are set
-  within `DC`, stop and report "DDT entry misconfigured" (cause = 259).
 . `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`,
    or `DC.tc.PRPR` is 1
 . `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
@@ -680,25 +680,35 @@ conditions are true.
 .. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
 .. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
 .. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
-. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the
-   supported modes
-.. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
+. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` encoding is not valid
+   encoding as determined by <<IOSATP_MODE_ENC>>
+. `DC.tc.PDTV` is 0 and `DC.tc.SXL` is 0 `DC.fsc.iosatp.MODE`
+  is not one of the supported modes
 .. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
 .. `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
 .. `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
+. `DC.tc.PDTV` is 0 and `DC.tc.SXL` is 1 `DC.fsc.iosatp.MODE`
+  is not one of the supported modes
+.. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
 . `DC.tc.PDTV` is 0 and `DC.tc.DPE` is 1
-. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
-. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
-. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
-. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
+. `DC.iohgatp.MODE` encoding is not a valid encoding as determined
+  by <<IOHGATP_MODE_ENC>>
+. `fctl.GXL` is 0 and `DC.iohgatp.MODE` is not a supported mode
+.. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
+.. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
+.. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
+. `fctl.GXL` is 1 and `DC.iohgatp.MODE` is not a supported mode
+.. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
 . `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
    and not `Flat`
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
 . `capabilities.END` is 0 and `fctl.BE != DC.tc.SBE`
-. `fctl.GXL` is 1 and `DC.tc.SXL` is 0
-. `DC.tc.SXL` value is not a legal value
+. `DC.tc.SXL` value is not a legal value. If `fctl.GXL` is 1, then
+  `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writeable, then
+  `DC.tc.SXL` may be 0 or 1. If `fctl.GXL` is 0 and is not writeable
+  then `DC.tc.SXL` must be 0.
 
 [NOTE]
 ====
@@ -860,14 +870,17 @@ behaviors.
 ==== Process-context configuration checks
 
 A `PC` with `V=1` is considered as misconfigured if any of the following
-conditions are true.
+conditions are true. If misconfigured then stop and report "PDT entry
+misconfigured" (cause = 267).
 
 . If any bits or encoding that are reserved for future standard use are set
-  within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
-. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
-. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
-. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
+. `PC.fsc.MODE` encoding is not valid as determined by <<IOSATP_MODE_ENC>>
+. `DC.tc.SXL` is 0 and `PC.fsc.MODE` is not one of the supported modes
+.. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
+.. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
+.. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
+. `DC.tc.SXL` is 1 and `PC.fsc.MODE` is not one of the supported modes
+.. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
 
 [NOTE]
 ====
@@ -1314,6 +1327,7 @@ The process to translate an `IOVA` is as follows:
   then then go to step 17 with the following page table information:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
+.. Let `iohgatp` be value in `DC.iohgatp` field
 . If `DC.fsc.pdtp.MODE = Bare` then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be `Bare`
@@ -1334,7 +1348,7 @@ The process to translate an `IOVA` is as follows:
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
   RISC-V privileged specification. If a fault is detecting by the single stage
-  address translation process then stop and report the fault.
+  address translation process then stop and report the fault else go to step 21.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
   privileged specification to perform the VS-stage address translation to
@@ -1346,7 +1360,7 @@ The process to translate an `IOVA` is as follows:
   translation and the MSI address translation process specified in <<MSI_TRANS>>
   is invoked. If the GPA `A` is determined to be not an MSI then the process
   continues at step 20. If a fault is detected by the MSI address translation
-  process then stop and report the fault.
+  process then stop and report the fault else go to step 21.
 .. Address `A` is a 32-bit aligned address.
 .. Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is
    an ATS translation request.
