@@ -709,6 +709,9 @@ misconfigured" (cause = 259).
   `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writeable, then
   `DC.tc.SXL` may be 0 or 1. If `fctl.GXL` is 0 and is not writeable
   then `DC.tc.SXL` must be 0.
+. `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writeable
+  then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writeable then
+  `DC.tc.SBE` must be same as `fctl.BE`.
 
 [NOTE]
 ====
