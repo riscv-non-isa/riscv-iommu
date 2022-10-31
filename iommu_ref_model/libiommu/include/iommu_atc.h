@@ -59,16 +59,18 @@ typedef struct {
 extern ddt_cache_t ddt_cache[DDT_CACHE_SIZE];
 extern pdt_cache_t pdt_cache[PDT_CACHE_SIZE];
 extern tlb_t       tlb[TLB_SIZE];
-extern void 
-cache_ioatc_iotlb(uint64_t addr, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
-    uint8_t  VS_R, uint8_t  VS_W, uint8_t  VS_X, uint8_t U, uint8_t  G, uint8_t  VS_D, uint8_t PBMT,
-    uint8_t  G_R, uint8_t  G_W, uint8_t  G_X, uint8_t D_D, uint64_t PPN, uint8_t  S);
+extern void
+cache_ioatc_iotlb(
+    uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
+    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S);
 
-extern uint8_t 
-lookup_ioatc_iotlb( uint64_t iova, uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
+extern uint8_t
+lookup_ioatc_iotlb(
+    uint64_t iova,
+    uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
-    uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT);
+    pte_t *vs_pte, gpte_t *g_pte);
 
 extern uint8_t 
 lookup_ioatc_dc(uint32_t device_id, device_context_t *DC);

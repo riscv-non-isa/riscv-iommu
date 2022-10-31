@@ -50,27 +50,24 @@ typedef union {
 typedef union {
     struct {
         uint64_t V:1;
-        uint64_t reserved0:1;
-        uint64_t W:1;
+        uint64_t M:2;
         uint64_t other:60;
         uint64_t C:1;
         uint64_t upperQW:64;
     };
     struct {
         uint64_t V:1;
-        uint64_t reserved0:1;
-        uint64_t W:1;
+        uint64_t M:2;
         uint64_t PPN:44;
-        uint64_t reserved1:9;
+        uint64_t reserved:9;
         uint64_t C:1;
         uint64_t ignored;
-    } write_through;
+    } translate_rw;
     struct {
         uint64_t V:1;
-        uint64_t reserved0:1;
-        uint64_t W:1;
+        uint64_t M:2;
         uint64_t reserved1:4;
-        uint64_t MRIF_ADDR:47;
+        uint64_t MRIF_ADDR_55_9:47;
         uint64_t reserved2:9;
         uint64_t C:1;
         uint64_t N90:10;
@@ -81,6 +78,7 @@ typedef union {
     } mrif;
     uint64_t raw[2];
 } msipte_t;
+
 
 extern uint8_t 
 locate_device_context(device_context_t *DC, uint32_t device_id, uint8_t pid_valid, 
@@ -93,29 +91,27 @@ locate_process_context(process_context_t *PC, device_context_t *DC,
 
 extern uint8_t
 s_vs_stage_address_translation(
-    uint64_t iova,
-    uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
-    uint8_t SUM, iosatp_t iosatp, uint32_t PSCID, iohgatp_t iohgatp, 
-    uint32_t *cause, uint64_t *iotval2, uint64_t *resp_pa, uint64_t *page_sz,
-    uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT, uint8_t *UNTRANSLATED_ONLY,
-    uint8_t pid_valid, uint32_t process_id, uint32_t device_id, uint8_t TTYP, uint8_t T2GPA,
-    uint8_t SADE, uint8_t GADE);
+    uint64_t iova, uint8_t TTYP, uint32_t DID, uint8_t is_read,
+    uint8_t is_write, uint8_t is_exec,
+    uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
+    iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
+    uint64_t *page_sz, pte_t *vs_pte);
 
 extern uint8_t
 g_stage_address_translation(
-    uint64_t gpa, uint8_t is_read, uint8_t is_write, uint8_t is_exec, uint8_t implicit,
-    iohgatp_t iohgatp, uint32_t *cause, uint64_t *iotval2, 
-    uint64_t *resp_pa, uint64_t *gst_page_sz,
-    uint8_t *GR, uint8_t *GW, uint8_t *GX, uint8_t *GD, uint8_t *GPBMT,
-    uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID, uint8_t TTYP, uint8_t GADE);
+    uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
+    uint8_t is_read, uint8_t is_write, uint8_t is_exec,
+    uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte);
 
 extern uint8_t
 msi_address_translation(
-    uint64_t iova, uint32_t msi_write_data, addr_type_t at, device_context_t *DC,
-    uint32_t *cause, uint64_t *resp_pa, uint8_t *R, uint8_t *W, uint8_t *U, 
-    uint8_t *is_msi, uint8_t *is_unsup, uint8_t *is_mrif_wr, uint32_t *mrif_nid,
-    uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID);
+    uint64_t gpa, device_context_t *DC, 
+    uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
+    uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
+    uint64_t *page_sz, gpte_t *g_pte );
 
 #endif // __IOMMU_TRANSLATE_H__

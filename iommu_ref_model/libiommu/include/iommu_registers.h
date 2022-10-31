@@ -55,7 +55,7 @@ typedef union {
                                    //  translation completions is supported.
         uint64_t end     : 1;      // When 0, IOMMU supports one endianness (either little
                                    // or big). When 1, IOMMU supports both endianness.
-                                   // The endianness is defined in `fctrl` register.
+                                   // The endianness is defined in `fctl` register.
         uint64_t igs     : 2;      // IOMMU interrupt generation support.
                                    // !Value  !Name      ! Description
                                    // !0      ! `MSI`    ! IOMMU supports only MSI
@@ -65,14 +65,17 @@ typedef union {
                                    // !2      ! `BOTH`   ! IOMMU supports both MSI
                                    //                      and wire interrupt generation.
                                    //                      The interrupt generation method
-                                   //                      must be defined in `fctrl`
+                                   //                      must be defined in `fctl`
                                    //                      register.
                                    // !3      ! 0        ! Reserved for standard use
         uint64_t hpm     : 1;      // IOMMU implements a hardware performance monitor.
         uint64_t dbg     : 1;      // IOMMU supports the translation-request interface.
         uint64_t pas     : 6;      // Physical Address Size (value between 32 and 56)
-        uint64_t rsvd3   : 10;     // Reserved for standard use
-        uint64_t custom  : 16;     // _Reserved for custom use_
+        uint64_t pd8     : 1;      // One level PDT with 8-bit process_id supported.
+        uint64_t pd17    : 1;      // Two level PDT with 17-bit process_id supported.
+        uint64_t pd20    : 1;      // Three level PDT with 20-bit process_id supported.
+        uint64_t rsvd3   : 15;     // Reserved for standard use
+        uint64_t custom  : 8;      // _Designated for custom use_
     };
     uint64_t raw;
 } capabilities_t;
@@ -83,18 +86,21 @@ typedef union {
 // (i.e. `ddtp.iommu_mode == Off`) then the IOMMU behavior is `UNSPECIFIED`.
 typedef union {
     struct {
-        uint32_t end     : 1;      // When 0, IOMMU accesses to memory resident data
-                                   // structures (e.g. DDT, PDT, in-memory queues,
-                                   // S/VS and G stage page tables) are performed as
+        uint32_t be      : 1;      // When 0, IOMMU accesses to memory resident data
+                                   // structures, as specified in Table 7, and
+                                   // accesses to in-memory queues are performed as
                                    // little-endian accesses and when 1 as
                                    // big-endian accesses.
         uint32_t wis     : 1;      // When 1, IOMMU interrupts are signaled as
                                    // wired-interrupts.
-        uint32_t reserved: 14;     // reserved for standard use.
-        uint32_t custom  : 16;     //  _Reserved for custom use._
+        uint32_t gxl     : 1;      // Controls the address-translation schemes
+                                   // that may be used for guest physical addresses
+                                   // as defined in Table 2.
+        uint32_t reserved: 13;     // reserved for standard use.
+        uint32_t custom  : 16;     //  _Designated for custom use._
     };
     uint32_t raw;
-} fctrl_t;
+} fctl_t;
 // The device-context is 64-bytes in size if `capabilities.MSI_FLAT` is 1 else it is
 // 32-bytes.
 // When the `iommu_mode` is `Bare` or `Off`, the `PPN` field is don't-care. When
@@ -167,11 +173,11 @@ typedef union {
                                    // than 256 entries then the command-queue 
                                    // base address must be naturally aligned to
                                    // `2^LOG2SZ^ x 16`. 
-        uint64_t reserved0: 5;     // Reserved for standard use
+        uint64_t reserved0: 5;     // Designated for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory command-queue used by software to
                                    // queue commands to the IOMMU. 
-        uint64_t reserved1: 10;    // Reserved for standard use
+        uint64_t reserved1: 10;    // Designated for standard use
     };
     uint64_t raw;
 } cqb_t;
@@ -208,11 +214,11 @@ typedef union {
                                    // to 4-KiB. If the fault-queue has more than 128  
                                    // entries then the fault-queue base address must  
                                    // be naturally aligned to `2^LOG2SZ^ x 32`. 
-        uint64_t reserved0: 5;     // Reserved for standard use
+        uint64_t reserved0: 5;     // Designated for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory fault-queue used by IOMMU to queue
                                    // fault record.
-        uint64_t reserved1: 10;    // Reserved for standard use
+        uint64_t reserved1: 10;    // Designated for standard use
     };
     uint64_t raw;
 } fqb_t;
@@ -252,11 +258,11 @@ typedef union {
                                    // If the page-request-queue has more than 256
                                    // entries then the page-request-queue base address
                                    // must be naturally aligned to `2^LOG2SZ^ x 16`.
-        uint64_t reserved0: 5;     // Reserved for standard use
+        uint64_t reserved0: 5;     // Designated for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory page-request-queue used by IOMMU to
                                    // queue "Page Request" messages.
-        uint64_t reserved1: 10;    // Reserved for standard use
+        uint64_t reserved1: 10;    // Designated for standard use
     };
     uint64_t raw;
 } pqb_t;
@@ -303,7 +309,7 @@ typedef union {
         uint32_t cie     :1;       // Command-queue-interrupt-enable bit enables 
                                    // generation of interrupts from command-queue when 
                                    // set to 1.
-        uint32_t rsvd0   :6;       // Reserved for standard use
+        uint32_t rsvd0   :6;       // Designated for standard use
         uint32_t cqmf    :1;       // If command-queue access leads to a memory fault then
                                    // the command-queue-memory-fault bit is set to 1 and 
                                    // the command-queue stalls until this bit is cleared. 
@@ -341,7 +347,7 @@ typedef union {
                                    // To re-enable interrupts on `IOFENCE.C` completion
                                    // software should clear this bit by writing 1.
                                    // This bit is reserved if the IOMMU uses MSI. 
-        uint32_t rsvd1   :4;       // Reserved for standard use
+        uint32_t rsvd1   :4;       // Designated for standard use
         uint32_t cqon    :1;       // The command-queue is active if `cqon` is 1.
                                    // IOMMU behavior on changing cqb when busy is 1 or 
                                    // `cqon` is 1 is implementation defined. The software 
@@ -366,8 +372,8 @@ typedef union {
                                    //
                                    // An IOMMU that can complete these operations 
                                    // synchronously may hard-wire this bit to 0.
-        uint32_t rsvd2   :10;      // Reserved for standard use
-        uint32_t custom  :4;       // _Reserved for custom use._
+        uint32_t rsvd2   :10;      // Designated for standard use
+        uint32_t custom  :4;       // _Designated for custom use._
     };
     uint32_t raw;
 } cqcsr_t;
@@ -494,12 +500,12 @@ typedef union {
                                // for this translation.
         uint64_t RWn:1;        // When set to 1 the request only needs read-only 
                                // access for this translation.
-        uint64_t reserved0:8;  // Reserved for standard use
+        uint64_t reserved0:8;  // Designated for standard use
         uint64_t PID:20;       // When PV is 1 this field provides the process_id for 
                                // this translation request.
         uint64_t PV:1;         // When set to 1 the PID field of the register is valid.
-        uint64_t reserved:3;   // Reserved for standard use
-        uint64_t custom:4;     // Reserved for custom use
+        uint64_t reserved:3;   // Designated for standard use
+        uint64_t custom:4;     // Designated for custom use
         uint64_t DID:24;       // This field provides the device_id for this 
                                // translation request.
     };
@@ -516,7 +522,7 @@ typedef union {
                                // a fault then the `fault` field is set to 1.
                                // The detected fault may be reported through the
                                // fault-queue.
-        uint64_t reserved0:6;  // Reserved for standard use
+        uint64_t reserved0:6;  // Designated for standard use
         uint64_t PBMT:2;       // Memory type determined for the translation
                                // using the PBMT fields in the S/VS-stage and/or
                                // the G-stage page tables used for the
@@ -545,8 +551,8 @@ typedef union {
                                //  !`yyyy....yyy0 1111 1111`  !`1`!  2 MiB
                                //  !`yyyy....yy01 1111 1111`  !`1`!  4 MiB
 
-        uint64_t reserved1:6;  // Reserved for standard use
-        uint64_t custom:4;     // _Reserved for custom use_
+        uint64_t reserved1:6;  // Designated for standard use
+        uint64_t custom:4;     // _Designated for custom use_
     };
     uint64_t raw;
 } tr_response_t;
@@ -581,7 +587,7 @@ typedef struct {
 typedef union {                        // |Ofst|Name            |Size|Description
     struct __attribute__((__packed__)) {
         capabilities_t capabilities;   // |0   |`capabilities`  |8   |Capabilities supported by the IOMMU
-        fctrl_t        fctrl;          // |8   |`fctrl`         |4   |Features control>>
+        fctl_t         fctl;           // |8   |`fctl`          |4   |Features control>>
         uint32_t       custom0;        // |12  |_custom_        |4   |For custom use_
         ddtp_t         ddtp;           // |16  |`ddtp`          |8   |Device directory table pointer
         cqb_t          cqb;            // |24  |`cqb`           |8   |Command-queue base
@@ -605,11 +611,11 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
         tr_req_iova_t  tr_req_iova;    // |600 |`tr_req_iova`   |8   |Translation-request IOVA
         tr_req_ctrl_t  tr_req_ctrl;    // |608 |`tr_req_ctrl`   |8   |Translation-request control
         tr_response_t  tr_response;    // |616 |`tr_response`   |8   |Translation-request response
-        uint8_t        reserved0[58];  // |624 |Reserved        |82  |Reserved for future use (`WPRI`)
-        uint8_t        custom1[78];    // |682 |_custom_        |78  |Reserved for custom use (`WARL`)_
+        uint8_t        reserved0[58];  // |624 |Reserved        |82  |Designated for future use (`WPRI`)
+        uint8_t        custom1[78];    // |682 |_custom_        |78  |Designated for custom use (`WARL`)_
         icvec_t        icvec;          // |760 |`icvec`         |4   |Interrupt cause to vector register
         msi_cfg_tbl_t  msi_cfg_tbl[16];// |768 |`msi_cfg_tbl`   |256 |MSI Configuration Table
-        uint8_t        reserved1[3072];// |1024|Reserved        |3072|Reserved for future use (`WPRI`)
+        uint8_t        reserved1[3072];// |1024|Reserved        |3072|Designated for future use (`WPRI`)
     };
     uint8_t         regs1[4096];
     uint16_t        regs2[2048];

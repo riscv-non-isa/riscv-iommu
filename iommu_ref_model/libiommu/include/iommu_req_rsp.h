@@ -26,7 +26,6 @@ typedef struct {
     uint64_t    iova;
     uint32_t    length;
     uint8_t     read_writeAMO;
-    uint32_t    msi_wr_data;
 } iommu_trans_req_t;
 
 // Request to IOMMU from the host bridge
@@ -85,8 +84,9 @@ typedef struct {
     uint8_t AMA;
     uint8_t PBMT;
     uint8_t is_msi;
-    uint8_t is_mrif_wr;
-    uint16_t mrif_nid;
+    uint8_t is_mrif;
+    uint64_t dest_mrif_addr;
+    uint32_t mrif_nid;
 } iommu_trans_rsp_t;
 
 // IOMMU response to requests from the IO bridge
