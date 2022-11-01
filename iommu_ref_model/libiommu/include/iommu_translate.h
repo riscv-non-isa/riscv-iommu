@@ -95,7 +95,7 @@ s_vs_stage_address_translation(
     uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
-    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
     uint64_t *page_sz, pte_t *vs_pte);
 
@@ -104,7 +104,7 @@ g_stage_address_translation(
     uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
     uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
-    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte);
 
 extern uint8_t

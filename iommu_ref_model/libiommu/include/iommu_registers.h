@@ -782,6 +782,8 @@ extern uint8_t g_num_hpm;
 extern uint8_t g_hpmctr_bits;
 extern uint8_t g_eventID_mask;
 extern uint8_t g_num_vec_bits;
+extern uint8_t g_gxl_writeable;
+extern uint8_t g_fctl_be_writeable;
 extern uint8_t offset_to_size[4096];
 
 extern void process_commands(void);
