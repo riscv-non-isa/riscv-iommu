@@ -67,7 +67,7 @@ main(void) {
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
-    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, cap, fctl) < 0 ) );
+    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, 0, 0, cap, fctl) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));
@@ -2817,8 +2817,12 @@ main(void) {
     // Change IOMMU mode to base device context
     g_reg_file.capabilities.msi_flat = 0;
 
+    // Allow selection of Sv32
+    g_gxl_writeable = 1;
+    g_reg_file.fctl.gxl = 1;
+
     DC_addr = add_device(0x000000, 1, 0, 0, 0, 0, 0, 
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 1,
                          IOHGATP_Sv32x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory(DC_addr, 64, (char *)&DC);
