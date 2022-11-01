@@ -9,7 +9,7 @@ g_stage_address_translation(
     uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
     uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
-    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte) {
 
     uint16_t vpn[5];
@@ -45,14 +45,14 @@ g_stage_address_translation(
     // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32, 
     //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register 
     //    must be active, i.e., the effective privilege mode must be S-mode or U-mode.
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1 ) {
         vpn[0] = get_bits(21, 12, gpa);
         vpn[1] = get_bits(34, 22, gpa);
         gpa_upper_bits = 0;
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);
@@ -60,7 +60,7 @@ g_stage_address_translation(
         LEVELS = 3;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -69,7 +69,7 @@ g_stage_address_translation(
         LEVELS = 4;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -78,6 +78,14 @@ g_stage_address_translation(
         gpa_upper_bits = get_bits(63, 59, gpa);
         LEVELS = 5;
         PTESIZE = 8;
+    }
+    if ( SXL == 1 ) {
+        // When `SXL` is 1, the following rules apply:
+        // * If the G-stage page table is not `Bare`, then
+        //   a guest page fault corresponding to the original
+        //   access type occurs if the incoming GPA has bits
+        //   set beyond bit 33.
+        gpa_upper_bits = get_bits(63, 34, gpa);
     }
     // Address bits 63:MAX_GPA must all be zeros, or else a 
     // guest-page-fault exception occurs.
@@ -180,22 +188,22 @@ step_5:
     if ( gpte->U == 0 ) return GST_PAGE_FAULT;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1) {
         ppn[0] = get_bits(19, 10, gpte->raw);
         ppn[1] = get_bits(31, 20, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(53, 28, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(36, 28, gpte->raw);
         ppn[3] = get_bits(53, 37, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(36, 28, gpte->raw);
@@ -216,7 +224,8 @@ step_5:
                     *gst_page_sz *= 512UL; // 1GiB
             case 1: if ( ppn[0] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 2MiB
-                    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+                    if ( iohgatp.MODE == IOHGATP_Sv32x4 && 
+                         g_reg_file.fctl.gxl == 1 ) {
                         *gst_page_sz *= 2UL; // 4MiB
                     }
         }

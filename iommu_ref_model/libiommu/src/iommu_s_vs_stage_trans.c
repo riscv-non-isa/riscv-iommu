@@ -11,7 +11,7 @@ s_vs_stage_address_translation(
     uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
-    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
     uint64_t *page_sz, pte_t *pte) {
 
@@ -53,15 +53,18 @@ s_vs_stage_address_translation(
     // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32, 
     //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register 
     //    must be active, i.e., the effective privilege mode must be S-mode or U-mode.
-    if ( iosatp.MODE == IOSATP_Sv32 ) {
+    if ( iosatp.MODE == IOSATP_Sv32 && SXL == 1 ) {
         vpn[0] = get_bits(21, 12, iova);
         vpn[1] = get_bits(31, 22, iova);
         LEVELS = 2;
         PTESIZE = 4;
-        mask = 0;
-        masked_upper_bits = 0;
+        // When `SXL` is 1, the following rules apply:
+        // * If the S/VS-stage page table is not `Bare` then a page fault corresponding to
+        //   the original access type occurs if the `IOVA` has bits set beyond bit 31.
+        mask = (1UL << (64 - 32)) - 1;
+        masked_upper_bits = (iova >> 32) & mask;
     }
-    if ( iosatp.MODE == IOSATP_Sv39 ) {
+    if ( iosatp.MODE == IOSATP_Sv39 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
         vpn[1] = get_bits(29, 21, iova);
         vpn[2] = get_bits(38, 30, iova);
@@ -70,7 +73,7 @@ s_vs_stage_address_translation(
         mask = (1UL << (64 - 39)) - 1;
         masked_upper_bits = (iova >> 38) & mask;
     }
-    if ( iosatp.MODE == IOSATP_Sv48 ) {
+    if ( iosatp.MODE == IOSATP_Sv48 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
         vpn[1] = get_bits(29, 21, iova);
         vpn[2] = get_bits(38, 30, iova);
@@ -80,7 +83,7 @@ s_vs_stage_address_translation(
         mask = (1UL << (64 - 48)) - 1;
         masked_upper_bits = (iova >> 47) & mask;
     }
-    if ( iosatp.MODE == IOSATP_Sv57 ) {
+    if ( iosatp.MODE == IOSATP_Sv57 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
         vpn[1] = get_bits(29, 21, iova);
         vpn[2] = get_bits(38, 30, iova);
@@ -114,7 +117,7 @@ step_2:
     // in G-stage page tables if A or D bit needs to be set in VS stage.
     // If SADE is 1, then its a implicit write else its a implicit read
     if ( ( gst_fault = g_stage_address_translation(a, 1, DID, 1, SADE, 0,
-                            PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE,
+                            PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SXL,
                             &a, &gst_page_sz, &gpte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         goto access_fault;
@@ -219,22 +222,22 @@ step_5:
     if ( (priv == S_MODE) && !is_exec && SUM == 0 && pte->U == 1 ) goto page_fault;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
-    if ( iosatp.MODE == IOSATP_Sv32 ) {
+    if ( iosatp.MODE == IOSATP_Sv32 && SXL == 1) {
         ppn[0] = get_bits(19, 10, pte->raw);
         ppn[1] = get_bits(31, 20, pte->raw);
     }
-    if ( iosatp.MODE == IOSATP_Sv39 ) {
+    if ( iosatp.MODE == IOSATP_Sv39 && SXL == 0 ) {
         ppn[0] = get_bits(18, 10, pte->raw);
         ppn[1] = get_bits(27, 19, pte->raw);
         ppn[2] = get_bits(53, 28, pte->raw);
     }
-    if ( iosatp.MODE == IOSATP_Sv48 ) {
+    if ( iosatp.MODE == IOSATP_Sv48 && SXL == 0 ) {
         ppn[0] = get_bits(18, 10, pte->raw);
         ppn[1] = get_bits(27, 19, pte->raw);
         ppn[2] = get_bits(36, 28, pte->raw);
         ppn[3] = get_bits(53, 37, pte->raw);
     }
-    if ( iosatp.MODE == IOSATP_Sv57 ) {
+    if ( iosatp.MODE == IOSATP_Sv57 && SXL == 0 ) {
         ppn[0] = get_bits(18, 10, pte->raw);
         ppn[1] = get_bits(27, 19, pte->raw);
         ppn[2] = get_bits(36, 28, pte->raw);
@@ -255,7 +258,7 @@ step_5:
                     *page_sz *= 512UL; // 1GiB
             case 1: if ( ppn[0] ) goto page_fault;
                     *page_sz *= 512UL; // 2MiB
-                    if ( iosatp.MODE == IOSATP_Sv32 ) {
+                    if ( iosatp.MODE == IOSATP_Sv32 && SXL == 1 ) {
                         *page_sz *= 2UL; // 4MiB
                     }
         }

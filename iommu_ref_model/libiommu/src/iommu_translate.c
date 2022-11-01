@@ -315,7 +315,7 @@ step_17:
     //     two stage address translation process then stop and report the fault.
     if ( s_vs_stage_address_translation(req->tr.iova, TTYP, DID, is_read, is_write, is_exec,
                                         PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
-                                        GV, GSCID, iohgatp, DC.tc.GADE,
+                                        GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
                                         &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
         goto stop_and_report_fault;
     
@@ -338,7 +338,7 @@ step_17:
     check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
     if ( (gst_fault = g_stage_address_translation(gpa, check_access_perms, DID, 
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
-                          iohgatp, DC.tc.GADE, &pa, &gst_page_sz, &g_pte) ) ) {
+                          iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         goto access_fault;
     }

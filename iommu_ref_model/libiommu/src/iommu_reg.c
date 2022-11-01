@@ -14,6 +14,8 @@ uint8_t g_num_hpm;
 uint8_t g_hpmctr_bits;
 uint8_t g_eventID_mask;
 uint8_t g_num_vec_bits;
+uint8_t g_gxl_writeable;
+uint8_t g_fctl_be_writeable;
 
 uint8_t 
 is_access_valid(
@@ -807,8 +809,9 @@ write_register(
 }
 int 
 reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
-                uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
-                capabilities_t capabilities, fctl_t fctl) {
+            uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
+            uint8_t gxl_writeable, uint8_t fctl_be_writeable,
+            capabilities_t capabilities, fctl_t fctl) {
     int i;
 #ifdef DEBUG
     // Only PA upto 56 bits supported in RISC-V
@@ -852,7 +855,8 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_num_vec_bits = num_vec_bits;
     g_num_hpm = num_hpm;
     g_hpmctr_bits = hpmctr_bits;
-
+    g_gxl_writeable = gxl_writeable;
+    g_fctl_be_writeable = fctl_be_writeable;
 
     // Initialize registers that have resets to 0
     // The reset default value is 0 for the following registers. 

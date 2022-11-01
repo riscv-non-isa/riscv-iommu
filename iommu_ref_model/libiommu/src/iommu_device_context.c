@@ -183,7 +183,7 @@ do_device_context_configuration_checks(
     // conditions are true. If misconfigured then stop and report "DDT entry
     // misconfigured" (cause = 259).
 
-    // 1. If any bits or encoding that are reserved for future standard use are 1.
+    // 1. If any bits or encoding that are reserved for future standard use are set.
     if ( ((g_reg_file.capabilities.msi_flat == 1) && (DC->reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msiptp.reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_mask.reserved != 0)) ||
@@ -193,28 +193,6 @@ do_device_context_configuration_checks(
          (DC->fsc.iosatp.reserved != 0 && DC->tc.PDTV == 0) ||
          (DC->ta.reserved0 != 0) ||
          (DC->ta.reserved1 != 0) ) {
-        return 1;
-    }
-    if ( (DC->iohgatp.MODE != IOHGATP_Bare) &&
-         (DC->iohgatp.MODE != IOHGATP_Sv32x4) &&
-         (DC->iohgatp.MODE != IOHGATP_Sv39x4) &&
-         (DC->iohgatp.MODE != IOHGATP_Sv48x4) &&
-         (DC->iohgatp.MODE != IOHGATP_Sv57x4) ) {
-        return 1;
-    }
-    if ( (DC->tc.PDTV == 0) && 
-         ((DC->fsc.iosatp.MODE != IOSATP_Bare) &&
-          (DC->fsc.iosatp.MODE != IOSATP_Sv32) &&
-          (DC->fsc.iosatp.MODE != IOSATP_Sv39) &&
-          (DC->fsc.iosatp.MODE != IOSATP_Sv48) &&
-          (DC->fsc.iosatp.MODE != IOSATP_Sv57)) ) {
-        return 1;
-    }
-    if ( (DC->tc.PDTV == 1) && 
-         ((DC->fsc.pdtp.MODE != PDTP_Bare) &&
-          (DC->fsc.pdtp.MODE != PD20) &&
-          (DC->fsc.pdtp.MODE != PD17) &&
-          (DC->fsc.pdtp.MODE != PD8)) ) {
         return 1;
     }
     // 2. `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`,
@@ -248,70 +226,120 @@ do_device_context_configuration_checks(
     //    b. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
     //    c. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
     if ( (DC->tc.PDTV == 1) && 
+         ((DC->fsc.pdtp.MODE != PDTP_Bare) &&
+          (DC->fsc.pdtp.MODE != PD20) &&
+          (DC->fsc.pdtp.MODE != PD17) &&
+          (DC->fsc.pdtp.MODE != PD8)) ) {
+        return 1;
+    }
+    if ( (DC->tc.PDTV == 1) && 
          (((DC->fsc.pdtp.MODE == PD20) && (g_reg_file.capabilities.pd20 == 0)) ||
           ((DC->fsc.pdtp.MODE == PD17) && (g_reg_file.capabilities.pd17 == 0)) ||
           ((DC->fsc.pdtp.MODE == PD8) && (g_reg_file.capabilities.pd8 == 0))) ) {
         return 1;
     }
-
-    // 9. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` is not one of the
+    // 9. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` encoding is not valid
+    //    encoding as determined by <<IOSATP_MODE_ENC>>
+    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 0) && 
+         (DC->fsc.iosatp.MODE != IOSATP_Bare) &&
+         (DC->fsc.iosatp.MODE != IOSATP_Sv39) &&
+         (DC->fsc.iosatp.MODE != IOSATP_Sv48) &&
+         (DC->fsc.iosatp.MODE != IOSATP_Sv57) ) {
+        return 1;
+    }
+    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 1) && 
+         (DC->fsc.iosatp.MODE != IOSATP_Bare) &&
+         (DC->fsc.iosatp.MODE != IOSATP_Sv32) ) {
+        return 1;
+    }
+    //10. `DC.tc.PDTV` is 0 and and `DC.tc.SXL` is 0 `DC.fsc.iosatp.MODE` is not one of the
     //    supported modes
-    //    .. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
     //    .. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
     //    .. `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
     //    .. `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
-    if ( (DC->tc.PDTV == 0) && 
-         (((DC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ||
-          ((DC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
+    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 0) && 
+         (((DC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
           ((DC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
           ((DC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0))) ) {
         return 1;
     }
-
-    //10. `DC.tc.PDTV` is 0 and `DC.tc.DPE` is 1
+    //11. `DC.tc.PDTV` is 0 and and `DC.tc.SXL` is 1 `DC.fsc.iosatp.MODE` is not one of the
+    //    supported modes
+    //    .. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
+    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 1) && 
+         ((DC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ) {
+        return 1;
+    }
+    //12. `DC.tc.PDTV` is 0 and `DC.tc.DPE` is 1
     if ( (DC->tc.PDTV == 0) && (DC->tc.DPE == 1) ) {
         return 1;
     }
-
-    //11. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
-    //12. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
-    //13. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
-    //14. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
-    if ( ((DC->iohgatp.MODE == IOHGATP_Sv32x4) && (g_reg_file.capabilities.Sv32x4 == 0)) ||
-         ((DC->iohgatp.MODE == IOHGATP_Sv39x4) && (g_reg_file.capabilities.Sv39x4 == 0)) ||
-         ((DC->iohgatp.MODE == IOHGATP_Sv48x4) && (g_reg_file.capabilities.Sv48x4 == 0)) ||
-         ((DC->iohgatp.MODE == IOHGATP_Sv57x4) && (g_reg_file.capabilities.Sv57x4 == 0)) ) {
+    //13. `DC.iohgatp.MODE` encoding is not a valid encoding as determined
+    //    by <<IOHGATP_MODE_ENC>>
+    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 0) && 
+         (DC->iohgatp.MODE != IOHGATP_Bare) &&
+         (DC->iohgatp.MODE != IOHGATP_Sv39x4) &&
+         (DC->iohgatp.MODE != IOHGATP_Sv48x4) &&
+         (DC->iohgatp.MODE != IOHGATP_Sv57x4) ) {
         return 1;
     }
-
-    //15. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
+    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 1) && 
+         (DC->iohgatp.MODE != IOHGATP_Bare) &&
+         (DC->iohgatp.MODE != IOHGATP_Sv32x4) ) {
+        return 1;
+    }
+    //14. `fctl.GXL` is 0 and `DC.iohgatp.MODE` is not a supported mode
+    //    a. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
+    //    b. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
+    //    c. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
+    if ( (g_reg_file.fctl.gxl == 0) && 
+         (((DC->iohgatp.MODE == IOHGATP_Sv39x4) && (g_reg_file.capabilities.Sv39x4 == 0)) ||
+          ((DC->iohgatp.MODE == IOHGATP_Sv48x4) && (g_reg_file.capabilities.Sv48x4 == 0)) ||
+          ((DC->iohgatp.MODE == IOHGATP_Sv57x4) && (g_reg_file.capabilities.Sv57x4 == 0))) ) {
+        return 1;
+    }
+    //15. `fctl.GXL` is 1 and `DC.iohgatp.MODE` is not a supported mode
+    //    a. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
+    if ( (g_reg_file.fctl.gxl == 1) && 
+         ((DC->iohgatp.MODE == IOHGATP_Sv32x4) && (g_reg_file.capabilities.Sv32x4 == 0)) ) {
+        return 1;
+    }
+    //16. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
     //    and not `Flat`
     if ( (g_reg_file.capabilities.msi_flat == 1) && 
          ((DC->msiptp.MODE != MSIPTP_Bare) && (DC->msiptp.MODE != MSIPTP_Flat)) ) {
         return 1;
     }
-    //16. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
+    //17. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
     //    `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
     if ( (DC->iohgatp.MODE != IOHGATP_Bare) && ((DC->iohgatp.PPN & 0x3UL) != 0) ) {
         return 1;
     }
-
-    //17. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+    //18. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
     if ( g_reg_file.capabilities.amo == 0 && (DC->tc.SADE == 1 || DC->tc.GADE == 1) ) {
         return 1;
     }
-    //18. `capabilities.END` is 0 and `fctl.be != DC.tc.SBE`
+    //19. `capabilities.END` is 0 and `fctl.be != DC.tc.SBE`
     if ( g_reg_file.capabilities.end == 0 && (g_reg_file.fctl.be != DC->tc.SBE) ) {
         return 1;
     }
-    //19. `fctl.GXL` is 1 and `DC.tc.SXL` is 0
-    if ( (g_reg_file.fctl.gxl == 1) &&  (DC->tc.SXL == 0) ) {
+    //20. `DC.tc.SXL` value is not a legal value. If `fctl.GXL` is 1, then
+    //    `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writeable, then
+    //    `DC.tc.SXL` may be 0 or 1. If `fctl.GXL` is 0 and is not writeable
+    //    then `DC.tc.SXL` must be 0.
+    if ( (g_reg_file.fctl.gxl == 1) && (DC->tc.SXL != 1) ) {
         return 1;
     }
-    //20. `DC.tc.SXL` value is not a legal value
-    //     The SXL field controls the supported paged virtual-memory schemes as
-    //     defined in Table 3. If fctl.GXL is 1 then SXL field must be 1; otherwise
-    //     the legal values for the SXL field are the same as that of the fctl.GXL.
+    if ( (g_gxl_writeable == 0) && (DC->tc.SXL != 0) ) {
+        return 1;
+    }
+
+    //21. `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writeable
+    //    then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writeable then
+    //    `DC.tc.SBE` must be same as `fctl.BE`.
+    if ( (g_fctl_be_writeable == 0) && (DC->tc.SBE != g_reg_file.fctl.be) ) {
+        return 1;
+    }
 
     return 0;
 }
