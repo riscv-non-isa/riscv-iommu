@@ -262,7 +262,7 @@ invalidations are not performed, then the IOMMU may not set these bits when
 processing subsequent transactions that use such entries.
 
 When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE to 
-a super-page without first clearing the original non-leaf PTEs valid bit and
+a superpage without first clearing the original non-leaf PTEs valid bit and
 invalidating cached translations in the IOMMU then it is possible for the
 IOMMU to cache multiple entries that match a single address. The IOMMU may 
 use either the old non-leaf PTE or the new non-leaf PTE but the behavior is

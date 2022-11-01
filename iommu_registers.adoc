@@ -249,6 +249,18 @@ operations. Support for device initiated atomic memory operations must be
 discovered through other means.
 ====
 
+[NOTE]
+====
+The IOMMU is designed to provide a highly modular and extensible set of
+capabilities allowing implementations to include only the exact set of
+capabilities required for an application. In addition, users may add
+their own custom extensions to the IOMMU.
+
+RISC-V platform and profile specifications may mandate a set of IOMMU
+capabilities that must be provided by an implementation to be compliant
+to those specification.
+====
+
 [[FCTRL]]
 === Features-control register (`fctl`)
 
@@ -1525,11 +1537,11 @@ This register is present when `capabilities.DBG == 1`.
                                  translation is 4 KiB - a page. +
  +
                                  If the `S` bit is 1, then the translation
-                                 resulted in a super-page, and the size of the
-                                 super-page is encoded in the PPN itself. If
+                                 resulted in a superpage, and the size of the
+                                 superpage is encoded in the PPN itself. If
                                  scanning from bit position 0 to bit position 
                                  43, the first bit with a value of 0 at 
-                                 position `X`, then the super-page size is 
+                                 position `X`, then the superpage size is
                                 `2^X+1^ * 4` KiB. +
  +
                                  If `X` is not 0, then all bits at position 0
@@ -1550,6 +1562,15 @@ This register is present when `capabilities.DBG == 1`.
 |59:54 |reserved |RO          | Reserved for standard use
 |63:60 a|_custom_|RO         a| _Designated for custom use_
 |===
+
+[NOTE]
+====
+An IOMMU implementation is not required to report a superpage translation
+or support reporting all possible superpage sizes. An implementation is
+allowed to report a 4 KiB translation corresponding to the requested
+`iova_vpn` or report a translation size that is smaller than the superpage
+size configured in the page tables.
+====
 
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
