@@ -187,7 +187,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |24    |`AMO`      |RO        | Atomic updates to MRIF and PTE accessed (A) 
                                 and dirty (D) bit is supported.
 |25    |`ATS`      |RO        | PCIe Address Translation Services (ATS) and 
-                                page-request interface (PRI) is supported.
+                                page-request interface (PRI) cite:[PCI] is supported.
 |26    |`T2GPA`    |RO        | Returning guest-physical-address in ATS 
                                 translation completions is supported.
 |27    |`END`       |RO       | When 0, IOMMU supports one endianness (either little

@@ -18,7 +18,7 @@
 //:WaveDromEditorApp: app/wavedrom-editor.app
 :imagesoutdir: images
 :bibtex-file: iommu.bib
-:bibtex-order: appearancec
+:bibtex-order: appearance
 :bibtex-style: ieee
 :icons: font
 :lang: en
@@ -68,5 +68,5 @@ include::iommu_registers.adoc[]
 include::iommu_sw_guidelines.adoc[]
 include::iommu_hw_guidelines.adoc[]
 //the index must precede the bibliography
-include::index.adoc[]
+//include::index.adoc[]
 include::bibliography.adoc[]

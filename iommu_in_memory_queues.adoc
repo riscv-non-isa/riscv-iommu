@@ -8,7 +8,7 @@ Software and IOMMU interact using 3 in-memory queue data structures.
 
 * A page-request queue (`PQ`) used by IOMMU to report “Page Request” messages 
   received from PCIe devices. This queue is supported if the IOMMU supports 
-  PCIe defined Page Request Interface.
+  PCIe cite:[PCI] defined Page Request Interface.
 
 .IOMMU in-memory queues
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
@@ -121,7 +121,7 @@ The following commands are supported:
 |`IOTINVAL`| 1        | IOMMU page-table cache invalidation commands.
 |`IOFENCE` | 2        | IOMMU command-queue fence commands.
 |`IOTDIR`  | 3        | IOMMU directory cache invalidation commands.
-|`ATS`     | 4        | IOMMU PCIe ATS commands.
+|`ATS`     | 4        | IOMMU PCIe cite:[PCI] ATS commands.
 |===
 
 ==== IOMMU Page-Table cache invalidation commands
@@ -499,7 +499,7 @@ If the `PV` operand is set to 1, the message is generated with a PASID with the
 PASID field set to the `PID` operand. 
 
 The `PAYLOAD` operand of the command is used to form the message body and its
-fields are as specified by the PCIe specification. The `PAYLOAD` field is
+fields are as specified by the PCIe specification cite:[PCI]. The `PAYLOAD` field is
 formatted as follows:
 
 .`PAYLOAD` of an `ATS.INVAL` command
@@ -686,7 +686,7 @@ the the fault for a subset, including one, of requests.
 [[PRQ]]
 === Page-Request-Queue (`PQ`)
 Page-request queue is an in-memory queue data structure used to report PCIe 
-ATS “Page Request” and "Stop Marker" messages to software. The base PPN of 
+ATS “Page Request” and "Stop Marker" messages cite:[PCI] to software. The base PPN of 
 this in-memory queue and the size of the queue is configured into a 
 memory-mapped register called page-request queue base (`pqb`). 
 Each Page-Request record is 16 bytes.
@@ -754,7 +754,7 @@ order of each of the doublewords in memory, little-endian or big-endian, is the
 endianness as determined by `fctl.BE` (<<FCTRL>>).
 
 The `PAYLOAD` holds the message body and its fields are as specified by the PCIe
-specification. The `PAYLOAD` field is formatted as follows:
+specification cite:[PCI]. The `PAYLOAD` field is formatted as follows:
 
 .`PAYLOAD` of a "Page request" message
 
