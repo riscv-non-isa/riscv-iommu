@@ -1100,7 +1100,7 @@ file and translating the address using the MSI page table is as follows:
 . If `msipte.C == 0` then the process is outlined in subsequent steps.
 . If `msipte.M == 0` or `msipte.M == 2`, then stop and report
   "MSI PTE misconfigured" (cause = 263).
-. If `msipte.M == 3` the PTE is pass-through mode PTE and the translation
+. If `msipte.M == 3` the PTE is translate-R/W mode mode PTE and the translation
   process is as follows:
 .. If any bits or encoding that are reserved for future standard use are set
    within `msipte`, stop and report "MSI PTE misconfigured" (cause = 263).

@@ -635,8 +635,8 @@ features:
 
 * Identifying memory accesses to a virtual interrupt file and MSI address
   translation, using MSI page tables, to redirect MSIs to interrupt files in an
-  IMSIC using MSI PTEs in pass-through mode and redirecting MSI to
-  memory-resident-interrupt-files using MSI PTEs in MRIF mode.
+  IMSIC using MSI PTEs in translate-R/W mode and redirecting MSI to
+  memory-resident-interrupt-files (MRIF) using MSI PTEs in MRIF mode.
 
 * Svnapot and Svpbmt extension.
 
