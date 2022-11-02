@@ -1063,7 +1063,7 @@ these virtual interrupt files occupies a separate 4-KiB page in the VMs guest
 physical address space, the same as real interrupt files do in a real machines
 physical address space. A write to a guest physical address can thus be
 recognized as an MSI to a virtual hart if the write is to a page occupied by
-an interrupt file of a virtual IMSIC within the VM
+an interrupt file of a virtual IMSIC within the VM.
 
 When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
 the process to identify an incoming `IOVA` as the address of a virtual interrupt
