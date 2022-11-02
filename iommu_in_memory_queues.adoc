@@ -8,7 +8,7 @@ Software and IOMMU interact using 3 in-memory queue data structures.
 
 * A page-request queue (`PQ`) used by IOMMU to report “Page Request” messages 
   received from PCIe devices. This queue is supported if the IOMMU supports 
-  PCIe defined Page Request Interface.
+  PCIe defined Page Request Interface cite:[PCI].
 
 .IOMMU in-memory queues
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
@@ -461,7 +461,7 @@ This command is supported if `capabilities.ATS` is set to 1.
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 The `ATS.INVAL` command instructs the IOMMU to send a “Invalidation Request” 
-message to the PCIe device function identified by `RID`. An 
+message to the PCIe cite:[PCI] device function identified by `RID`. An 
 “Invalidation Request” message is used to clear a specific subset of the 
 address range from the address translation cache in a device function. The 
 `ATS.INVAL` command completes when an “Invalidation Completion” response message
@@ -533,7 +533,7 @@ by the `DSEG` operand.
 
 [NOTE]
 ====
-A Hierarchy is a PCI Express I/O interconnect topology, wherein the
+A Hierarchy is a PCI Express I/O interconnect topology cite:[PCI], wherein the
 Configuration Space addresses, referred to as the tuple of Bus/Device/Function
 Numbers, are unique. In some contexts, a Hierarchy is also called a Segment, and
 in Flit Mode, the Segment number is sometimes included in the ID of a Function.
@@ -754,7 +754,7 @@ order of each of the doublewords in memory, little-endian or big-endian, is the
 endianness as determined by `fctl.BE` (<<FCTRL>>).
 
 The `PAYLOAD` holds the message body and its fields are as specified by the PCIe
-specification. The `PAYLOAD` field is formatted as follows:
+specification cite:[PCI]. The `PAYLOAD` field is formatted as follows:
 
 .`PAYLOAD` of a "Page request" message
 

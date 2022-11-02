@@ -52,12 +52,12 @@ adds to the device contexts an MSI address mask and address pattern, used togeth
 to identify pages in the guest physical address space that are the destinations
 of MSIs; and the real physical address of an MSI page table for controlling the
 translation and/or conversion of MSIs from the device. The IOMMU support for
-MSIs to virtual machines is specified by the Advanced Interrupt Architecture
-specification.
+redirecting MSIs to virtual machines is specified by the RISC-V AIA specification
+cite:[RISCV-AIA].
 
 The `DC` further holds controls for the type of transactions that a device is
 allowed to generate. One example of such a control is whether the device is
-allowed to use the PCIe defined Address Translation Service (ATS).
+allowed to use the PCIe defined Address Translation Service (ATS) cite:[PCI].
 
 Two formats of the device-context structure are supported:
 
@@ -405,9 +405,10 @@ are associated to a VM with a common G-stage page table, the hypervisor is
 expected to program the same `GSCID` in each `iohgatp`. The `MODE` field is used
 to select the G-stage address translation scheme.
 
-The G-stage page table formats are as defined by the Privileged specification.
-The `fctl.GXL` field controls the supported address-translation schemes for
-guest physical addresses as defined in <<IOHGATP_MODE_ENC>>.
+The G-stage page table formats are as defined by the RISC-V Privileged
+specification cite:[PRIV]. The `fctl.GXL` field controls the supported
+address-translation schemes for guest physical addresses as defined in
+<<IOHGATP_MODE_ENC>>.
 
 The `iohgatp` `MODE` field identifies the paged virtual-memory schemes and its
 encodings are as follows:
@@ -498,7 +499,7 @@ respectively.
 ....
 
 The S/VS-stage page table formats are as defined by the Privileged
-specification.
+specification cite:[PRIV].
 
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
@@ -576,7 +577,7 @@ identified by a VS-stage page table with a `process_id`.
 
 The `msiptp` field holds the PPN of the root MSI page table used to direct an
 MSI to a guest interrupt file in an IMSIC. The MSI page table formats are
-defined by the Advanced Interrupt Architecture specification.
+defined by the RISC-V AIA specification cite:[RISCV-AIA].
 
 The `MODE` field is used to select the MSI address translation scheme.
 
@@ -940,11 +941,11 @@ The process to translate an `IOVA` is as follows:
    it is a VS-stage page table.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
-  RISC-V privileged specification. If a fault is detecting by the single stage
-  address translation process then stop and report the fault.
+  RISC-V Privileged specification cite:[PRIV]. If a fault is detecting by the
+  single stage address translation process then stop and report the fault.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification to perform the VS-stage address translation to
+  Privileged specification to perform the VS-stage address translation to
   determine the GPA accessed by the transaction. If a fault is detecting by the
   two stage address translation process then stop and report the fault. If the
   translation process is completed then let `A` be the translated GPA.
@@ -956,7 +957,7 @@ The process to translate an `IOVA` is as follows:
   report the fault else the process continues at step 21.
 . If a G-stage page table is active in the device-context then use the
   G-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification to translate the GPA `A` to determine the SPA accessed
+  Privileged specification to translate the GPA `A` to determine the SPA accessed
   by the transaction. If a fault is detecting by the two stage address translation
   process then stop and report the fault.
 . Translation process is complete
@@ -1056,14 +1057,14 @@ machine.
 
 MSIs originating from a single device that require conversion are expected
 to have been configured at the device by a single guest OS running within one
-RISC-V virtual machine. Assuming the VM itself conforms to the Advanced
-Interrupt Architecture, MSIs are sent to virtual harts within the VM by writing
-to the memory-mapped registers of the interrupt files of virtual IMSICs. Each of
-these virtual interrupt files occupies a separate 4-KiB page in the VMs guest
-physical address space, the same as real interrupt files do in a real machines
-physical address space. A write to a guest physical address can thus be
-recognized as an MSI to a virtual hart if the write is to a page occupied by
-an interrupt file of a virtual IMSIC within the VM.
+RISC-V virtual machine. Assuming the VM itself conforms to the RISC-V Advanced
+Interrupt Architecture cite:[RISCV-AIA], MSIs are sent to virtual harts within
+the VM by writing to the memory-mapped registers of the interrupt files of
+virtual IMSICs. Each of these virtual interrupt files occupies a separate 4-KiB
+page in the VMs guest physical address space, the same as real interrupt files
+do in a real machines physical address space. A write to a guest physical
+address can thus be recognized as an MSI to a virtual hart if the write is to a
+page occupied by an interrupt file of a virtual IMSIC within the VM.
 
 When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
 the process to identify an incoming `IOVA` as the address of a virtual interrupt
@@ -1119,7 +1120,7 @@ file and translating the address using the MSI page table is as follows:
 
 [NOTE]
 ====
-In MRIF mode, the Advanced Interrupt Specification defines the operation to
+In MRIF mode, the RISC-V AIA specification cite:[RISCV-AIA] defines the operation to
 store the incoming MSIs into the destination MRIF and to generate the notice
 MSI. These operations may be performed by the IOMMU itself or the IOMMU may
 provide the destination MRIF address, the notice MSI address, and the notice MSI
@@ -1135,7 +1136,8 @@ PTEs atomically. When updating of A and D bits in G-stage PTEs is enabled
 (`DC.tc.SADE=1`) the following rules apply:
 
 . The A and/or D bit updates by the IOMMU must follow the rules specified by the
-  Privileged specification for validity, permission checking, and atomicity.
+  RISC-V Privileged specification cite:[PRIV] for validity, permission checking,
+  and atomicity.
 
 . The PTE update must be globally visible before a memory access using the
   translated address provided by the IOMMU becomes globally visible.u
@@ -1155,13 +1157,13 @@ set them to 1 in the PTE to improve performance.
 === Faults from virtual address translation process
 
 Faults detected during the S-stage or two-stage address translation specified
-in the privileged specification cause the IOVA translation process to stop and
-report the detected fault.
+in the RISC-V Privileged specification cite:[PRIV] cause the IOVA translation
+process to stop and report the detected fault.
 
 [[ATS_FAULTS]]
 === PCIe ATS translation request handling
-ATS translation requests that encounter a configuration error results in a
-Completer Abort (CA) response to the requester. The following cause codes
+ATS cite:[PCI] translation requests that encounter a configuration error results
+in a Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
 
 * Instruction access fault (cause = 1)
@@ -1348,8 +1350,8 @@ For IOMMU generated "Page Request Group Response" with response code set to
 Response Failure, if the "Page Request" had a PASID then response is generated
 with a PASID.
 
-No faults are logged in the fault queue for PCIe ATS "Page Request" messages for
-following conditions:
+No faults are logged in the fault queue for PCIe ATS "Page Request" messages
+cite:[PCI] for following conditions:
 
 * Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
 * Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)

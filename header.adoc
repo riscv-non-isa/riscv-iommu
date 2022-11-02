@@ -17,9 +17,9 @@
 // needs to be changed? bug discussion started
 //:WaveDromEditorApp: app/wavedrom-editor.app
 :imagesoutdir: images
-:bibtex-file: example.bib
-:bibtex-order: alphabetical
-:bibtex-style: apa
+:bibtex-file: iommu.bib
+:bibtex-order: appearance
+:bibtex-style: ieee
 :icons: font
 :lang: en
 :listing-caption: Listing
@@ -68,5 +68,5 @@ include::iommu_registers.adoc[]
 include::iommu_sw_guidelines.adoc[]
 include::iommu_hw_guidelines.adoc[]
 //the index must precede the bibliography
-include::index.adoc[]
+//include::index.adoc[]
 include::bibliography.adoc[]
