@@ -14,7 +14,7 @@ device is retained by the hypervisor or Host OS itself.
 
 When two-stage address translation is used the `DC` holds the PPN of the root
 G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates
-invalidations of cached address translations on a per-virtual-machine basis; and
+invalidation of cached address translations on a per-virtual-machine basis; and
 the G-stage address translation scheme.
 
 Some devices supports multiple contexts where each context may be associated
@@ -38,7 +38,7 @@ translation are be held in the `DC` itself.
 
 The S/VS-stage address translation controls include the PPN of the root
 S/VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
-invalidations of cached address translations on a per-address-space basis; and
+invalidation of cached address translations on a per-address-space basis; and
 the S/VS-stage address translation scheme.
 
 To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
@@ -683,11 +683,11 @@ misconfigured" (cause = 259).
 . `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
 . `capabilities.END` is 0 and `fctl.BE != DC.tc.SBE`
 . `DC.tc.SXL` value is not a legal value. If `fctl.GXL` is 1, then
-  `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writeable, then
-  `DC.tc.SXL` may be 0 or 1. If `fctl.GXL` is 0 and is not writeable
+  `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writable, then
+  `DC.tc.SXL` may be 0 or 1. If `fctl.GXL` is 0 and is not writable
   then `DC.tc.SXL` must be 0.
-. `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writeable
-  then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writeable then
+. `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writable
+  then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writable then
   `DC.tc.SBE` must be same as `fctl.BE`.
 
 [NOTE]
@@ -1294,7 +1294,7 @@ to set the CXL.io bit.
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
 To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first locates
-the device-context to determine if ATS and PRI are enabled for the requestor.
+the device-context to determine if ATS and PRI are enabled for the requester.
 If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
  IOMMU queues the message into an in-memory queue called the
 page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
@@ -1308,7 +1308,7 @@ encountering access faults when attempting to access queue memory. These error
 conditions are specified in <<PRQ>>.
 
 If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
-device-context for the requestor.
+device-context for the requester.
 
 If `EN_PRI` is set to 0, or `EN_ATS` is set to 0, or if the IOMMU is unable
 to locate the `DC` to determine the `EN_PRI` configuration, or the request
