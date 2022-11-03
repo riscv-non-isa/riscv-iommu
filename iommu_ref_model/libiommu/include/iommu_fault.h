@@ -12,22 +12,23 @@
 // |1      | Untranslated read for execute transaction
 // |2      | Untranslated read transaction
 // |3      | Untranslated write/AMO transaction
-// |4      | Translated read for execute transaction
-// |5      | Translated read transaction
-// |6      | Translated write/AMO transaction
-// |7      | PCIe ATS Translation Request
-// |8      | Message Request 
-// |9 - 15 | Reserved
+// |4      | Reserved
+// |5      | Translated read for execute transaction
+// |6      | Translated read transaction
+// |7      | Translated write/AMO transaction
+// |8      | PCIe ATS Translation Request
+// |9      | Message Request 
+// |10 - 15| Reserved
 // |16 - 31| Reserved for custom use
 #define TTYPE_NONE                                0
 #define UNTRANSLATED_READ_FOR_EXECUTE_TRANSACTION 1
 #define UNTRANSLATED_READ_TRANSACTION             2
 #define UNTRANSLATED_WRITE_AMO_TRANSACTION        3
-#define TRANSLATED_READ_FOR_EXECUTE_TRANSACTION   4
-#define TRANSLATED_READ_TRANSACTION               5
-#define TRANSLATED_WRITE_AMO_TRANSACTION          6
-#define PCIE_ATS_TRANSLATION_REQUEST              7
-#define MESSAGE_REQUEST                           8
+#define TRANSLATED_READ_FOR_EXECUTE_TRANSACTION   5
+#define TRANSLATED_READ_TRANSACTION               6
+#define TRANSLATED_WRITE_AMO_TRANSACTION          7
+#define PCIE_ATS_TRANSLATION_REQUEST              8
+#define MESSAGE_REQUEST                           9
 
 
 // Fault-queue record

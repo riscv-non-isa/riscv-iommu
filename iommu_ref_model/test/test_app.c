@@ -2127,7 +2127,6 @@ main(void) {
     write_register(IOHPMEVT5_OFFSET, 8, event.raw);
     write_register(IOHPMCTR5_OFFSET, 8, 0x9);
 
-
     send_translation_request(0x112233, 1, 0x1000, 0,
                  0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
                  1, WRITE, &req, &rsp);
@@ -2155,7 +2154,77 @@ main(void) {
         write_register(IOHPMEVT1_OFFSET + (i * 8), 8, 0);
         write_register(IOHPMCTR1_OFFSET + (i * 8), 8, 0);
     }
+//HERE
+    // Two stage translation with default process ID
+    // Enable default process
+    DC.tc.DPE = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
 
+    // transaction with no PASID - should fail as no default process context
+    send_translation_request(0x112233, 0, 0, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0x10000,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
+
+#if 0
+
+    // Add process context
+    memset(&PC, 0, 16);
+    PC.fsc.iosatp.MODE = IOSATP_Sv48;
+    PC.fsc.iosatp.PPN = get_free_gppn(1, DC.iohgatp);
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    add_g_stage_pte(DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), gpte, 0);
+    PC.ta.V = 1;
+    PC.ta.PSCID = 10;
+    PC.ta.ENS = 1;
+    PC.ta.SUM = 1;
+    PC_addr = add_process_context(&DC, &PC, 0xBABEC);
+    read_memory(PC_addr, 16, (char *)&PC);
+
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    pte.PPN = get_free_gppn(1, DC.iohgatp);
+
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    gpa = pte.PPN * PAGESIZE;
+    spa = gpte.PPN * PAGESIZE;
+    gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
+    gva = 0x100000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    send_translation_request(0x112233, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+#endif
     END_TEST();
 
     START_TEST("ATS page request group response");
