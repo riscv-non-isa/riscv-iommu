@@ -631,12 +631,13 @@ The `TTYP` field reports inbound transaction type.
 |1      | Untranslated read for execute transaction
 |2      | Untranslated read transaction
 |3      | Untranslated write/AMO transaction
-|4      | Translated read for execute transaction
-|5      | Translated read transaction
-|6      | Translated write/AMO transaction
-|7      | PCIe ATS Translation Request
-|8      | Message Request
-|9 - 15 | Reserved
+|4      | Reserved
+|5      | Translated read for execute transaction
+|6      | Translated read transaction
+|7      | Translated write/AMO transaction
+|8      | PCIe ATS Translation Request
+|9      | Message Request
+|10 - 15| Reserved
 |16 - 31| Designated for custom use
 |===
 
