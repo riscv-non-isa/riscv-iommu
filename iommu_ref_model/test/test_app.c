@@ -23,7 +23,7 @@ int
 main(void) {
     capabilities_t cap = {0};
     uint32_t offset;
-    fctrl_t fctrl = {0};
+    fctl_t fctl = {0};
     uint8_t at, pid_valid, exec_req, priv_req, no_write, PR, PW, AV;
     uint32_t i, j, test_num = 0;
     uint64_t DC_addr, exp_iotval2, iofence_PPN, iofence_data, spa, gpa;
@@ -66,7 +66,8 @@ main(void) {
     cap.amo = cap.ats = cap.t2gpa = cap.hpm = cap.msi_flat = cap.msi_mrif = 1;
     cap.dbg = 1;
     cap.pas = 50;
-    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, cap, fctrl) < 0 ) );
+    cap.pd20 = cap.pd17 = cap.pd8 = 1;
+    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, 0, 0, cap, fctl) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));
@@ -84,7 +85,7 @@ main(void) {
     pid_valid = exec_req = priv_req = no_write = 1;
     at = 0;
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( ((read_register(FQH_OFFSET, 4)) != read_register(FQT_OFFSET, 4)) ) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof != 0 ) );
@@ -100,11 +101,11 @@ main(void) {
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 256, 0) < 0 ) );
         }
     });
@@ -115,7 +116,7 @@ main(void) {
     fail_if( ( enable_iommu(DDT_Bare) < 0 ) );
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
         send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                 priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                 priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } 
@@ -133,11 +134,11 @@ main(void) {
     START_TEST("Too wide device_id");
     fail_if( ( enable_iommu(DDT_1LVL) < 0 ) );
     send_translation_request(0x000145, 0, 0x99, 0, 0, 0, 0, 
-                             UNTRANSLATED_REQUEST, 0, 1, READ, 0, &req, &rsp);
+                             UNTRANSLATED_REQUEST, 0, 1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
     fail_if( ( enable_iommu(DDT_2LVL) < 0 ) );
     send_translation_request(0x012345, 0, 0x99, 0, 0, 0, 0, 
-                             UNTRANSLATED_REQUEST, 0, 1, READ, 0, &req, &rsp);
+                             UNTRANSLATED_REQUEST, 0, 1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
 
     END_TEST();
@@ -153,11 +154,11 @@ main(void) {
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 258, 0) < 0 ) );
         }
     });
@@ -169,12 +170,12 @@ main(void) {
     pid_valid = no_write = exec_req = priv_req = 0;
     access_viol_addr = (ddtp.ppn * PAGESIZE) | (get_bits(23, 15, 0x012345) * 8);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 257, 0) < 0 ) );
     access_viol_addr = -1;
     data_corruption_addr = (ddtp.ppn * PAGESIZE) | (get_bits(23, 15, 0x012345) * 8);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 268, 0) < 0 ) );
     data_corruption_addr = -1;
     END_TEST();
@@ -190,11 +191,11 @@ main(void) {
         write_memory((char *)&ddte, (ddtp.ppn * PAGESIZE) | (get_bits(23, 15, 0x012345) * 8), 8);
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
         }
     });
@@ -228,7 +229,7 @@ main(void) {
     at = 0;
     for ( i = 0; i < 1023; i++ ) {
         send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                 priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                                 priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     }
     ipsr.raw = read_register(IPSR_OFFSET, 4);
     fail_if( ( ipsr.fip == 0 ) );
@@ -250,7 +251,7 @@ main(void) {
     fail_if( ( fqcsr.fqof == 1 ) );
     // Next fault should cause overflow
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof == 0 ) );
@@ -274,7 +275,7 @@ main(void) {
 
     // Overflow should remain
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof == 0 ) );
@@ -312,14 +313,14 @@ main(void) {
     fqb.raw = read_register(FQB_OFFSET, 8);
     access_viol_addr = fqb.ppn * PAGESIZE;
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4) ) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqmf != 1 ) );
     ipsr.raw = read_register(IPSR_OFFSET, 4);
     fail_if( ( ipsr.fip != 1 ) );
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4) ) );
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
@@ -335,7 +336,7 @@ main(void) {
     fqcsr.fie = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqmf != 1 ) );
     ipsr.raw = read_register(IPSR_OFFSET, 4);
@@ -351,7 +352,7 @@ main(void) {
     // memory fault on MSI write
     access_viol_addr = temp;
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqmf != 0 ) );
     ipsr.raw = read_register(IPSR_OFFSET, 4);
@@ -377,7 +378,9 @@ main(void) {
     START_TEST("Device context invalid");
 
     // Add a device 0x012345 to guest with GSCID=1
-    DC_addr = add_device(0x012345, 1, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+    DC_addr = add_device(0x012345, 1, 0, 0, 0, 0, 0, 
+                         1, 1, 0, 0, 0, 
+                         IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     (void)(DC_addr);
 
@@ -388,11 +391,11 @@ main(void) {
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 258, 0) < 0 ) );
         }
     });
@@ -407,111 +410,111 @@ main(void) {
     DC.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.reserved = 0;
     DC.tc.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.reserved = 0;
 
     DC.ta.reserved0 = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.ta.reserved0 = 0;
     DC.ta.reserved1 = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.ta.reserved1 = 0;
     DC.fsc.iosatp.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.iosatp.reserved = 0;
     DC.msiptp.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.msiptp.reserved = 0;
     DC.msi_addr_mask.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.msi_addr_mask.reserved = 0;
     DC.msi_addr_pattern.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.msi_addr_pattern.reserved = 0;
     DC.iohgatp.MODE = IOHGATP_Sv32x4;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.iohgatp.MODE = IOHGATP_Sv48x4;
     DC.iohgatp.MODE = IOHGATP_Sv57x4 + 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.iohgatp.MODE = IOHGATP_Sv48x4;
     DC.fsc.iosatp.MODE = IOSATP_Sv32;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.iosatp.MODE = IOSATP_Bare;
     DC.fsc.iosatp.MODE = IOSATP_Sv57 + 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.iosatp.MODE = IOSATP_Bare;
     DC.msiptp.MODE = MSIPTP_Flat + 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.msiptp.MODE = MSIPTP_Bare;
     DC.tc.T2GPA = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.T2GPA = 0;
     DC.tc.EN_PRI = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.EN_PRI = 0;
     DC.tc.PRPR = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.PRPR = 0;
     DC.tc.PDTV = 1;
-    DC.fsc.pdtp.MODE = PD8 + 1;
+    DC.fsc.pdtp.MODE = PD20 + 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.pdtp.MODE = PDTP_Bare;
     DC.fsc.pdtp.reserved = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.pdtp.reserved = 0;
     DC.tc.PDTV = 0;
@@ -520,12 +523,12 @@ main(void) {
     DC.iohgatp.PPN |= 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.iohgatp.PPN |= 2;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.iohgatp.PPN &= ~0x3;
     write_memory((char *)&DC, DC_addr, 64);
@@ -534,19 +537,19 @@ main(void) {
     DC.tc.SADE = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.SADE = 0;
     DC.tc.GADE = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.SADE = 1;
     DC.tc.GADE = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.tc.SADE = 0;
     DC.tc.GADE = 0;
@@ -561,16 +564,16 @@ main(void) {
     FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, READ, 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
         } else if ( at == ADDR_TYPE_TRANSLATED ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
         } else {
             uint16_t exp_cause;
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), 0, &req, &rsp);
+                                     priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
             if ( pid_valid == 1 ) exp_cause = 260;
             else if ( (no_write ^ 1) == WRITE ) exp_cause = 23;
             else exp_cause = 21;
@@ -589,12 +592,12 @@ main(void) {
     pid_valid = no_write = exec_req = priv_req = 0;
     access_viol_addr = DC_addr;
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 257, 0) < 0 ) );
     access_viol_addr = -1;
     data_corruption_addr = DC_addr;
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 268, 0) < 0 ) );
     data_corruption_addr = -1;
     END_TEST();
@@ -605,20 +608,20 @@ main(void) {
     pid_valid = no_write = exec_req = priv_req = 0;
     // Get the device context cached
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, 0xdeadbeec) < 0 ) );
     // Update memory to mark invalid
     DC.tc.V = 0;
     write_memory((char *)&DC, DC_addr, 64);
     // Cached copy should apply
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, 0xdeadbeec) < 0 ) );
     iodir(INVAL_DDT, 1, 0x012345, 0);
     fail_if( ( read_register(CQH_OFFSET, 4) != read_register(CQT_OFFSET, 4) ) );
     // Memory copy should apply
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
-                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), 0, &req, &rsp);
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 258, 0) < 0 ) );
     DC.tc.V = 1;
     DC.tc.EN_ATS = 1;
@@ -841,11 +844,11 @@ main(void) {
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
 
-    fctrl.raw = read_register(FCTRL_OFFSET, 4);
-    fctrl.wis = 1;
-    write_register(FCTRL_OFFSET, 4, fctrl.raw);
-    fctrl.raw = read_register(FCTRL_OFFSET, 4);
-    fail_if( (fctrl.wis == 0) );
+    fctl.raw = read_register(FCTRL_OFFSET, 4);
+    fctl.wis = 1;
+    write_register(FCTRL_OFFSET, 4, fctl.raw);
+    fctl.raw = read_register(FCTRL_OFFSET, 4);
+    fail_if( (fctl.wis == 0) );
 
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
@@ -887,8 +890,8 @@ main(void) {
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
 
-    fctrl.wis = 0;
-    write_register(FCTRL_OFFSET, 4, fctrl.raw);
+    fctl.wis = 0;
+    write_register(FCTRL_OFFSET, 4, fctl.raw);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     fqcsr.fqen = 1;
@@ -919,6 +922,8 @@ main(void) {
     gpte.A = 0;
     gpte.D = 0;
     gpte.PBMT = PMA;
+    DC.tc.SADE = 1;
+    DC.tc.GADE = 1;
     for ( j = 0; j < 3; j++ ) {
         if ( j == 2 ) {
             DC.iohgatp.MODE = IOHGATP_Sv57x4;
@@ -1127,7 +1132,9 @@ main(void) {
     END_TEST();
 
     START_TEST("S-stage translation sizes");
-    DC_addr = add_device(0x012349, 1, 1, 1, 1, 0, 1, IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
+    DC_addr = add_device(0x012349, 1, 1, 1, 0, 0, 1, 
+                         1, 1, 0, 0, 0,
+                         IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
                          MSIPTP_Flat, 1, 0xF0F00FF0FF, 0x1903020124);
     read_memory(DC_addr, 64, (char *)&DC);
     DC.ta.PSCID = 10;
@@ -1494,11 +1501,11 @@ main(void) {
 
     for ( at = 0; at < 3; at++ ) {
         send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, at, 0xdeadbeef, 1, READ, 0, &req, &rsp);
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
         send_translation_request(0x012349, 1, 10, 0,
-             0, 0, 0, at, 0xdeadbeef, 1, READ, 0, &req, &rsp);
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
         send_translation_request(0x072349, 1, 10, 0,
-             0, 0, 0, at, 0xdeadbeef, 1, READ, 0, &req, &rsp);
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
     }
     fail_if( ( read_register(IOHPMCTR1_OFFSET, 8) != 1 ) );
     fail_if( ( read_register(IOHPMCTR2_OFFSET, 8) != 1 ) );
@@ -1543,18 +1550,18 @@ main(void) {
     write_register(IOHPMEVT4_OFFSET, 8, event.raw);
     write_register(IOHPMCTR4_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 0 ) );
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 0 ) );
 
     // Inv TLB
     iotinval(VMA, 0, 0, 0, 1, 10, 0);
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 1 ) );
 
@@ -1565,11 +1572,11 @@ main(void) {
     write_register(IOHPMEVT4_OFFSET, 8, event.raw);
     write_register(IOHPMCTR4_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 0 ) );
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
 
     // Inv TLB
@@ -1579,11 +1586,11 @@ main(void) {
     write_register(IOHPMEVT4_OFFSET, 8, event.raw);
     write_register(IOHPMCTR4_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 0xffffffffff ));
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 0xffffffffff ));
 
@@ -1593,7 +1600,7 @@ main(void) {
     write_register(IOHPMEVT4_OFFSET, 8, event.raw);
     iotinval(VMA, 0, 0, 0, 1, 10, 0);
     send_translation_request(0x012349, 0, 10, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, 0, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva, 1, READ, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR4_OFFSET, 8)  != 0xffffffffff ));
 
@@ -1607,17 +1614,18 @@ main(void) {
     START_TEST("Process Directory Table walk");
     // collapse fault queue
     write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
-    DC_addr = add_device(0x112233, 0x1234, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PD20,
+    DC_addr = add_device(0x112233, 0x1234, 0, 0, 0, 0, 0, 
+                         1, 1, 0, 0, 0,
+                         IOHGATP_Sv48x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory(DC_addr, 64, (char *)&DC);
-    DC.tc.SADE = 1;
-    DC.tc.GADE = 1;
+    DC.msiptp.MODE = MSIPTP_Bare;
     write_memory((char *)&DC, DC_addr, 64);
 
     // Invalid non-leaf PDTE
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
 
     // Access viol on non-leaf PDTE
@@ -1625,7 +1633,7 @@ main(void) {
     access_viol_addr = (temp) | (get_bits(19, 17, 0xBABEC) * 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 265, 0) < 0 ) );
 
     // Data corruption on non-leaf PDTE
@@ -1633,7 +1641,7 @@ main(void) {
     access_viol_addr = -1;
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 269, 0) < 0 ) );
     data_corruption_addr = -1;
 
@@ -1669,7 +1677,7 @@ main(void) {
     write_memory((char *)&pdte, temp, 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
     pdte.reserved0 = 0;
     write_memory((char *)&pdte, temp, 8);
@@ -1679,7 +1687,7 @@ main(void) {
     write_memory((char *)&PC, PC_addr, 16);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
     PC.ta.reserved0 = 0;
     write_memory((char *)&PC, PC_addr, 16);
@@ -1687,7 +1695,7 @@ main(void) {
     write_memory((char *)&PC, PC_addr, 16);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
     PC.ta.reserved1 = 0;
     write_memory((char *)&PC, PC_addr, 16);
@@ -1696,7 +1704,7 @@ main(void) {
     write_memory((char *)&PC, PC_addr, 16);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
     PC.ta.reserved0 = 0;
     PC.ta.reserved1 = 0;
@@ -1707,7 +1715,7 @@ main(void) {
     write_memory((char *)&PC, PC_addr, 16);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
     PC.ta.V = 1;
     write_memory((char *)&PC, PC_addr, 16);
@@ -1716,14 +1724,14 @@ main(void) {
     access_viol_addr = PC_addr;
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 265, 0) < 0 ) );
     access_viol_addr = -1;
     // PC data corruption violation
     data_corruption_addr = PC_addr;
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 269, 0) < 0 ) );
     data_corruption_addr = -1;
 
@@ -1736,7 +1744,7 @@ main(void) {
         write_memory((char *)&PC, PC_addr, 16);
         send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
         fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
     }
     g_reg_file.capabilities.Sv57 = 1;
@@ -1754,7 +1762,7 @@ main(void) {
     write_memory((char *)&gpte, temp, 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa & ~0x3UL) | 1)) < 0 ) );
     gpte.V = 1;
     write_memory((char *)&gpte, temp, 8);
@@ -1791,7 +1799,7 @@ main(void) {
     pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
 
     // fail_if if PC was cached
@@ -1800,7 +1808,7 @@ main(void) {
     iotinval(VMA, 1, 1, 1, 0x1234, 10, gva);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
 
     // Invalidate PC - DV must be 1
@@ -1823,7 +1831,7 @@ main(void) {
     iotinval(VMA, 1, 1, 1, 0x1234, 10, gva);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
 
     // Fix PC Translation should succeed
@@ -1831,7 +1839,7 @@ main(void) {
     write_memory((char *)&PC, PC_addr, 16);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
 
     // Check A/D update from TLB
@@ -1841,14 +1849,14 @@ main(void) {
     iotinval(VMA, 1, 1, 1, 0x1234, 10, gva);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     read_memory(pte_addr, 8, (char *)&pte);
     fail_if( ( pte.A == 0 ) );
     fail_if( ( pte.D == 1 ) );
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     read_memory(pte_addr, 8, (char *)&pte);
     fail_if( ( pte.A == 0 ) );
@@ -1857,7 +1865,7 @@ main(void) {
     // transaction with no PASID
     send_translation_request(0x112233, 0, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gpa,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != (spa / PAGESIZE) ) );
 
@@ -1868,12 +1876,12 @@ main(void) {
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != (gpa / PAGESIZE) ) );
     send_translation_request(0x112233, 0, 0xBABEC, 0,
              0, 1, 0, TRANSLATED_REQUEST, gpa,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != (spa / PAGESIZE) ) );
 
@@ -1883,12 +1891,12 @@ main(void) {
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != (spa / PAGESIZE) ) );
     send_translation_request(0x112233, 0, 0xBABEC, 0,
              0, 1, 0, TRANSLATED_REQUEST, spa,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != (spa / PAGESIZE) ) );
 
@@ -1898,7 +1906,7 @@ main(void) {
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
 
     // Disable supv to user access
@@ -1908,7 +1916,7 @@ main(void) {
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, READ, 0, &req, &rsp);
+             1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.R != 0 ) );
     fail_if( ( rsp.trsp.W != 0 ) );
@@ -1919,7 +1927,7 @@ main(void) {
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, COMPLETER_ABORT, 0, 0) < 0 ) );
     access_viol_addr = -1;
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
@@ -1930,21 +1938,21 @@ main(void) {
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
     DC.fsc.pdtp.MODE = PD17;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
     DC.fsc.pdtp.MODE = 9;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
     DC.fsc.pdtp.MODE = PD20;
     write_memory((char *)&DC, DC_addr, 64);
@@ -1986,7 +1994,7 @@ main(void) {
     pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.S != 0 ) );
     fail_if( ( rsp.trsp.PPN != (gpte.PPN & ~0x8)) );
@@ -1998,7 +2006,7 @@ main(void) {
     write_memory((char *)&gpte.raw, gpte_addr, 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, 
                ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
 
@@ -2007,7 +2015,7 @@ main(void) {
     write_memory((char *)&gpte.raw, gpte_addr, 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, 
                ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
     gpte.N = 0;
@@ -2015,15 +2023,12 @@ main(void) {
     write_memory((char *)&gpte.raw, gpte_addr, 8);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, 
                ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
     gpte.N = 0;
     gpte.PBMT = 0;
     write_memory((char *)&gpte.raw, gpte_addr, 8);
-
-
-
 
     iodir(INVAL_DDT, 1, 0x112233, 0);
     iotinval(GVMA, 1, 0, 0, 0x1234, 0, 0);
@@ -2082,7 +2087,7 @@ main(void) {
     for ( i = 0; i < 10; i++ ) {
         send_translation_request(0x112233, 1, 0x1000+i, 0,
                  0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-                 1, WRITE, 0, &req, &rsp);
+                 1, WRITE, &req, &rsp);
         fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     }
     iodir(INVAL_DDT, 1, 0x112233, 0);
@@ -2125,7 +2130,7 @@ main(void) {
 
     send_translation_request(0x112233, 1, 0x1000, 0,
                  0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-                 1, WRITE, 0, &req, &rsp);
+                 1, WRITE, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR1_OFFSET, 8) != 0 ) );
     fail_if( ( read_register(IOHPMCTR2_OFFSET, 8) != 0 ) );
@@ -2139,7 +2144,7 @@ main(void) {
 
     send_translation_request(0x112233, 1, 0x1000, 0,
                  0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-                 1, WRITE, 0, &req, &rsp);
+                 1, WRITE, &req, &rsp);
     fail_if( ( rsp.status != SUCCESS ) ); 
     fail_if( ( read_register(IOHPMCTR1_OFFSET, 8) != 0 ) );
     fail_if( ( read_register(IOHPMCTR2_OFFSET, 8) != 0 ) );
@@ -2530,7 +2535,9 @@ main(void) {
 
     START_TEST("MSI write-through mode");
 
-    DC_addr = add_device(0x042874, 0x1974, 0, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+    DC_addr = add_device(0x042874, 0x1974, 0, 0, 0, 0, 0, 
+                         1, 1, 0, 0, 0,
+                         IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
     read_memory(DC_addr, 64, (char *)&DC);
     gpa = 0x280000003000;
@@ -2538,106 +2545,102 @@ main(void) {
     // Cause a access violation
     access_viol_addr = (DC.msiptp.PPN * PAGESIZE) + 3 * 16;
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 261, 0) < 0 ) );
     access_viol_addr = -1;
 
     data_corruption_addr = (DC.msiptp.PPN * PAGESIZE) + 3 * 16;
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 270, 0) < 0 ) );
     data_corruption_addr = -1;
 
     // Not present
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 262, 0) < 0 ) );
 
     // Misconfigured
     msipte_t msipte;
     msipte.V = 1;
-    msipte.reserved0 = 0x1;
+    msipte.M = 0x0;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
 
     msipte.C = 1;
-    msipte.reserved0 = 0x0;
+    msipte.M = 0x0;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
 
     msipte.C = 0;
-    msipte.W = 1;
-    msipte.write_through.reserved0 = 0x1;
+    msipte.M = 2;
+    msipte.translate_rw.reserved = 0x1;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
-    msipte.write_through.reserved0 = 0x0;
-    msipte.write_through.reserved1 = 0x4;
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved = 0x4;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
 
     // Write through PTE
-    msipte.write_through.reserved0 = 0x0;
-    msipte.write_through.reserved1 = 0x0;
-    msipte.write_through.PPN = 0xdeadbeef;
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.M = 0x3;
+    msipte.translate_rw.PPN = 0xdeadbeef;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != 0xdeadbeef ) );
     fail_if( ( rsp.trsp.is_msi != 1 ) );
     fail_if( ( rsp.trsp.S != 0 ) );
     fail_if( ( rsp.trsp.PBMT != PMA ) );
     fail_if( ( rsp.trsp.is_msi != 1 ) );
-    fail_if( ( rsp.trsp.is_mrif_wr != 0 ) );
+    fail_if( ( rsp.trsp.is_mrif != 0 ) );
 
     // corrupt but hit from cache
-    msipte.write_through.reserved0 = 0x1;
+    msipte.translate_rw.reserved = 0x1;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != 0xdeadbeef ) );
     fail_if( ( rsp.trsp.is_msi != 1 ) );
     fail_if( ( rsp.trsp.S != 0 ) );
     fail_if( ( rsp.trsp.PBMT != PMA ) );
     fail_if( ( rsp.trsp.is_msi != 1 ) );
-    fail_if( ( rsp.trsp.is_mrif_wr != 0 ) );
+    fail_if( ( rsp.trsp.is_mrif != 0 ) );
 
     // Invalidate TLB
     iotinval(GVMA, 1, 1, 0, 0x1974, 0, gpa);
     send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
-    msipte.write_through.reserved0 = 0x1;
+    msipte.translate_rw.reserved = 0x1;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
-    msipte.write_through.reserved0 = 0x0;
+    msipte.translate_rw.reserved = 0x0;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
-
-    // Access seteipbe - on little endian system
-    gpa = gpa ^ 0x4;
-    send_translation_request(0x042874, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
 
     END_TEST();
 
     START_TEST("MSI MFIF mode");
-    DC_addr = add_device(0x121679, 0x1979, 1, 0, 0, 0, 0, IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+    DC_addr = add_device(0x121679, 0x1979, 1, 0, 0, 0, 0,
+                         1, 1, 0, 0, 0,
+                         IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
     read_memory(DC_addr, 64, (char *)&DC);
     msipte.mrif.V = 1;
-    msipte.mrif.reserved0 = 0;
-    msipte.mrif.W = 0;
     msipte.mrif.reserved1 = 0;
-    msipte.mrif.MRIF_ADDR = ((get_free_ppn(1) * PAGESIZE) / 512);
+    msipte.mrif.M = 1;
+    msipte.mrif.reserved1 = 0;
+    msipte.mrif.MRIF_ADDR_55_9 = ((get_free_ppn(1) * PAGESIZE) / 512);
     msipte.mrif.reserved2 = 0;
     msipte.mrif.C = 0;
     msipte.mrif.N90 = 0x12;
@@ -2652,81 +2655,39 @@ main(void) {
     // Disable MRIF
     g_reg_file.capabilities.msi_mrif = 0;
     send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
     g_reg_file.capabilities.msi_mrif = 1;
 
     // misconfigured
-    msipte.mrif.reserved0 = 1;
+    msipte.mrif.reserved1 = 1;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 0x23 * 16), 16);
     send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
-    msipte.mrif.reserved0 = 0;
+    msipte.mrif.reserved1 = 0;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 0x23 * 16), 16);
 
     // Unsupported
     send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gpa, 4, READ, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gpa, 4, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.U != 1 ) ); 
     fail_if( ( rsp.trsp.R != 1 ) ); 
     fail_if( ( rsp.trsp.W != 1 ) ); 
 
     // Success
-    temp = msipte.mrif.MRIF_ADDR * 512;
-    temp += ((0x34 / 32) * 4);
-    i = 0;
-    write_memory((char *)&i, temp, 4);
     send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x34, &req, &rsp);
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     fail_if( ( rsp.trsp.PPN != 0xdeadbeef ) );
     fail_if( ( rsp.trsp.S != 0 ) );
     fail_if( ( rsp.trsp.PBMT != PMA ) );
     fail_if( ( rsp.trsp.is_msi != 1 ) );
-    fail_if( ( rsp.trsp.is_mrif_wr != 1 ) );
+    fail_if( ( rsp.trsp.is_mrif != 1 ) );
     fail_if( ( rsp.trsp.mrif_nid != 0x412 ) );
-    read_memory(temp, 4, (char *)&i);
-    fail_if( ( (i & ( 1 << (0x34 & 0x1f))) == 0 ) );
-
-    // redo without AMO
-    g_reg_file.capabilities.amo = 0;
-    send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
-    fail_if( ( rsp.trsp.PPN != 0xdeadbeef ) );
-    fail_if( ( rsp.trsp.S != 0 ) );
-    fail_if( ( rsp.trsp.PBMT != PMA ) );
-    fail_if( ( rsp.trsp.is_msi != 1 ) );
-    fail_if( ( rsp.trsp.is_mrif_wr != 1 ) );
     fail_if( ( rsp.trsp.mrif_nid != 0x412 ) );
-    read_memory(temp, 4, (char *)&i);
-    fail_if( ( (i & ( 1 << (0x39 & 0x1f))) == 0 ) );
-    g_reg_file.capabilities.amo = 1;
-
-    // Cause access violation on MRIF
-    access_viol_addr = temp;
-    send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 264, 0) < 0 ) );
-    access_viol_addr = -1;
-    data_corruption_addr = temp;
-    send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x39, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 271, 0) < 0 ) );
-    data_corruption_addr = -1;
-
-    // bad vector
-    send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x1039, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
-
-    // bad address
-    gpa |= 0x700;
-    send_translation_request(0x121679, 0, 0x0000, 0,
-             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, 0x1039, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( rsp.trsp.dest_mrif_addr != (msipte.mrif.MRIF_ADDR_55_9 * 512)) );
 
     END_TEST();
 
@@ -2856,7 +2817,13 @@ main(void) {
     // Change IOMMU mode to base device context
     g_reg_file.capabilities.msi_flat = 0;
 
-    DC_addr = add_device(0x000000, 1, 0, 0, 0, 0, 0, IOHGATP_Sv32x4, IOSATP_Bare, PD20,
+    // Allow selection of Sv32
+    g_gxl_writeable = 1;
+    g_reg_file.fctl.gxl = 1;
+
+    DC_addr = add_device(0x000000, 1, 0, 0, 0, 0, 0, 
+                         1, 1, 0, 0, 1,
+                         IOHGATP_Sv32x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory(DC_addr, 64, (char *)&DC);
 
@@ -2913,7 +2880,7 @@ main(void) {
     pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
     send_translation_request(0x000000, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
 
 
@@ -2927,7 +2894,7 @@ main(void) {
     pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 1, DC.iohgatp);
     send_translation_request(0x000000, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
-             1, WRITE, 0, &req, &rsp);
+             1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
     END_TEST();
     
@@ -2945,53 +2912,53 @@ main(void) {
                 offset += 8;
                 break;
             case FCTRL_OFFSET:
-                fctrl.raw = read_register(i, 4);
-                fctrl.end = 1;
-                fctrl.wis = 1;
-                write_register(i, 4, fctrl.raw);
-                fctrl.raw = read_register(i, 4);
-                fail_if( ( fctrl.end != 0 ) );
-                fail_if( ( fctrl.wis != 0 ) );
+                fctl.raw = read_register(i, 4);
+                fctl.be = 1;
+                fctl.wis = 1;
+                write_register(i, 4, fctl.raw);
+                fctl.raw = read_register(i, 4);
+                fail_if( ( fctl.be != 0 ) );
+                fail_if( ( fctl.wis != 0 ) );
                 g_reg_file.capabilities.end = BOTH_END;
-                fctrl.raw = read_register(i, 4);
-                temp = fctrl.raw;
-                fail_if( ( fctrl.end != 0 ) );
-                fail_if( ( fctrl.wis != 0 ) );
+                fctl.raw = read_register(i, 4);
+                temp = fctl.raw;
+                fail_if( ( fctl.be != 0 ) );
+                fail_if( ( fctl.wis != 0 ) );
                 // IOMMU is on - this register should not be writeable 
-                fctrl.end = 1;
-                fctrl.wis = 1;
-                write_register(i, 4, fctrl.raw);
+                fctl.be = 1;
+                fctl.wis = 1;
+                write_register(i, 4, fctl.raw);
                 fail_if( ( temp != read_register(i, 4) ) );
                 fail_if( ( enable_iommu(Off) < 0 ) );
                 // QUeues are On - register must not be writeable
-                write_register(i, 4, fctrl.raw);
+                write_register(i, 4, fctl.raw);
                 fail_if( ( temp != read_register(i, 4) ) );
                 pqcsr.raw = read_register(PQCSR_OFFSET, 4);
                 pqcsr.pqen = 0;
                 write_register(PQCSR_OFFSET, 4, pqcsr.raw);
-                write_register(i, 4, fctrl.raw);
+                write_register(i, 4, fctl.raw);
                 fail_if( ( temp != read_register(i, 4) ) );
                 fqcsr.raw = read_register(FQCSR_OFFSET, 4);
                 fqcsr.fqen = 0;
                 write_register(FQCSR_OFFSET, 4, fqcsr.raw);
-                write_register(i, 4, fctrl.raw);
+                write_register(i, 4, fctl.raw);
                 fail_if( ( temp != read_register(i, 4) ) );
                 cqcsr.raw = read_register(CQCSR_OFFSET, 4);
                 cqcsr.cqen = 0;
                 write_register(CQCSR_OFFSET, 4, cqcsr.raw);
-                write_register(i, 4, fctrl.raw);
-                fctrl.raw = read_register(i, 4);
-                fail_if( ( fctrl.end != 1 ) ); 
-                fail_if( ( fctrl.wis != 0 ) ); 
+                write_register(i, 4, fctl.raw);
+                fctl.raw = read_register(i, 4);
+                fail_if( ( fctl.be != 1 ) ); 
+                fail_if( ( fctl.wis != 0 ) ); 
                 g_reg_file.capabilities.igs = IGS_BOTH;
-                fctrl.wis = 1;
-                write_register(i, 4, fctrl.raw);
-                fctrl.raw = read_register(i, 4);
-                fail_if( ( fctrl.wis != 1 ) ); 
+                fctl.wis = 1;
+                write_register(i, 4, fctl.raw);
+                fctl.raw = read_register(i, 4);
+                fail_if( ( fctl.wis != 1 ) ); 
 
-                fctrl.end = 0;
-                fctrl.wis = 0;
-                write_register(i, 4, fctrl.raw);
+                fctl.be = 0;
+                fctl.wis = 0;
+                write_register(i, 4, fctl.raw);
                 pqcsr.pqen = 1;
                 write_register(PQCSR_OFFSET, 4, pqcsr.raw);
                 cqcsr.cqen = 1;

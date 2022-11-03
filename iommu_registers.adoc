@@ -394,6 +394,13 @@ In RV32, only the low order 32-bits of the register (22-bit `PPN` and
 This 64-bits register (RW) holds the PPN of the root page of the command-queue
 and number of entries in the queue. Each command is 16 bytes.
 
+The IOMMU behavior on writing `cqb` when `cqcsr.busy` or `cqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `cqb` is to first
+disable the command-queue by clearing `cqen` and wait for both `cqcsr.busy` and
+`cqon` to be 0 before changing the `cqb`. The status of bits `31:cqb.LOG2SZ` in
+`cqt` following a write to `cqb` is 0 and the bits `cqb.LOG2SZ-1:0` in `cqt`
+assume a valid but otherwise `UNSPECIFIED` value.
+
 .Command-queue base register fields
 [wavedrom, , ]
 ....
@@ -488,6 +495,13 @@ the software queues the next command for the IOMMU.
 
 This 64-bits register (RW) holds the PPN of the root page of the fault-queue
 and number of entries in the queue. Each fault record is 32 bytes.
+
+The IOMMU behavior on writing `fqb` when `fqcsr.busy` or `fqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `fqb` is to first
+disable the fault-queue by clearing `fqen` and wait for both `fqcsr.busy` and
+`fqon` to be 0 before changing the `fqb`. The status of bits `31:fqb.LOG2SZ`
+in `fqh` following a write to `fqb` is 0 and the bits `fqb.LOG2SZ-1:0` in `fqh`
+assume a valid but otherwise `UNSPECIFIED` value.
 
 .Fault queue base register fields
 
@@ -585,6 +599,13 @@ IOMMU queues the next fault record.
 This 64-bits register (RW) holds the PPN of the root page of the 
 page-request-queue and number of entries in the queue. Each page-request
 message is 16 bytes.
+
+The IOMMU behavior on writing `pqb` when `pqcsr.busy` or `pqon` bits are 1 is
+`UNSPECIFIED`. The software recommended sequence to change `pqb` is to first
+disable the page-request-queue by clearing `pqen` and wait for both `pqcsr.busy`
+and `pqon` to be 0 before changing the `pqb`. The status of bits `31:pqb.LOG2SZ`
+in `pqh` following a write to `pqb` is 0 and the bits `pqb.LOG2SZ-1:0` in `pqh`
+assume a valid but otherwise `UNSPECIFIED` value.
 
 .Page-Request-queue base register fields
 
@@ -707,13 +728,20 @@ status of the command-queue.
 |===
 |Bits |Field   |Attribute | Description
 |0    |`cqen`  |RW        | The command-queue-enable bit enables the command-
-                            queue when set to 1. Changing `cqen` from 0 to 1
-                            the `cqh`, `cqt` and the `cqcsr` bits `cmd_ill`,
-                            `cmd_to`, `cqmf`, `fence_w_ip` are set to 0.
-                            The command-queue may take some time to be
-                            active following setting the `cqen` to 1.  During 
-                            this delay the `busy` bit is 1. When the command 
-                            queue is active, the `cqon` bit reads 1. +
+                            queue when set to 1. 
+                                                                              +
+                            Changing `cqen` from 0 to 1 set the `cqh`, and the
+                            `cqcsr` bits `cmd_ill`,`cmd_to`, `cqmf`, `fence_w_ip`
+                            to 0. The command-queue may take some time to be
+                            active following setting the `cqen` to 1. During
+                            this delay the `busy` bit is 1. When the command
+                            queue is active, the `cqon` bit reads 1.  +
+                                                                              +
+                            Changing `cqen` from 0 to 1 resets the `cqh` to 0.
+                            The command-queue may take some time to be active
+                            following setting the `cqen` to 1.  During this 
+                            delay the `busy` bit is 1. When the command queue
+                            is active, the `cqon` bit reads 1. +
                                                                               +
                             When `cqen` is changed from 1 to 0, the command 
                             queue may stay active (with `busy` asserted) till
@@ -733,36 +761,23 @@ status of the command-queue.
 |8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
                             the command-queue-memory-fault bit is set to 1 and 
                             the command-queue stalls until this bit is cleared. 
-                            When `cqmf` is set to 1, an interrupt is generated 
-                            if an interrupt is not already pending 
-                            (i.e., `ipsr.cip == 1`) and not masked 
-                            (i.e. `cqsr.cie == 0`). To re-enable command 
-                            processing, software should clear this bit by 
-                            writing 1. 
+                            To re-enable command processing, software should
+                            clear this bit by writing 1. 
 |9    |`cmd_to`|RW1C      | If the execution of a command leads to a 
                             timeout (e.g. a command to invalidate device ATC 
                             may timeout waiting for a completion), then the 
                             command-queue sets the `cmd_to` bit and stops 
-                            processing from the command-queue. When `cmd_to` is
-                            set to 1 an interrupt is generated if an interrupt 
-                            is not already pending (i.e., `ipsr.cip == 1`) and 
-                            not masked (i.e. `cqsr.cie == 0`). To re-enable 
+                            processing from the command-queue. To re-enable 
                             command processing software should clear this bit 
                             by writing 1. 
 |10   |`cmd_ill`|RW1C     | If an illegal or unsupported command is fetched and
                             decoded by the command-queue then the command-queue 
                             sets the `cmd_ill` bit and stops processing from the
-                            command-queue. When `cmd_ill` is set to 1, 
-                            an interrupt is generated if not already pending 
-                            (i.e. `ipsr.cip == 1`) and not masked 
-                            (i.e.  `cqsr.cie == 0`). To re-enable command 
-                            processing software should clear this bit by 
-                            writing 1. 
+                            command-queue. To re-enable command processing
+                            software should clear this bit by writing 1. 
 |11   |`fence_w_ip`|RW1C  | An IOMMU that supports only wire-signaled-interrupts
                             sets `fence_w_ip` bit is set to indicate completion
-                            of an `IOFENCE.C` command. An interrupt on setting 
-                            `fence_w_ip` if not already pending 
-                            (i.e. `ipsr.cip == 1`) and `fence_w_ip` is 0. 
+                            of an `IOFENCE.C` command.
                             To re-enable interrupts on `IOFENCE.C` completion
                             software should clear this bit by writing 1.
                             This bit is reserved if the IOMMU does not support
@@ -770,12 +785,6 @@ status of the command-queue.
                             are not enabled (i.e., `fctl.WSI == 0`).
 |15:12|`reserved`|WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
-                            IOMMU behavior on changing `cqb` when `busy` is 1 or 
-                            `cqon` is 1 is `UNSPECIFIED`. The software 
-                            recommended sequence to change `cqb` is to first 
-                            disable the command-queue by clearing `cqen` and 
-                            waiting for both `busy` and `cqon` to be 0 before 
-                            changing the `cqb`.
 |17   |`busy`   |RO       | A write to `cqcsr` may require the IOMMU to perform
                             many operations that may not occur synchronously 
                             to the write. When a write is observed by the 
@@ -853,8 +862,9 @@ status of the fault-queue.
 |0     |`fqen`|RW        | The fault-queue enable bit enables the fault-queue 
                            when set to 1. +
                                                                                +
-                           Changing `fqen`  from 0 to 1, sets the `fqh`, `fqt`,
-                           and the `fqcsr` bits `fqof`, and `fqmf` to 0.
+                           Changing `fqen`  from 0 to 1, sets the `fqt`, and the
+                           `fqcsr` bits `fqof`, and `fqmf` to 0.
+                                                                               +
                            The fault-queue may take some time to be active
                            following setting the `fqen` to 1.  During this delay
                            the `busy` bit is 1. When the fault queue is active,
@@ -877,26 +887,16 @@ status of the fault-queue.
                            fault queue. The fault-record that was attempted to 
                            be written is discarded and no more fault records 
                            are generated until software clears `fqmf` bit by 
-                           writing 1 to the bit. An interrupt is generated if 
-                           not already pending (i.e. `ipsr.fip == 1`) and not 
-                           masked (i.e. `fqsr.fie == 0`).
+                           writing 1 to the bit.
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the 
-                            IOMMU needs to queue a fault record but the 
-                            fault-queue is full (i.e., `fqh == fqt - 1`). +
+                           IOMMU needs to queue a fault record but the 
+                           fault-queue is full (i.e., `fqh == fqt - 1`). +
                                                                                +
-                            The fault-record is discarded and no more fault 
-                            records are generated till software clears `fqof` 
-                            by writing 1 to the bit. An interrupt is generated 
-                            if not already pending (i.e. `ipsr.fip == 1`) and 
-                            not masked (i.e. `fqsr.fie == 0`).
+                           The fault-record is discarded and no more fault 
+                           records are generated till software clears `fqof` 
+                           by writing 1 to the bit.
 |15:10 |`reserved`|WPRI  | Reserved for standard use
 |16    |`fqon`|RO        | The fault-queue is active if `fqon` reads 1.
-                           IOMMU behavior on changing `fqb` when `busy` is 1 
-                           or `fqon` is 1 is `UNSPECIFIED`. The 
-                           recommended sequence to change `fqb` is to first 
-                           disable the fault-queue by clearing `fqen` and 
-                           waiting for both `busy` and `fqon` to be 0 before 
-                           changing `fqb`.
 |17    |`busy`|RO        | Write to `fqcsr` may require the IOMMU to perform 
                            many operations that may not occur synchronously to 
                            the write.
@@ -947,13 +947,13 @@ status of the page-request-queue.
 |0     |`pqen`   |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. +
                                                                                +
-                              Changing `pqen` from 0 to 1, resets the `pqh`
-                              and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
-                              `pqof` to 0. The page-request-queue may take
-                              some time to be active following setting the
-                              `pqen` to 1. During this delay the `busy` bit
-                              is 1. When the page-request-queue is
-                              active, the `pqon` bit reads 1. +
+                              Changing `pqen` from 0 to 1, sets the `pqh` 
+                              and the `pqcsr` bits `pqmf` and `pqof` to 0.
+                              The page-request-queue may take some time to be 
+                              active following setting the `pqen` to 1. During
+                              this delay the `busy` bit is 1. When the 
+                              page-request-queue is active, the `pqon` bit
+                              reads 1. +
                                                                                +
                               When `pqen` is changed from 1 to 0, the 
                               page-request-queue may stay active  (with `busy`
@@ -970,18 +970,13 @@ status of the page-request-queue.
                               received when page-request-queue is off or in 
                               the process of being turned off, as specified in
                               <<ATS_PRI>>.
-|1     |`pie`     |RW       | The page-request-queue-interrupt-enable (`pie`) 
+|1     |`pie`     |RW       | The page-request-queue-interrupt-enable
                               bit when set to 1, enables generation of 
                               interrupts from page-request-queue.
 |7:2   |`reserved`|WPRI     | Reserved for standard use
 |8     |`pqmf`    |RW1C     | The `pqmf` bit is set to 1 if the IOMMU 
                               encounters an access fault when storing a 
                               page-request message to the page-request-queue. +
-                                                                               +
-                              When `pqmf` is set to 1, an interrupt is 
-                              generated if not already pending 
-                              (i.e. `ipsr.pip == 1`) and not masked 
-                              (i.e. `pqsr.pie == 1`). +
                                                                                +
                               The "Page Request" message that caused the `pqmf` 
                               or `pqof` error and all subsequent page-request 
@@ -999,11 +994,6 @@ status of the page-request-queue.
                               page-request queue is full 
                               (i.e., `pqh == pqt - 1`). +
                                                                                +
-                              When `pqof` is set to 1, an interrupt is 
-                              generated if not already pending 
-                              (i.e. `ipsr.pip == 1`) and not masked 
-                              (i.e. `pqsr.pie == 1`). +
-                                                                               +
                               The "Page Request" message that caused the `pqmf` 
                               or `pqof` error and all subsequent page-request 
                               messages are discarded till software clears the 
@@ -1016,13 +1006,6 @@ status of the page-request-queue.
                               <<ATS_PRI>>.
 |15:10 |`reserved`|WPRI     | Reserved for standard use
 |16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1. +
-                                                                               +
-                              IOMMU behavior on changing `pqb` when `busy` is 1
-                              or `pqon` is 1 is `UNSPECIFIED`. The 
-                              recommended sequence to change `pqb` is to first 
-                              disable the page-request queue by clearing `pqen`
-                              and waiting for both `busy` and `pqon` to be 0 
-                              before changing `pqb`.
 |17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to 
                               perform many operations that may not occur 
                               synchronously to the write. When a write is 
@@ -1069,10 +1052,21 @@ software clears that interrupt-pending bit by writing 1 to clear it.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field   |Attribute | Description
-|0      |`cip`   |RW1C      | The command-queue-interrupt-pending
-|1      |`fip`   |RW1C      | The fault-queue-interrupt-pending
-|2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending
-|3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending
+|0      |`cip`   |RW1C      | The command-queue-interrupt-pending bit is set to
+                              1, if `cqcsr.cie` is 1 and any of the `fence_w_ip`,
+                              `cmd_ill`, `cmd_to`, or `cqmf` bits in `cqcsr`
+                              are 1.
+|1      |`fip`   |RW1C      | The fault-queue-interrupt-pending bit is set to 1
+                              if `fqcsr.fie` is 1 and any of the `fqof` or
+                              `fqmf` bits in `fqcsr` are 1 or if a new record
+                              is produced in the fault queue.
+|2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending is
+                              set to 1 when `OF` bit in any of the
+                              `iohpmctr1-31` registers transitions from 0 to 1.
+|3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending is set to
+                              1 if `pqcsr.pie` is 1 and any of the `pqof` or
+                              `pqmf` bits in `pqcsr` are 1 or if a new message
+                              is produced in the page-request queue.
 |7:4    |`reserved`  |WPRI  | Reserved for standard use
 |15:8   |_custom_    |WPRI  | _Designated for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use

@@ -6,32 +6,30 @@
 #include "iommu.h"
 uint8_t
 g_stage_address_translation(
-    uint64_t gpa, uint8_t is_read, uint8_t is_write, uint8_t is_exec, uint8_t implicit,
-    iohgatp_t iohgatp, uint32_t *cause, uint64_t *iotval2, 
-    uint64_t *resp_pa, uint64_t *gst_page_sz,
-    uint8_t *GR, uint8_t *GW, uint8_t *GX, uint8_t *GD, uint8_t *GPBMT,
-    uint8_t pid_valid, uint32_t process_id, uint8_t PSCV, uint32_t PSCID, uint32_t device_id,
-    uint8_t GV, uint32_t GSCID, uint8_t TTYP, uint8_t GADE) {
+    uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
+    uint8_t is_read, uint8_t is_write, uint8_t is_exec,
+    uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
+    uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
-    gpte_t gpte, amo_gpte;
+    gpte_t amo_gpte;
     uint8_t i, PTESIZE, LEVELS, status, gpte_changed;
     uint64_t a;
     uint64_t gpa_upper_bits;
     uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
-    *GR = *GW = *GX = *GPBMT = 0;
-
     *gst_page_sz = PAGESIZE;
-    
+
     if ( iohgatp.MODE == IOHGATP_Bare ) {
         // No translation or protection.
-        gpte.raw = 0;
-        gpte.PPN = gpa / PAGESIZE;
-        gpte.D = gpte.A = gpte.G = gpte.U = gpte.X = gpte.W = gpte.R = gpte.V = 1;
-        gpte.N = 0;
-        gpte.PBMT = PMA;
+        gpte->raw = 0;
+        gpte->PPN = gpa / PAGESIZE;
+        gpte->D = gpte->A = gpte->G = gpte->U = 1;
+        gpte->X = gpte->W = gpte->R = gpte->V = 1;
+        gpte->N = 0;
+        gpte->PBMT = PMA;
         // Indicate G-stage page size as largest possible page size
         if ( g_reg_file.capabilities.Sv57x4 == 1 ) 
             *gst_page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
@@ -43,17 +41,18 @@ g_stage_address_translation(
             *gst_page_sz = 2UL * 512UL * PAGESIZE;
         goto step_8;
     }
+
     // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32, 
     //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register 
     //    must be active, i.e., the effective privilege mode must be S-mode or U-mode.
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1 ) {
         vpn[0] = get_bits(21, 12, gpa);
         vpn[1] = get_bits(34, 22, gpa);
         gpa_upper_bits = 0;
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);
@@ -61,7 +60,7 @@ g_stage_address_translation(
         LEVELS = 3;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -70,7 +69,7 @@ g_stage_address_translation(
         LEVELS = 4;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -80,9 +79,17 @@ g_stage_address_translation(
         LEVELS = 5;
         PTESIZE = 8;
     }
+    if ( SXL == 1 ) {
+        // When `SXL` is 1, the following rules apply:
+        // * If the G-stage page table is not `Bare`, then
+        //   a guest page fault corresponding to the original
+        //   access type occurs if the incoming GPA has bits
+        //   set beyond bit 33.
+        gpa_upper_bits = get_bits(63, 34, gpa);
+    }
     // Address bits 63:MAX_GPA must all be zeros, or else a 
     // guest-page-fault exception occurs.
-    if ( gpa_upper_bits != 0 ) goto guest_page_fault;
+    if ( gpa_upper_bits != 0 ) return GST_PAGE_FAULT;
 
     i = LEVELS - 1;
 
@@ -95,7 +102,7 @@ g_stage_address_translation(
 
 step_2:
     // Count G stage page walks
-    count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, G_PT_WALKS);
+    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
 
     // 2. Let gpte be the value of the PTE at address a+gpa.vpn[i]×PTESIZE. (For 
     //    Sv32x4 PTESIZE=4. and for all other modes PTESIZE=8). If accessing pte
@@ -103,20 +110,20 @@ step_2:
     //    corresponding to the original access type.
     //    If the address is beyond the maximum physical address width of the machine
     //    then an access fault occurs
-    if ( a & ~pa_mask ) goto access_fault;
-    gpte.raw = 0;
-    status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte.raw);
-    if ( status != 0 ) goto access_fault;
+    if ( a & ~pa_mask ) return GST_ACCESS_FAULT;
+    gpte->raw = 0;
+    status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw);
+    if ( status != 0 ) return GST_ACCESS_FAULT;
 
     // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or 
     //    encodings that are reserved for future standard use are set within pte,
     //    stop and raise a page-fault exception to the original access type.
-    if ( (gpte.V == 0) || (gpte.R == 0 && gpte.W == 1) || 
-         ((gpte.N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
-         ((gpte.PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
-         (gpte.PBMT == 3) ||
-         (gpte.reserved != 0) )
-        goto guest_page_fault;
+    if ( (gpte->V == 0) || (gpte->R == 0 && gpte->W == 1) || 
+         ((gpte->N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
+         ((gpte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         (gpte->PBMT == 3) ||
+         (gpte->reserved != 0) )
+        return GST_PAGE_FAULT;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
     // algorithm in Section 4.3.2, except that:
@@ -137,18 +144,18 @@ step_2:
     //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
     //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
     //    the address space identified in satp as loaded by step 0.
-    if ( i != 0 && gpte.N ) goto guest_page_fault;
+    if ( i != 0 && gpte->N ) return GST_PAGE_FAULT;
 
     // 4. Otherwise, the PTE is valid. If gpte.r = 1 or gpte.x = 1, go to step 5. 
     //    Otherwise, this PTE is a pointer to the next level of the page table. 
     //    Let i = i − 1. If i < 0, stop and raise a page-fault exception 
     //    corresponding to the original access type. Otherwise, let 
     //    a = gpte.ppn × PAGESIZE and go to step 2.
-    if ( gpte.R == 1 || gpte.X == 1 ) goto step_5;
+    if ( gpte->R == 1 || gpte->X == 1 ) goto step_5;
 
     i = i - 1;
-    if ( i < 0 ) goto guest_page_fault;
-    a = gpte.PPN * PAGESIZE;
+    if ( i < 0 ) return GST_PAGE_FAULT;
+    a = gpte->PPN * PAGESIZE;
     goto step_2;
 
 step_5:
@@ -171,36 +178,37 @@ step_5:
     //   read permission to be granted if the execute permission is granted.
     //   No faults are caused here - the denied permissions will be reported back in
     //   the ATS completion
-    if ( (gpte.PPN * PAGESIZE) & ~pa_mask ) goto access_fault;
-    if ( (TTYP != PCIE_ATS_TRANSLATION_REQUEST) && (implicit == 0) ) {
-        if ( is_exec  && (gpte.X == 0) ) goto guest_page_fault;
-        if ( is_read  && (gpte.R == 0) ) goto guest_page_fault;
-        if ( is_write && (gpte.W == 0) ) goto guest_page_fault;
+    // Implicit accesses dont check permission against original access type
+    if ( (gpte->PPN * PAGESIZE) & ~pa_mask ) return GST_ACCESS_FAULT;
+    if ( check_access_perms == 1 ) {
+        if ( is_exec  && (gpte->X == 0) ) return GST_PAGE_FAULT;
+        if ( is_read  && (gpte->R == 0) ) return GST_PAGE_FAULT;
+        if ( is_write && (gpte->W == 0) ) return GST_PAGE_FAULT;
     }
-    if ( gpte.U == 0 ) goto guest_page_fault;
+    if ( gpte->U == 0 ) return GST_PAGE_FAULT;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
-        ppn[0] = get_bits(19, 10, gpte.raw);
-        ppn[1] = get_bits(31, 20, gpte.raw);
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1) {
+        ppn[0] = get_bits(19, 10, gpte->raw);
+        ppn[1] = get_bits(31, 20, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
-        ppn[0] = get_bits(18, 10, gpte.raw);
-        ppn[1] = get_bits(27, 19, gpte.raw);
-        ppn[2] = get_bits(53, 28, gpte.raw);
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
+        ppn[0] = get_bits(18, 10, gpte->raw);
+        ppn[1] = get_bits(27, 19, gpte->raw);
+        ppn[2] = get_bits(53, 28, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 ) {
-        ppn[0] = get_bits(18, 10, gpte.raw);
-        ppn[1] = get_bits(27, 19, gpte.raw);
-        ppn[2] = get_bits(36, 28, gpte.raw);
-        ppn[3] = get_bits(53, 37, gpte.raw);
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
+        ppn[0] = get_bits(18, 10, gpte->raw);
+        ppn[1] = get_bits(27, 19, gpte->raw);
+        ppn[2] = get_bits(36, 28, gpte->raw);
+        ppn[3] = get_bits(53, 37, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 ) {
-        ppn[0] = get_bits(18, 10, gpte.raw);
-        ppn[1] = get_bits(27, 19, gpte.raw);
-        ppn[2] = get_bits(36, 28, gpte.raw);
-        ppn[3] = get_bits(45, 37, gpte.raw);
-        ppn[4] = get_bits(53, 46, gpte.raw);
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
+        ppn[0] = get_bits(18, 10, gpte->raw);
+        ppn[1] = get_bits(27, 19, gpte->raw);
+        ppn[2] = get_bits(36, 28, gpte->raw);
+        ppn[3] = get_bits(45, 37, gpte->raw);
+        ppn[4] = get_bits(53, 46, gpte->raw);
     }
     // 6. If i > 0 and gpte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; 
     // stop and raise a page-fault exception corresponding to the original 
@@ -208,15 +216,16 @@ step_5:
     *gst_page_sz = PAGESIZE;
     if ( i > 0 ) {
         switch ( i ) {
-            case 4: if ( ppn[3] ) goto guest_page_fault;
+            case 4: if ( ppn[3] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 256TiB
-            case 3: if ( ppn[2] ) goto guest_page_fault;
+            case 3: if ( ppn[2] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 512GiB
-            case 2: if ( ppn[1] ) goto guest_page_fault;
+            case 2: if ( ppn[1] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 1GiB
-            case 1: if ( ppn[0] ) goto guest_page_fault;
+            case 1: if ( ppn[0] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 2MiB
-                    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+                    if ( iohgatp.MODE == IOHGATP_Sv32x4 && 
+                         g_reg_file.fctl.gxl == 1 ) {
                         *gst_page_sz *= 2UL; // 4MiB
                     }
         }
@@ -234,18 +243,14 @@ step_5:
     //    0    x xxxx 1000      64 KiB contiguous region           4
     //    0    x xxxx 0xxx      Reserved                           −
     //    ≥ 1  x xxxx xxxx      Reserved                           −
-    if ( i == 0 && gpte.N && ((gpte.PPN & 0xF) != 0x8) ) goto guest_page_fault;
-
-    // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO
-    // is 1. When capabilities.AMO is 0, these bits are reserved.
-    // If GADE is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. 
-    // If GADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does
-    // not update the A or D bits and does not cause any faults based on A and/or D
-    // bit being 0.
-    if ( g_reg_file.capabilities.amo == 0 ) goto step_8;
-    if ( GADE == 0 ) goto step_8;
+    if ( i == 0 && gpte->N && ((gpte->PPN & 0xF) != 0x8) )
+        return GST_PAGE_FAULT;
 
     // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
+    //    If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
+    //    `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
+    //    access type if A bit is 0 or if the memory access is a store and the D bit is 0.
+    //    For IOMMU updating of A/D bits the following steps are performed:
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
     //      corresponding to the original access type.
     //    Perform the following steps atomically:
@@ -253,26 +258,32 @@ step_5:
     //    – If the values match, set pte.a to 1 and, if the original memory access is a store,
     //      also set pte.d to 1. 
     //    – If the comparison fails, return to step 2
+    if ( (gpte->A == 1) && ( (gpte->D == 1) || (is_write == 0) ) ) goto step_8;
 
-    if ( (gpte.A == 1) && ((gpte.D == 1) | (is_write == 0)) ) goto step_8;
+    // A and/or D bit update needed
+    if ( GADE == 0 ) return GST_PAGE_FAULT;
 
     // Count G stage page walks
-    count_events(pid_valid, process_id, PSCV, PSCID, device_id, GV, GSCID, G_PT_WALKS);
+    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
     amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_gpte.raw);
 
-    if ( status != 0 ) goto access_fault;
+    if ( status != 0 ) return GST_ACCESS_FAULT;
 
-    gpte_changed = (amo_gpte.raw == gpte.raw) ? 0 : 1;
+    gpte_changed = (amo_gpte.raw == gpte->raw) ? 0 : 1;
 
     if ( gpte_changed == 0 ) {
         amo_gpte.A = 1;
-        if ( is_write ) amo_gpte.D = 1;
+        // The case for is_write == 1 && pte.W == 0 is to address ATS translation
+        // requests that may request write permission when write permission does not
+        // exist. If write permission exists then the D bit is set else D bit is not
+        // set and the write permission is returned in responses as 0.
+        if ( (is_write == 1) && (amo_gpte.W == 1) ) amo_gpte.D = 1;
     }
 
     status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
 
-    if ( status != 0 ) goto access_fault;
+    if ( status != 0 ) return GST_ACCESS_FAULT;
 
     if ( gpte_changed == 1) goto step_2;
 
@@ -284,44 +295,13 @@ step_8:
     //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
     //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
     //    the address space identified in satp as loaded by step 0.
-    if ( gpte.N ) 
-        gpte.PPN = (gpte.PPN & ~0xF) | ((gpa / PAGESIZE) & 0xF);
+    if ( gpte->N ) 
+        gpte->PPN = (gpte->PPN & ~0xF) | ((gpa / PAGESIZE) & 0xF);
 
     // The translated physical address is given as follows:
     // pa.pgoff = va.pgoff.
     // If i > 0, then this is a superpage translation and pa.ppn[i − 1 : 0] = va.vpn[i − 1 : 0].
     // pa.ppn[LEVELS − 1 : i] = pte.ppn[LEVELS − 1 : i]
-    *resp_pa = ((gpte.PPN * PAGESIZE) & ~(*gst_page_sz - 1)) | (gpa & (*gst_page_sz - 1));
-    *GR = gpte.R;
-    *GW = gpte.W;
-    *GX = gpte.X;
-    *GD = gpte.D;
-    *GPBMT = gpte.PBMT;
+    *pa = ((gpte->PPN * PAGESIZE) & ~(*gst_page_sz - 1)) | (gpa & (*gst_page_sz - 1));
     return 0;
-
-guest_page_fault:
-    // Stop and raise a page-fault exception corresponding 
-    // to the original access type.
-    if ( is_exec ) *cause = 20;      // Instruction guest page fault
-    else if ( is_read ) *cause = 21; // Read guest page fault
-    else *cause = 23;                // Write/AMO guest page fault
-    // If the CAUSE is a guest-page fault then the guest-physical-address 
-    // right shifted by 2 is reported in iotval2[63:2]. If bit 0 of 
-    // iotval2 is 1, then guest-page-fault was caused by an implicit 
-    // memory access for VS-stage address translation. If bit 0 of 
-    // iotval2 is 1, and the implicit access was a write then bit 1 
-    // is set to 1 else its set to 0.
-    *iotval2 = (gpa >> 2) << 2;
-    *iotval2 |= implicit;
-    *iotval2 |= ((implicit & is_write) << 1);
-    return 1;
-
-access_fault:    
-    // Stop and raise a access-fault exception corresponding 
-    // to the original access type.
-    if ( is_exec ) *cause = 1;       // Instruction access fault
-    else if ( is_read ) *cause = 5;  // Read access fault
-    else *cause = 7;                 // Write/AMO access fault
-    *iotval2 = 0;
-    return 1;
 }

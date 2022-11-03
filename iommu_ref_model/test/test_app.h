@@ -16,7 +16,7 @@ extern void ats_command( uint8_t f3, uint8_t DSV, uint8_t PV, uint32_t PID, uint
 extern void generic_any(command_t cmd);
 extern void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
              uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
-             uint32_t length, uint8_t read_writeAMO, uint32_t msi_wr_data,
+             uint32_t length, uint8_t read_writeAMO,
              hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp);
 extern int8_t check_rsp_and_faults(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp, status_t status,
              uint16_t cause, uint64_t exp_iotval2);
@@ -26,7 +26,9 @@ extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t P
              uint16_t reserved0, uint8_t reserved1, uint64_t PAYLOAD);
 extern uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 extern uint64_t add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa, 
-           uint8_t dtf, uint8_t prpr, uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
+           uint8_t dtf, uint8_t prpr, 
+           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
+           uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
            uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask, 
            uint64_t msi_addr_pattern);
 

@@ -71,17 +71,37 @@ typedef union {
 
         // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO is 1. 
         // When capabilities.AMO is 0, these bits are reserved. If GADE is 1, the IOMMU 
-        // updates A and D bits in G-stage PTEs atomically. If GADE is 0, the IOMMU ignores
-        // the A and D bits in the PTEs; the IOMMU does not update the A or D bits and does
-        // not cause any faults based on A and/or D bit being 0.
+        // updates A and D bits in G-stage PTEs atomically. If GADE is 0, the IOMMU causes
+        // a guest-page-fault corresponding to the original access type if A bit is 0 or if
+        // the memory access is a store and the D bit is 0.
         uint64_t GADE:1;
 
         // If SADE is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
-        // SADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does not 
-        // update the A or D bits and does not cause any faults based on A and/or D bit being 0.
+        // SADE is 0, the IOMMU causes a page-fault corresponding to the original access type
+        // if A bit is 0 or if the memory access is a store and the D bit is 0.
         uint64_t SADE:1;
 
-        uint64_t reserved:23;
+        // When PDTV is 1, the DPE bit may set to 1 to enable the use of 0 as the default
+        // value of process_id for translating requests without a valid process_id. When PDTV is
+        // 0, the DPE bit is reserved for future standard extension.
+        uint64_t DPE:1;
+
+        // If SBE is 0, implicit memory accesses to PDT entries and S/VS-stage PTEs are
+        // little-endian else they are big-endian. The supported values of SBE are the same as
+        // that of the fctl.BE field.
+        uint64_t SBE:1;
+
+        // The SXL field controls the supported paged virtual-memory schemes as defined in
+        // Table 3. If fctl.GXL is 1 then SXL field must be 1; otherwise the legal values for the
+        // SXL field are the same as that of the fctl.GXL.
+        // When SXL is 1, the following rules apply:
+        // • If the S/VS-stage page table is not Bare then a page fault corresponding to
+        //   the original access type occurs if the IOVA has bits set beyond bit 31.
+        // • If the G-stage page table is not Bare, then a guest page fault corresponding
+        //   to the original access type occurs if the incoming GPA has bits set beyond bit 33.
+        uint64_t SXL:1;
+
+        uint64_t reserved:20;
         uint64_t custom:32;
     };
     uint64_t raw;
@@ -144,9 +164,9 @@ typedef union {
 } iosatp_t;
 // First Stage context
 #define PDTP_Bare 0
-#define PD20      1
+#define PD8       1
 #define PD17      2
-#define PD8       3
+#define PD20      3
 typedef union {
     // If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
     // is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide the
