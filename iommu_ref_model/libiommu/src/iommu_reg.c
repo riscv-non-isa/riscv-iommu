@@ -14,6 +14,8 @@ uint8_t g_num_hpm;
 uint8_t g_hpmctr_bits;
 uint8_t g_eventID_mask;
 uint8_t g_num_vec_bits;
+uint8_t g_gxl_writeable;
+uint8_t g_fctl_be_writeable;
 
 uint8_t 
 is_access_valid(
@@ -68,7 +70,7 @@ write_register(
     pqcsr_t pqcsr_temp;
     ipsr_t  ipsr_temp;
     icvec_t icvec_temp;
-    fctrl_t fctrl_temp;
+    fctl_t fctl_temp;
     ddtp_t  ddtp_temp;
     cqb_t   cqb_temp;
     cqt_t   cqt_temp;
@@ -106,7 +108,7 @@ write_register(
         offset = offset & ~0x7;
     }
 
-    fctrl_temp.raw = data4;
+    fctl_temp.raw = data4;
     ddtp_temp.raw = data8;
     cqcsr_temp.raw = data4;
     pqcsr_temp.raw = data4;
@@ -166,9 +168,9 @@ write_register(
                 break;
             }
             if ( (g_reg_file.capabilities.end == BOTH_END) )
-                g_reg_file.fctrl.end = fctrl_temp.end;
+                g_reg_file.fctl.be = fctl_temp.be;
             if ( (g_reg_file.capabilities.igs == IGS_BOTH) )
-                g_reg_file.fctrl.wis = fctrl_temp.wis;
+                g_reg_file.fctl.wis = fctl_temp.wis;
             break;
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write
@@ -807,8 +809,9 @@ write_register(
 }
 int 
 reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
-                uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
-                capabilities_t capabilities, fctrl_t fctrl) {
+            uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
+            uint8_t gxl_writeable, uint8_t fctl_be_writeable,
+            capabilities_t capabilities, fctl_t fctl) {
     int i;
 #ifdef DEBUG
     // Only PA upto 56 bits supported in RISC-V
@@ -822,8 +825,8 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     // If IGS_BOTH is not supported then WIS must be 0
     // if MSI is only supported mode else it must be 1
     if ( capabilities.igs != IGS_BOTH && 
-         ((capabilities.igs == MSI && fctrl.wis != 0) ||
-          (capabilities.igs == WIS && fctrl.wis == 0)) )
+         ((capabilities.igs == MSI && fctl.wis != 0) ||
+          (capabilities.igs == WIS && fctl.wis == 0)) )
         return -1;
     // Only 15-bit event ID supported
     // Mask must be 0 when hpm not supported
@@ -852,13 +855,14 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_num_vec_bits = num_vec_bits;
     g_num_hpm = num_hpm;
     g_hpmctr_bits = hpmctr_bits;
-
+    g_gxl_writeable = gxl_writeable;
+    g_fctl_be_writeable = fctl_be_writeable;
 
     // Initialize registers that have resets to 0
     // The reset default value is 0 for the following registers. 
     // Section 4.2 - Reset value is implementation-defined for all
     // other registers and/or fields.
-    // - fctrl
+    // - fctl
     // - cqcsr
     // - fqcsr
     // - pqcsr
@@ -870,7 +874,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     // Initialize the reset default capabilities and feature
     // control.
     g_reg_file.capabilities = capabilities;
-    g_reg_file.fctrl = fctrl;
+    g_reg_file.fctl = fctl;
 
     // Reset value for ddtp.iommu_mode field must be either Off or Bare. 
     // The reset value for ddtp.busy field must be 0.

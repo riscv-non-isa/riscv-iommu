@@ -7,7 +7,7 @@ IOMMU in the platform.
 === Integrating an IOMMU as a PCIe device
 The IOMMU may be constructed as a PCIe device itself and be discoverable
 as a dedicated PCIe function with PCIe defined Base Class 08h, Sub-Class 06h, 
-and Programming Interface 00h.
+and Programming Interface 00h cite:[PCI-CLS].
 
 Such IOMMU must map the IOMMU registers defined in this specification as PCIe
 BAR mapped registers.

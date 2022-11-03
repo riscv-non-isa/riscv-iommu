@@ -9,11 +9,11 @@ For each I/O device connected to the system through an IOMMU, software can
 configure at the IOMMU a device context, which associates with the device a
 specific virtual address space and other per-device parameters. By giving
 each device its own separate device context at an IOMMU, each device can be
-individually configured for a different software master, usually a guest OS or
-the main (host) OS. On every memory access made from a device, hardware
+individually configured for a separate operating system, which may be a guest OS or
+the main (host) OS. On every memory access initiated by a device, hardware
 indicates to the IOMMU the originating device by some form of unique device
 identifier, which the IOMMU uses to locate the appropriate device context
-within data structures supplied by software. For PCIe, for example, the
+within data structures supplied by software. For PCIe cite:[PCI], for example, the
 originating device may be identified by the unique 16-bit triplet of PCI bus
 number (8-bit), device number (5-bit), and function number (3-bit)
 (collectively known as routing identifier or RID) and optionally up to 8-bit 
@@ -36,7 +36,7 @@ complexity from application and device drivers. After binding to a device,
 applications can instruct it to perform DMA on application statically or 
 dynamically allocated buffers. To support such addressing, software can 
 configure one or more process contexts into the device context. On every memory
-access made from a device, the hardware indicates to the IOMMU a unique process
+access initiated by a device, the hardware indicates to the IOMMU a unique process
 identifier, which the IOMMU uses in conjunction with the unique device 
 identifier to locate the appropriate process context configured by software in
 the device context. For PCIe, for example, the process context may be identified
@@ -85,15 +85,15 @@ For PCIe, for example, the device may implement the Page Request Interface (PRI)
 to dynamically request the memory manager to make a page resident if it
 discovers the page for which it requested a translation was not available. An
 IOMMU may support specialized software interfaces and protocols with the device
-to enable services such as PCIe ATS and PCIe PRI.
+to enable services such as PCIe ATS and PCIe PRI cite:[PCI].
 
 In systems built with an Incoming Message-Signaled Interrupt Controller (IMSIC),
 the IOMMU may be programmed by the hypervisor to direct message-signaled
 interrupts (MSI) from devices controlled by the guest OS to a guest interrupt
 file in an IMSIC. Because MSIs from devices are simply memory writes, they
 would naturally be subject to the same address translation that an IOMMU
-applies to other memory writes. However, the Advanced Interrupt Architecture
-requires that IOMMUs treat MSIs directed to virtual machines specially, in
+applies to other memory writes. However, the RISC-V Advanced Interrupt Architecture
+cite:[AIA] requires that IOMMUs treat MSIs directed to virtual machines specially, in
 part to simplify software, and in part to allow optional support for
 memory-resident interrupt files. The device context is configured by software
 with parameters to identify memory accesses to a virtual interrupt file and to
@@ -106,9 +106,9 @@ the device context.
 [%header, cols="5,20"]
 |===
 | Term            ^| Definition
-| AIA             | Advanced Interrupt Architecture.
+| AIA             | RISC-V Advanced Interrupt Architecture cite:[AIA].
 | ATS / PCIe ATS  | Address Translation Services: A PCIe protocol to support
-                    DevATC.
+                    DevATC cite:[PCI].
 | CXL             | Compute Express Link bus standard.
 | DC /
   Device Context  | A hardware representation of state that identifies a
@@ -121,7 +121,7 @@ the device context.
                     structure.
 | Device ID       | An identification number that is up to 24-bits to identify
                     the source of a DMA or interrupt request. For PCIe devices
-                    this is the routing identifier (RID).
+                    this is the routing identifier (RID) cite:[PCI].
 | DevATC          | An address translation cache at the device.
 | DMA             | Direct Memory Access.
 | GPA             | Guest Physical Address: An address in the virtualized
@@ -149,9 +149,10 @@ the device context.
 | PPN             | Physical Page Number.
 | PRI             | Page Request Interface - a PCIe protocol that enables 
                     devices to request OS memory manager services to make pages
-                    resident.
+                    resident cite:[PCI].
 | PC              | Process Context.
-| PCIe            | Peripheral Component Interconnect Express bus standard.
+| PCIe            | Peripheral Component Interconnect Express bus standard
+                    cite:[PCI].
 | PDI             | Process-directory-index: a sub field of the unique process
                     identifier used to index into a leaf or non-leaf PDT
                     structure.
@@ -161,11 +162,12 @@ the device context.
 | PMA             | Physical Memory Attributes.
 | PMP             | Physical Memory Protection.
 | PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables
+| PRI             | Page Request Interface - a PCIe protocol cite:[PCI] that enables
                     devices to request OS memory manager services to make pages
                     resident.
 | Process ID      | An identification number that is up to 20-bits to identify
-                    a process context. For PCIe devices this is the PASID.
+                    a process context. For PCIe devices this is the PASID
+                    cite:[PCI].
 | PSCID           | Process soft-context identifier: An identification number
                     used by software to identify a unique address space. The
                     IOMMU may tag IOATC entries with PSCID.
@@ -176,7 +178,7 @@ the device context.
                     software. Software must ignore reserved fields in registers
                     and preserve the value held in these fields when writing
                     values to other fields in the same register.
-| RID / PCIe RID  | PCIe routing identifier.
+| RID / PCIe RID  | PCIe routing identifier cite:[PCI].
 | RO              | Read-only - Register bits are read-only and cannot be altered
                     by software. Where explicitly defined, these bits are used
                     to reflect changing hardware state, and as a result bit 
@@ -390,7 +392,7 @@ supported by regular RISC-V page-based address translation.
 ==== Guest OS
 
 The presence of an IOMMU allows each device to be individually configured
-for a different software master, usually a guest OS or the main (host) OS.
+for a separate operating system, which may be a guest OS or the main (host) OS.
 
 On implementations of the IOMMU that support two stages of translation (VS-stage
 and G-stage), the G-stage translation (or second stage of translation) is
@@ -462,7 +464,7 @@ SOC incorporates memory controllers and several IO devices. This SOC also
 incorporates two instances of the IOMMU. The device may be directly connected
 to the IO Bridge and the system interconnect or may be connected through a
 Root Port when a IO protocol transaction to system interconnect transaction
-translation is required. In case of PCIe, for example, the Root Port is a
+translation is required. In case of PCIe cite:[PCI], for example, the Root Port is a
 PCIe port that maps a portion of a hierarchy through an associated virtual
 PCI-PCI bridge and maps the PCIe IO protocol transactions to the system
 interconnect transactions.
@@ -473,7 +475,7 @@ the SoC through this Root Port. In case of PCIe, the Root Port incorporates an
 ATS interface to the IOMMU that is used to support the PCIe ATS protocol by
 the IOMMU.  The example shows an endpoint device with a device side ATC
 (DevATC) that holds translations obtained by the device from IOMMU 0 using the
-PCIe ATS protocol.
+PCIe ATS protocol cite:[PCI].
 
 When such IO protocol to system fabric protocol translation using a Root Port
 is not required, the devices may interface directly with the system fabric.
@@ -498,10 +500,10 @@ inbound transactions. The data associated with the inbound transactions is not
 processed by the IOMMU. The IOMMU behaves like a look-aside IP to the IO Bridge
 and has several interfaces (see <<fig:iommu-interfaces>>):
 
-* Host interface: it is a slave interface to the IOMMU for the harts to access
+* Host interface: it is a interface to the IOMMU for the harts to access
   its memory-mapped registers and perform global configuration and/or maintenance
   operations.
-* Device Translation Request interface: it is a slave interface, which receives
+* Device Translation Request interface: it is a interface, which receives
   the translation requests from the IO Bridge. On this interface the IO Bridge
   provides information about the request such as:
 .. The hardware identities associated with transaction - the `device_id` and
@@ -523,14 +525,14 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
    translation requests out of order, such information may be used by the IO
    Bridge to correlate completions to previous requests.
 * Data Structure interface: it is used by the IOMMU for implicit access to
-  memory. It is a master interface to the IO Bridge and is used to fetch the
+  memory. It is a requester interface to the IO Bridge and is used to fetch the
   required data structure from main memory. This interface is used to access:
 .. The device and process directories to get the context information and
    translation rules.
 .. The G-stage and/or S/VS-stage page table entries to translate the IOVA.
 .. The in-memory queues (command-queue, fault-queue, and page-request-queue)
    used to interface with software.
-* Device Translation Completion interface: it is a master interface which
+* Device Translation Completion interface: it is a interface which
   provides the completion response from the IOMMU for previously requested
   address translations. The completion interface may provide information
   such as:
@@ -588,10 +590,10 @@ address on the device translation completion interface to the IO Bridge. The
 PMA in IO Bridge may use the provided PBMT to override the PMA(s) for the
 associated memory pages.
 
-The PMP may use the hardware ID of the bus master to determine physical memory
-access privileges. As the IOMMU itself is a bus master for its implicit
-accesses, the IOMMU hardware ID may be used by the PMP to select the appropriate
-access control rules.
+The PMP may use the hardware ID of the bus access initiator to determine
+physical memory access privileges. As the IOMMU itself is a bus access initiator
+for its implicit accesses, the IOMMU hardware ID may be used by the PMP to select
+the appropriate access control rules.
 
 [NOTE]
 ====
@@ -624,7 +626,7 @@ features:
 * Single stage and two stage address translation.
 
 * VS/S-stage and G-stage virtual-memory system as specified by the RISC-V
-  privileged specification to allow software flexibility to use a common page
+  Privileged specification cite:[PRIV] to allow software flexibility to use a common page
   table for the CPU MMU as well as the IOMMU or to use a separate page table
   for the IOMMU.
 
@@ -640,7 +642,7 @@ features:
 
 * Svnapot and Svpbmt extension.
 
-* PCIe ATS and PRI services. Support for translating an IOVA to a GPA instead
+* PCIe ATS and PRI services cite:[PCI]. Support for translating an IOVA to a GPA instead
   of a SPA in response to a translation request.
 
 * A hardware performance monitor (HPM).

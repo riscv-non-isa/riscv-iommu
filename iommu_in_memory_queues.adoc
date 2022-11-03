@@ -8,7 +8,7 @@ Software and IOMMU interact using 3 in-memory queue data structures.
 
 * A page-request queue (`PQ`) used by IOMMU to report “Page Request” messages 
   received from PCIe devices. This queue is supported if the IOMMU supports 
-  PCIe defined Page Request Interface.
+  PCIe cite:[PCI] defined Page Request Interface.
 
 .IOMMU in-memory queues
 ["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
@@ -90,6 +90,10 @@ into the command queue that IOMMU should process next. Subsequent to reading
 each command the IOMMU may advance the `cqh` by 1. If `cqh` == `cqt`, the 
 command-queue is empty. If `cqt` == (`cqh` - 1) the command-queue is full.
 
+When an error bit or the `fence_w_ip` bit  in `cqcsr` is 1 command-queue
+interrupt pending (`cip`) bit is set in the `ipsr` if interrupts from
+command-queue are enabled i.e. `cqcsr.cie` is 1. 
+
 IOMMU commands are grouped into a major command group determined by the `opcode`
 and within each group the `func3` field specifies the function invoked by that 
 command. The `opcode` defines the format of the operand fields. One or more of
@@ -121,7 +125,7 @@ The following commands are supported:
 |`IOTINVAL`| 1        | IOMMU page-table cache invalidation commands.
 |`IOFENCE` | 2        | IOMMU command-queue fence commands.
 |`IOTDIR`  | 3        | IOMMU directory cache invalidation commands.
-|`ATS`     | 4        | IOMMU PCIe ATS commands.
+|`ATS`     | 4        | IOMMU PCIe cite:[PCI] ATS commands.
 |===
 
 ==== IOMMU Page-Table cache invalidation commands
@@ -499,7 +503,7 @@ If the `PV` operand is set to 1, the message is generated with a PASID with the
 PASID field set to the `PID` operand. 
 
 The `PAYLOAD` operand of the command is used to form the message body and its
-fields are as specified by the PCIe specification. The `PAYLOAD` field is
+fields are as specified by the PCIe specification cite:[PCI]. The `PAYLOAD` field is
 formatted as follows:
 
 .`PAYLOAD` of an `ATS.INVAL` command
@@ -627,12 +631,13 @@ The `TTYP` field reports inbound transaction type.
 |1      | Untranslated read for execute transaction
 |2      | Untranslated read transaction
 |3      | Untranslated write/AMO transaction
-|4      | Translated read for execute transaction
-|5      | Translated read transaction
-|6      | Translated write/AMO transaction
-|7      | PCIe ATS Translation Request
-|8      | Message Request
-|9 - 15 | Reserved
+|4      | Reserved
+|5      | Translated read for execute transaction
+|6      | Translated read transaction
+|7      | Translated write/AMO transaction
+|8      | PCIe ATS Translation Request
+|9      | Message Request
+|10 - 15| Reserved
 |16 - 31| Designated for custom use
 |===
 
@@ -640,6 +645,16 @@ If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If
 the `TTYP` is a message request then the message code is reported in `iotval`.
 If `TTYP` is 0, then the value reported in `iotval` and `iotval2` fields is 
 as defined by the `CAUSE`.
+
+[NOTE]
+====
+The `IOVA` is partitioned into a virtual page number (VPN) and page offset.
+Whereas the VPN is translated into a physical page number (PPN) by the address
+translation process, the page offset is not required for this process. The IO
+bridge in some implementations may not provided the page offset part of the
+`IOVA` to the IOMMU and the IOMMU may report the page offset in `iotval` as 0.
+Likewise, an IOMMU may report the page offset of a GPA in `iotval2` as 0.
+====
 
 `DID` holds the `device_id` of the transaction. If `PV` is 0, then `PID` and 
 `PRIV` are 0. If `PV` is 1, the `PID` holds a `process_id` of the transaction 
@@ -675,9 +690,9 @@ the fault-queue full condition is detected the IOMMU sets a fault-queue overflow
 fault-queue memory, the IOMMU sets a fault-queue memory access fault (`fqmf`) 
 bit in `fqcsr`. While either error bits are set in `fqcsr`, the IOMMU discards 
 the record that led to the fault and all further fault records. When an error 
-bit is in the `fqcsr` changes state from 0 to 1 or when a new fault record is
-produced in the fault-queue, fault interrupt pending (`fip`) bit is set in the 
-`fqcsr`. 
+bit in `fqcsr` is 1 or when a new fault record is produced in the fault-queue,
+fault interrupt pending (`fip`) bit is set in the `ipsr` if interrupts from
+fault-queue are enabled i.e. `fqcsr.fie` is 1. 
 
 The IOMMU may identify multiple requests as having detected an identical fault. 
 In such cases the IOMMU may report each of those faults individually, or report 
@@ -686,7 +701,7 @@ the the fault for a subset, including one, of requests.
 [[PRQ]]
 === Page-Request-Queue (`PQ`)
 Page-request queue is an in-memory queue data structure used to report PCIe 
-ATS “Page Request” and "Stop Marker" messages to software. The base PPN of 
+ATS “Page Request” and "Stop Marker" messages cite:[PCI] to software. The base PPN of 
 this in-memory queue and the size of the queue is configured into a 
 memory-mapped register called page-request queue base (`pqb`). 
 Each Page-Request record is 16 bytes.
@@ -722,9 +737,9 @@ those with "Last Request in PRG" field set to 1 and are not Stop Marker
 messages, may be auto-completed by an IOMMU generated “Page Request Group 
 Response” message as specified in <<ATS_PRI>>.
 
-When an error bit is in the `pqcsr` changes state from 0 to 1 or when a new 
-message is produced in the queue, page-request-queue interrupt pending (`pip`) 
-bit is set in the `pqcsr`. 
+When an error bit in `pqcsr` is 1 or when a new message is produced in the
+queue, page-request-queue interrupt pending (`pip`) bit is set in the `ipsr` if
+interrupts from page-request-queue are enabled i.e. `pqcsr.pie` is 1.
 
 .Page-request-queue record
 [wavedrom, , ]
@@ -754,7 +769,7 @@ order of each of the doublewords in memory, little-endian or big-endian, is the
 endianness as determined by `fctl.BE` (<<FCTRL>>).
 
 The `PAYLOAD` holds the message body and its fields are as specified by the PCIe
-specification. The `PAYLOAD` field is formatted as follows:
+specification cite:[PCI]. The `PAYLOAD` field is formatted as follows:
 
 .`PAYLOAD` of a "Page request" message
 

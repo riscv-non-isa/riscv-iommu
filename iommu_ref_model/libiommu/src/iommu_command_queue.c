@@ -126,7 +126,7 @@ process_commands(
             // causes a wired-interrupt from the command
             // queue to be generated on completion of IOFENCE.C. This
             // bit is reserved if the IOMMU supports MSI.
-            if ( g_reg_file.fctrl.wis == 0 && command.iofence.wis == 1) 
+            if ( g_reg_file.fctl.wis == 0 && command.iofence.wis == 1) 
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case IOFENCE_C:

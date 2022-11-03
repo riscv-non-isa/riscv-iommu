@@ -13,7 +13,8 @@ extern uint64_t read_register(uint16_t offset, uint8_t num_bytes);
 extern void write_register(uint16_t offset, uint8_t num_bytes, uint64_t data);
 extern int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
                        uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
-                       capabilities_t capabilities, fctrl_t fctrl);
+                       uint8_t gxl_writeable, uint8_t fctl_be_writeable,
+                       capabilities_t capabilities, fctl_t fctl);
 extern void iommu_translate_iova(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg);
 extern void handle_page_request(ats_msg_t *pr);
 extern uint8_t handle_invalidation_completion(ats_msg_t *inv_cc);
