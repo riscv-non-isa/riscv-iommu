@@ -15,21 +15,22 @@ iommu_translate_iova(
     iosatp_t iosatp;
     iohgatp_t iohgatp;
     uint8_t is_read, is_write, is_exec, priv, SUM, TTYP;
-    uint8_t R, W, X, G, UNTRANSLATED_ONLY, PBMT; 
-    uint64_t page_sz;
+    uint64_t page_sz, gst_page_sz, pa, gpa;
     uint32_t cause;
     uint64_t iotval2, iotval;
-    uint64_t pa;
-    uint8_t is_unsup, is_msi, is_mrif_wr, DTF;
+    uint8_t is_msi, is_mrif, DTF, check_access_perms;
     uint32_t mrif_nid;
-    uint32_t PSCID;
+    uint64_t dest_mrif_addr;
+    uint8_t PSCV, GV, PV;
+    uint32_t DID, PID, GSCID, PSCID;
+    pte_t vs_pte;
+    gpte_t g_pte;
+    uint8_t ioatc_status, gst_fault;
+    uint64_t napot_ppn, napot_iova, napot_gpa;
 
     // Classify transaction type
     iotval2 = 0;
     iotval = req->tr.iova;
-    is_read = is_write = is_exec = 0;
-    is_unsup = is_msi = is_mrif_wr = 0;
-    priv = U_MODE;
     DTF = 0;
     PSCID = 0;
 
@@ -67,8 +68,8 @@ iommu_translate_iova(
     // Has to be one of the valid ttypes - this only for debug - not architectural
     if ( TTYP == TTYPE_NONE ) *((char *)0) = 0;
 
-    if ( req->tr.read_writeAMO == READ ) is_read = 1;
-    if ( req->tr.read_writeAMO == WRITE ) is_write = 1;
+    is_read = ( req->tr.read_writeAMO == READ ) ? 1 : 0;
+    is_write = ( req->tr.read_writeAMO == WRITE ) ?  1 : 0;
 
     // The No Write flag, when Set, indicates that the Function is requesting read-only 
     // access for this translation.
@@ -81,18 +82,18 @@ iommu_translate_iova(
     // mark the associated pages dirty. Functions MUST not issue such Requests 
     // unless they have been given explicit write permission.
     // Note ATS Translation requests are read - so read_writeAMO is READ for these requests
-    if ( (req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) && (req->no_write == 0) ) 
-        is_write = 1;
+    is_write = ( (req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) && 
+                 (req->no_write == 0) ) ? 1 : is_write; 
+
     // If a Translation Request has a PASID, the Untranslated Address Field is an address 
     // within the process address space indicated by the PASID field.
     // If a Translation Request has a PASID with either the Privileged Mode Requested 
     // or Execute Requested bit Set, these may be used in constructing the Translation 
     // Completion Data Entry.  The PASID Extended Capability indicates whether a Function
     // supports and is enabled to send and receive TLPs with the PASID.
-    if ( req->tr.read_writeAMO == READ && req->pid_valid && req->exec_req &&
-         (req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) 
-        is_exec = 1;
-    if ( req->pid_valid && req->priv_req ) priv = S_MODE;
+    is_exec = ( (req->tr.read_writeAMO == READ) && req->pid_valid && req->exec_req &&
+                (req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) ? 1 : 0; 
+    priv = ( req->pid_valid && req->priv_req ) ? S_MODE : U_MODE;
 
     // The process to translate an `IOVA` is as follows:
     // 1. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
@@ -104,10 +105,9 @@ iommu_translate_iova(
 
     // 2. If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
     //    stop and report "Transaction type disallowed" (cause = 260); else go to step
-    //    18 with translated address same as the `IOVA`.
+    //    21 with translated address same as the `IOVA`.
     //    a. Transaction type is a Translated request (read, write/AMO, read-for-execute)
     //       or is a PCIe ATS Translation request.
-    //    b. Transaction type is a PCIe "Page Request" Message.
     if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
         if ( req->tr.at == ADDR_TYPE_TRANSLATED || 
              req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) {
@@ -116,10 +116,11 @@ iommu_translate_iova(
         } 
         pa = req->tr.iova;
         page_sz = PAGESIZE;
-        R = W = X = 1;
-        G = 0;
-        PBMT = PMA;
-        goto step_18;
+        vs_pte.X = vs_pte.W = vs_pte.R = 1;
+        vs_pte.PBMT = PMA;
+        g_pte.X = g_pte.W = g_pte.R = 1;
+        is_msi = 0;
+        goto step_21;
     }
     // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
     //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
@@ -189,58 +190,21 @@ iommu_translate_iova(
         }
     }
 
-
-    // 8. If all of the following conditions hold then MSI address translations using
-    //    MSI page tables is enabled and the transaction is eligible for MSI address
-    //    translation and the MSI address translation process specified in section 2.4.3
-    //    is invoked to determine if the `IOVA` is a MSI address and if so translate it.
-    //    * `capabilities.MSI_FLAT` (Section 4.3) is 1, i.e., IOMMU support MSI address
-    //       translation.
-    //    * `IOVA` is a 32-bit aligned address.
-    //    * Transaction is a Translated 32-bit write, Untranslated 32-bit write, or is
-    //      an ATS translation request.
-    //    * Transaction does not have a `process_id` (e.g., PASID present). Transactions
-    //       with a `process_id` use a virtual address as IOVA and are not MSI.
-    //    * `DC.msiptp.MODE != Bare` i.e., MSI address translation using MSI page tables
-    //       is enabled.
-    //    If the `IOVA` is determined to be not an MSI then the process continues at
-    //    step 9.
-    if ( (g_reg_file.capabilities.msi_flat == 1) &&
-         ((req->tr.iova & 0x3) == 0) &&
-         ((req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ||
-          (req->tr.at == ADDR_TYPE_TRANSLATED && req->tr.length == 4) ||
-          (req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.length == 4)) &&
-         (req->pid_valid == 0) &&
-         (DC.msiptp.MODE != MSIPTP_Bare) ) {
-
-        if ( msi_address_translation( req->tr.iova, req->tr.msi_wr_data, req->tr.at, &DC,
-              &cause, &pa, &R, &W, &UNTRANSLATED_ONLY, &is_msi, &is_unsup, &is_mrif_wr, &mrif_nid,
-              0, 0, 0, 0, req->device_id, 
-              ((DC.iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), DC.iohgatp.GSCID) ) {
-            goto stop_and_report_fault;
-        }
-        if ( is_msi == 0 ) goto step_9;
-        if ( is_unsup == 1 ) goto return_unsupported_request;
-
-        // MSI address translation completed
-        page_sz = PAGESIZE;
-        G = 0;
-        X = 0;
-        PBMT = PMA;
-        goto step_18;
-    }
-
-step_9:
-    // 9. If request is a Translated request and DC.tc.T2GPA is 0 then the translation 
-    //    process is complete.  Go to step 18
+    // 8. If request is a Translated request and DC.tc.T2GPA is 0 then the translation 
+    //    process is complete.  Go to step 21
     if ( (req->tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 0) ) {
         pa = req->tr.iova;
         page_sz = PAGESIZE;
-        goto step_18;
+        vs_pte.X = vs_pte.W = vs_pte.R = 1;
+        vs_pte.PBMT = PMA;
+        g_pte.X = g_pte.W = g_pte.R = 1;
+        is_msi = 0;
+        goto step_21;
     }
 
-    //10. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA. 
-    //    Go to step 16 with following page table information:
+    // 9. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA. 
+    //    Go to step 17 with following page table information:
+    //    ◦ Let A bit the IOVA (the IOVA is a GPA)
     //    ◦ Let iosatp.MODE be Bare
     //       * The `PSCID` value is not used when first-stage mode is `Bare`.
     //    ◦ Let iohgatp be value in DC.iohgatp field
@@ -248,10 +212,10 @@ step_9:
         iosatp.MODE = IOSATP_Bare;
         SUM = 0;
         iohgatp = DC.iohgatp;
-        goto step_16;
+        goto step_17;
     }
 
-    //11. If `DC.tc.pdtv` is set to 0 then go to step 16 with the following 
+    //10. If `DC.tc.pdtv` is set to 0 then go to step 16 with the following 
     //    page table information:
     //    * Let `iosatp.MODE` be value in `DC.fsc.MODE` field
     //    * Let `iosatp.PPN` be value in `DC.fsc.PPN` field
@@ -266,12 +230,24 @@ step_9:
         PSCID = DC.ta.PSCID;
         SUM = 0;
         iohgatp = DC.iohgatp;
-        goto step_16;
+        goto step_17;
     }
 
-    //12. If there is no `process_id` associated with the transaction or if
-    //    `DC.fsc.pdtp.MODE = Bare` then go to step 16 with the following page table
-    //    information:
+    //11. If DPE is 1 and there is no process_id associated with the transaction
+    //    then let process_id be the default value of 0.
+    if ( DC.tc.DPE == 1 && req->pid_valid == 0 ) {
+        req->pid_valid = 1;
+        req->process_id = 0;
+        req->priv_req = 0;
+    }
+
+    //12. If DPE is 0 and there is no `process_id` associated with the transaction then
+    //    go to step 17 with the following page table information:
+    //    ◦ Let iosatp.MODE be Bare
+    //       * The `PSCID` value is not used when first-stage mode is `Bare`.
+    //    ◦ Let iohgatp be value in DC.iohgatp field
+    //13. If DC.fsc.pdtp.MODE = Bare then go to step 17 with the following page
+    //    table information:
     //    ◦ Let iosatp.MODE be Bare
     //       * The `PSCID` value is not used when first-stage mode is `Bare`.
     //    ◦ Let iohgatp be value in DC.iohgatp field
@@ -279,14 +255,14 @@ step_9:
         iosatp.MODE = IOSATP_Bare;
         SUM = 0;
         iohgatp = DC.iohgatp;
-        goto step_16;
+        goto step_17;
     }
 
-    // 13. Locate the process-context (`PC`) as specified in Section 2.4.2
+    // 14. Locate the process-context (`PC`) as specified in Section 2.4.2
     if ( locate_process_context(&PC, &DC, req->device_id, req->process_id, &cause, &iotval2, TTYP) )
         goto stop_and_report_fault;
 
-    // 14. if any of the following conditions hold then stop and report 
+    // 15. if any of the following conditions hold then stop and report 
     //     "Transaction type disallowed" (cause = 260).  
     //     a. The transaction requests supervisor privilege but PC.ta.ENS is not set.
     if ( PC.ta.ENS == 0 && req->pid_valid && req->priv_req ) {
@@ -294,7 +270,7 @@ step_9:
         goto stop_and_report_fault;
     }
 
-    // 15. Go to step 16 with the following page table information:
+    // 16. Go to step 17 with the following page table information:
     //     * Let `iosatp.MODE` be value in `PC.fsc.MODE` field
     //     * Let `iosatp.PPN` be value in `PC.fsc.PPN` field
     //     * Let `PSCID` be value in `PC.ta.PSCID` field
@@ -307,38 +283,116 @@ step_9:
     PSCID = PC.ta.PSCID;
     SUM = PC.ta.SUM;
     iohgatp = DC.iohgatp;
-    goto step_16;
+    goto step_17;
 
-step_16:
+step_17:
+    PSCV  = (iosatp.MODE == IOSATP_Bare) ? 0 : 1;
+    GV    = (iohgatp.MODE == IOHGATP_Bare) ? 0 : 1;
+    GSCID = iohgatp.GSCID;
+    PV    = req->pid_valid;
+    DID   = req->device_id;
+    PID   = req->process_id;
 
-    // Miss in IOATC - continue to page table translations
-    // 16. If a G-stage page table is not active in the device-context then use the
-    //     single stage address translation process specified in Section 4.3.2 of the
-    //     RISC-V privileged specification. If a fault is detecting by the single stage
-    //     address translation process then stop and report the fault.
-    // 17. If a G-stage page table is active in the device-context then use the
-    //     two-stage address translation process specified in Section 8.5 of the RISC-V
-    //     privileged specification. If a fault is detecting by the single stage address
-    //     translation process then stop and report the fault.
-    if ( s_vs_stage_address_translation(req->tr.iova, priv, is_read, is_write, is_exec,
-                        SUM, iosatp, PSCID, iohgatp, &cause, &iotval2, &pa, &page_sz, &R, &W, &X, &G, 
-                        &PBMT, &UNTRANSLATED_ONLY, req->pid_valid, req->process_id, req->device_id,
-                        TTYP, DC.tc.T2GPA, DC.tc.SADE, DC.tc.GADE) )
+    if ( (ioatc_status = lookup_ioatc_iotlb(req->tr.iova, priv, is_read, is_write, is_exec, SUM, PSCV, 
+                        PSCID, GV, GSCID, &cause, &pa, &page_sz, &vs_pte, &g_pte)) == IOATC_FAULT )
         goto stop_and_report_fault;
 
-step_18:
-    // 18. Translation process is complete
-    rsp_msg->status          = SUCCESS;
+    // Hit in IOATC - complete translation.
+    if ( ioatc_status == IOATC_HIT ) goto step_21;
+
+    // Count misses in TLB
+    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, IOATC_TLB_MISS);
+
+    // 17. If a G-stage page table is not active in the device-context then use the
+    //     single stage address translation process specified in Section 4.3.2 of the
+    //     RISC-V privileged specification. If a fault is detecting by the single stage
+    //     address translation process then stop and report the fault else go to
+    //     step 21.
+    // 18. If a G-stage page table is active in the device-context then use the
+    //     two-stage address translation process specified in Section 8.5 of the RISC-V
+    //     privileged specification to perform VS-stage address translation to
+    //     determine the GPA accessed by the transaction. If a fault is detecting by the
+    //     two stage address translation process then stop and report the fault.
+    if ( s_vs_stage_address_translation(req->tr.iova, TTYP, DID, is_read, is_write, is_exec,
+                                        PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
+                                        GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
+                                        &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
+        goto stop_and_report_fault;
+    
+    // 19. If MSI address translations using MSI page tables is enabled
+    //     (`DC.msiptp.MODE != Bare`) then the MSI address translation process specified
+    //     in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be the
+    //     address of a virtual interrupt file then the process continues at step 20. If
+    //     a fault is detected by the MSI address translation process then stop and
+    //     report the fault else the process continues at step 21.
+    if ( msi_address_translation(gpa, &DC, &is_msi, &is_mrif, &mrif_nid, &dest_mrif_addr,
+                                 &cause, &iotval2, &pa, &gst_page_sz, &g_pte) )
+        goto stop_and_report_fault;
+    if ( is_msi == 1 ) goto skip_g_stage;
+
+    // 20. If a G-stage page table is active in the device-context then use the
+    //     G-stage address translation process specified in Section 8.5 of the RISC-V
+    //     privileged specification to translate the GPA `A` to determine the SPA
+    //     accessed by the transaction. If a fault is detecting by the two stage address
+    //     translation process then stop and report the fault.
+    check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
+    if ( (gst_fault = g_stage_address_translation(gpa, check_access_perms, DID, 
+                          is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
+                          iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
+        if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
+        goto access_fault;
+    }
+
+skip_g_stage:
+    // The page-based memory types (PBMT), if Svpbmt is supported, obtained 
+    // from the IOMMU address translation page tables. When two-stage address
+    // translation is performed the IOMMU provides the page-based memory type
+    // as resolved between the G-stage and VS-stage page table
+    // The G-stage page tables provide the PBMT as PMA, IO, or NC
+    // If VS-stage page tables have PBMT as PMA, then G-stage PBMT is used
+    // else VS-stage PBMT overrides.
+    // The IO bridge resolves the final memory type
+    vs_pte.PBMT = ( vs_pte.PBMT != PMA ) ? vs_pte.PBMT : g_pte.PBMT;
+
+    // Updated resp PA if needed based on the resolved S/VS and G-stage page size
+    // The page size is smaller of VS or G stage page table size
+    page_sz = ( gst_page_sz < page_sz ) ? gst_page_sz : page_sz;
+    pa      = (pa & ~(page_sz - 1)) | (req->tr.iova & (page_sz - 1));
+
+    // Cache the translation in the IOATC
+    // In the IOTLB the IOVA & PPN is stored in the NAPOT format
+    napot_ppn = (((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
+    napot_iova = (((req->tr.iova & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
+    napot_gpa = (((gpa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
+    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
+        // ATS translation requests are cached in Device TLB. For Untranslated
+        // Requests cache the translations for future re-use
+        cache_ioatc_iotlb(napot_iova, GV, PSCV, iohgatp.GSCID, PSCID,
+                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
+    } 
+    if ( TTYP == PCIE_ATS_TRANSLATION_REQUEST && DC.tc.T2GPA == 1 ) {
+        // If in T2GPA mode, cache the final GPA->SPA translation as 
+        // the translated requests may hit on this 
+        cache_ioatc_iotlb(napot_gpa, GV, 0, iohgatp.GSCID, 0,
+                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
+        // Return the GPA as translation response if T2GPA is 1
+        pa = gpa;
+    }
+
+step_21:
+    // 21. Translation process is complete
+    rsp_msg->status               = SUCCESS;
     // The PPN and size is returned in same format as for ATS translation response
     // see below comments on for format details.
-    rsp_msg->trsp.PPN        = ((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE;
-    rsp_msg->trsp.S          = (page_sz > PAGESIZE) ? 1 : 0;
-    rsp_msg->trsp.is_msi     = is_msi;
-    rsp_msg->trsp.is_mrif_wr = is_mrif_wr;
-    rsp_msg->trsp.mrif_nid   = mrif_nid;
-    rsp_msg->trsp.PBMT       = PBMT;
+    rsp_msg->trsp.PPN             = ((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE;
+    rsp_msg->trsp.S               = (page_sz > PAGESIZE) ? 1 : 0;
+    rsp_msg->trsp.is_msi          = is_msi;
+    rsp_msg->trsp.is_mrif         = is_msi & is_mrif;
+    rsp_msg->trsp.dest_mrif_addr  = dest_mrif_addr;
+    rsp_msg->trsp.mrif_nid        = mrif_nid;
+    rsp_msg->trsp.PBMT            = vs_pte.PBMT;
 
-    if ( req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
+    if ( TTYP == PCIE_ATS_TRANSLATION_REQUEST ) {
         // When a Success response is generated for a ATS translation request, the setting
         // of the Priv, N, CXL.io, and AMA fields is as follows:
         // * Priv field of the ATS translation completion is always set to 0 if the request
@@ -403,14 +457,14 @@ step_18:
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
         rsp_msg->trsp.Priv   = (req->pid_valid && req->priv_req) ? 1 : 0;
-        rsp_msg->trsp.CXL_IO = (req->is_cxl_dev && ((PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
+        rsp_msg->trsp.CXL_IO = (req->is_cxl_dev && ((vs_pte.PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
-        rsp_msg->trsp.Global = G;
-        rsp_msg->trsp.U      = UNTRANSLATED_ONLY;
-        rsp_msg->trsp.R      = R;
-        rsp_msg->trsp.W      = W;
-        rsp_msg->trsp.Exe    = (X & R);
+        rsp_msg->trsp.Global = vs_pte.G;
+        rsp_msg->trsp.U      = (is_msi & is_mrif);
+        rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
+        rsp_msg->trsp.W      = (vs_pte.W & g_pte.W);
+        rsp_msg->trsp.Exe    = (vs_pte.X & g_pte.X & vs_pte.R & g_pte.R);
     }
     return;
 
@@ -421,6 +475,28 @@ return_unsupported_request:
 return_completer_abort:
     rsp_msg->status = COMPLETER_ABORT;
     return;
+
+access_fault:    
+    // Stop and raise a access-fault exception corresponding 
+    // to the original access type.
+    if ( is_exec ) cause = 1;       // Instruction access fault
+    else if ( is_read ) cause = 5;  // Read access fault
+    else cause = 7;                 // Write/AMO access fault
+    goto stop_and_report_fault;
+
+guest_page_fault:
+    // Stop and raise a page-fault exception corresponding 
+    // to the original access type.
+    if ( is_exec ) cause = 20;      // Instruction guest page fault
+    else if ( is_read ) cause = 21; // Read guest page fault
+    else cause = 23;                // Write/AMO guest page fault
+    // If the CAUSE is a guest-page fault then bits 63:2 of the zero-extended
+    // guest-physical-address are reported in iotval2[63:2]. If bit 0 of iotval2
+    // is 1, then guest-page-fault was caused by an implicit memory access for
+    // VS-stage address translation. If bit 0 of iotval2 is 1, and the implicit
+    // access was a write then bit 1 of iotval2 is set to 1 else it is set to 0.
+    iotval2 = (gpa & ~0x3);
+    goto stop_and_report_fault;
 
 stop_and_report_fault:
     // No faults are logged in the fault queue for PCIe ATS Translation Requests.
@@ -472,10 +548,10 @@ stop_and_report_fault:
          (cause == 23) || (cause == 266) || (cause == 262) ) {
         // Return response with R=W=0. The rest of the field are undefined. The reference
         // model sets them to 0.
-        R = W = UNTRANSLATED_ONLY = G = pa = 0;
+        vs_pte.raw = g_pte.raw = 0;
+        is_msi = 0;
         page_sz = PAGESIZE;
-        PBMT = PMA;
-        goto step_18;
+        goto step_21;
     }
     *((char *)0) = 0; // unexpected cause
     return;

@@ -62,13 +62,13 @@ generate_interrupt(
     //    configuration table (msi_cfg_tbl) to determine the MSI to generate. An 
     //    IOMMU is capable of generating interrupts as a MSI if capabilities.IGS==MSI
     //    or if capabilities.IGS==BOTH. When capabilities.IGS==BOTH the IOMMU may be
-    //    configured to generate interrupts as MSI by setting fctrl.WIS to 0.
+    //    configured to generate interrupts as MSI by setting fctl.WIS to 0.
     // 2. By an IOMMU that generates wire based interrupts, to determine the wire 
     //    to signal the interrupt. An IOMMU is capable of generating wire based 
     //    interrupts if capabilities.IGS==WIS or if capabilities.IGS==BOTH. When 
     //    capabilities.IGS==BOTH the IOMMU may be configured to generate wire based 
-    //    interrupts by setting fctrl.WIS to 1.
-    if ( g_reg_file.fctrl.wis == 0 ) {
+    //    interrupts by setting fctl.WIS to 1.
+    if ( g_reg_file.fctl.wis == 0 ) {
         msi_addr.raw = g_reg_file.msi_cfg_tbl[vec].msi_addr.raw;
         msi_data = g_reg_file.msi_cfg_tbl[vec].msi_data;
         msi_vec_ctrl.raw = g_reg_file.msi_cfg_tbl[vec].msi_vec_ctrl.raw;

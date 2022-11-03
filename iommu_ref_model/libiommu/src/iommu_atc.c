@@ -96,9 +96,7 @@ lookup_ioatc_pc(
 void
 cache_ioatc_iotlb(
     uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
-    uint8_t  VS_R, uint8_t  VS_W, uint8_t  VS_X, uint8_t U, uint8_t  G, uint8_t VS_D, uint8_t  PBMT,
-    uint8_t  G_R, uint8_t  G_W, uint8_t  G_X, uint8_t G_D,
-    uint64_t PPN, uint8_t  S) {
+    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S) {
 
     uint8_t i, replace = 0;
     uint32_t lru = 0xFFFFFFFF;
@@ -124,18 +122,18 @@ cache_ioatc_iotlb(
     tlb[replace].GSCID = GSCID;
     tlb[replace].PSCID = PSCID;
     // Fill VS stage attributes
-    tlb[replace].VS_R  = VS_R;
-    tlb[replace].VS_W  = VS_W;
-    tlb[replace].VS_X  = VS_X;
-    tlb[replace].VS_D  = VS_D;
-    tlb[replace].U     = U;
-    tlb[replace].G     = G;
-    tlb[replace].PBMT  = PBMT;
+    tlb[replace].VS_R  = vs_pte->R;
+    tlb[replace].VS_W  = vs_pte->W;
+    tlb[replace].VS_X  = vs_pte->X;
+    tlb[replace].VS_D  = vs_pte->D;
+    tlb[replace].U     = vs_pte->U;
+    tlb[replace].G     = vs_pte->G;
+    tlb[replace].PBMT  = vs_pte->PBMT;
     // Fill G stage attributes
-    tlb[replace].G_R   = G_R;
-    tlb[replace].G_W   = G_W;
-    tlb[replace].G_X   = G_X;
-    tlb[replace].G_D   = G_D;
+    tlb[replace].G_R   = g_pte->R;
+    tlb[replace].G_W   = g_pte->W;
+    tlb[replace].G_X   = g_pte->X;
+    tlb[replace].G_D   = g_pte->D;
     // PPN and size
     tlb[replace].PPN   = PPN;
     tlb[replace].S     = S;
@@ -150,7 +148,7 @@ lookup_ioatc_iotlb(
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
-    uint8_t *R, uint8_t *W, uint8_t *X, uint8_t *G, uint8_t *PBMT) {
+    pte_t *vs_pte, gpte_t *g_pte) {
 
     uint8_t i, hit;
     uint64_t vpn = iova / PAGESIZE;
@@ -171,12 +169,12 @@ lookup_ioatc_iotlb(
     tlb[i].lru = tlb_lru_time++;
 
     // Check S/VS stage permissions
-    if ( is_exec  && (tlb[hit].VS_X == 0) ) return IOATC_FAULT;
-    if ( is_read  && (tlb[hit].VS_R == 0) ) return IOATC_FAULT;
-    if ( is_write && (tlb[hit].VS_W == 0) ) return IOATC_FAULT;
-    if ( (priv == U_MODE) && (tlb[hit].U == 0) ) return IOATC_FAULT;
-    if ( is_exec && (priv == S_MODE) && (tlb[hit].U == 1) ) return IOATC_FAULT;
-    if ( (priv == S_MODE) && !is_exec && SUM == 0 && tlb[hit].U == 1 ) return IOATC_FAULT;
+    if ( is_exec  && (tlb[hit].VS_X == 0) ) goto page_fault;
+    if ( is_read  && (tlb[hit].VS_R == 0) ) goto page_fault;
+    if ( is_write && (tlb[hit].VS_W == 0) ) goto page_fault;
+    if ( (priv == U_MODE) && (tlb[hit].U == 0) ) goto page_fault;
+    if ( is_exec && (priv == S_MODE) && (tlb[hit].U == 1) ) goto page_fault;
+    if ( (priv == S_MODE) && !is_exec && SUM == 0 && tlb[hit].U == 1 ) goto page_fault;
 
     // Check G stage permissions
     if ( (is_exec  && (tlb[hit].G_X == 0)) ||
@@ -198,13 +196,24 @@ lookup_ioatc_iotlb(
         tlb[hit].valid = 0;
         return IOATC_MISS;
     }
-    *page_sz = ((tlb[hit].S == 0) ? 1 : (tlb[hit].PPN ^ (tlb[hit].PPN + 1))) + 1;
+    *page_sz = ((tlb[hit].S == 0) ? 1 : ((tlb[hit].PPN ^ (tlb[hit].PPN + 1)) + 1));
     *page_sz = *page_sz * PAGESIZE;
     *resp_pa = ((tlb[hit].PPN * PAGESIZE) & ~(*page_sz - 1)) | (iova & (*page_sz - 1));
-    *R = tlb[hit].VS_R & tlb[hit].G_R;
-    *W = tlb[hit].VS_W & tlb[hit].G_W;
-    *X = tlb[hit].VS_X & tlb[hit].G_X;
-    *PBMT = tlb[hit].PBMT;
-    *G = tlb[hit].G;
+    g_pte->R = tlb[hit].G_R;
+    g_pte->W = tlb[hit].G_W;
+    g_pte->X = tlb[hit].G_X;
+
+    vs_pte->R = tlb[hit].VS_R;
+    vs_pte->W = tlb[hit].VS_W;
+    vs_pte->X = tlb[hit].VS_X;
+    vs_pte->G = tlb[hit].G;
+    vs_pte->U = tlb[hit].U;
+    vs_pte->PBMT = tlb[hit].PBMT;
     return IOATC_HIT;
+
+page_fault:
+    if ( is_exec ) *cause = 12;      // Instruction page fault
+    else if ( is_read ) *cause = 13; // Read page fault
+    else *cause = 15;                // Write/AMO page fault
+    return IOATC_FAULT;
 }

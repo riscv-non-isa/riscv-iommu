@@ -187,7 +187,7 @@ enable_iommu(
 void 
 send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
     uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
-    uint32_t length, uint8_t read_writeAMO, uint32_t msi_wr_data,
+    uint32_t length, uint8_t read_writeAMO,
     hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp) {
 
     req->device_id        = did;
@@ -201,7 +201,6 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     req->tr.iova          = iova;
     req->tr.length        = length;
     req->tr.read_writeAMO = read_writeAMO;
-    req->tr.msi_wr_data   = msi_wr_data;
     iommu_translate_iova(req, rsp);
     return;
 }
@@ -339,7 +338,9 @@ check_rsp_and_faults(
 }
 uint64_t
 add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa, 
-           uint8_t dtf, uint8_t prpr, uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
+           uint8_t dtf, uint8_t prpr, 
+           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
+           uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
            uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask, 
            uint64_t msi_addr_pattern) {
     device_context_t DC;
@@ -353,6 +354,11 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     DC.tc.T2GPA  = t2gpa;
     DC.tc.DTF    = dtf;
     DC.tc.PRPR   = prpr;
+    DC.tc.GADE   = gade;
+    DC.tc.SADE   = sade;
+    DC.tc.DPE    = dpe;
+    DC.tc.SBE    = sbe;
+    DC.tc.SXL    = sxl;
     if ( iohgatp_mode != IOHGATP_Bare ) {
         DC.iohgatp.GSCID = gscid;
         DC.iohgatp.PPN = get_free_ppn(4);
