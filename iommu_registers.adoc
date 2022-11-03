@@ -746,7 +746,7 @@ status of the command-queue.
                             queue when set to 1. +
                                                                               +
                             Changing `cqen` from 0 to 1 sets the `cqh`
-                            regsiter and the `cqcsr` bits `cmd_ill`,`cmd_to`,
+                            register and the `cqcsr` bits `cmd_ill`,`cmd_to`,
                             `cqmf`, `fence_w_ip` to 0. The command-queue may
                             take some time to be active following setting the
                             `cqen` to 1. During this delay the `busy` bit is 1.
@@ -1632,11 +1632,11 @@ and `iotval` set to the value of `msi_addr_x`.
 [%header, cols="10,10,3"]
 |===
 |bit 63                 >s|                   bit 0|Byte Offset
-2+^|Entry 0: Message address                       |+000h     
-^|Entry 0: Vector Control  ^|Entry 0: Message Data |+008h     
-2+^|Entry 1: Message address                       |+010h     
-^|Entry 1: Vector Control  ^|Entry 1: Message Data |+018h     
-2+^|...                                            |+020h    
+2+^|Entry 0: Message address                       |+000h
+^|Entry 0: Vector Control  ^|Entry 0: Message Data |+008h
+2+^|Entry 1: Message address                       |+010h
+^|Entry 1: Vector Control  ^|Entry 1: Message Data |+018h
+2+^|...                                            |+020h
 |===
 
 .Message address register fields

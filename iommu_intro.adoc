@@ -16,9 +16,9 @@ identifier, which the IOMMU uses to locate the appropriate device context
 within data structures supplied by software. For PCIe cite:[PCI], for example, the
 originating device may be identified by the unique 16-bit triplet of PCI bus
 number (8-bit), device number (5-bit), and function number (3-bit)
-(collectively known as routing identifier or RID) and optionally up to 8-bit 
+(collectively known as routing identifier or RID) and optionally up to 8-bit
 segment number when the IOMMU supports multiple Hierarchies. This specification
-refers to such unique device identifier as `device_id` and supports up to 
+refers to such unique device identifier as `device_id` and supports up to
 24-bit wide identifiers.
 
 [NOTE]
@@ -33,15 +33,15 @@ Some devices may support shared virtual addressing which is the ability to
 share process address spaces with devices. Sharing process address spaces with
 devices allows to rely on core kernel memory management for DMA, removing some
 complexity from application and device drivers. After binding to a device,
-applications can instruct it to perform DMA on application statically or 
-dynamically allocated buffers. To support such addressing, software can 
+applications can instruct it to perform DMA on application statically or
+dynamically allocated buffers. To support such addressing, software can
 configure one or more process contexts into the device context. On every memory
 access initiated by a device, the hardware indicates to the IOMMU a unique process
-identifier, which the IOMMU uses in conjunction with the unique device 
+identifier, which the IOMMU uses in conjunction with the unique device
 identifier to locate the appropriate process context configured by software in
 the device context. For PCIe, for example, the process context may be identified
-by the unique 20-bit process address space identifier (PASID). This 
-specification refers to such unique process identifiers as `process_id` and 
+by the unique 20-bit process address space identifier (PASID). This
+specification refers to such unique process identifiers as `process_id` and
 supports up to 20-bit wide identifiers.
 
 Using the same S/VS-stage and G-stage page table formats in IOMMU for address
@@ -59,11 +59,11 @@ accesses. The IOMMU may employ similar address translation caches, referred as
 IOMMU Address Translation Cache (IOATC). The IOMMU provides mechanisms for
 software to synchronize the IOATC with the memory resident data structures used
 for address translation when they are modified. Software may configure the
-device context with a software defined context identifier called guest 
+device context with a software defined context identifier called guest
 soft-context identifier (`GSCID`) to indicate that a collection of devices are
-assigned to the same VM and thus access a common virtual address space. 
+assigned to the same VM and thus access a common virtual address space.
 Software may configure the process context with a software defined context
-identifier called process soft-context identifier (`PSCID`) to identify a 
+identifier called process soft-context identifier (`PSCID`) to identify a
 collection of process identifier that share a common virtual address space.
 The IOMMU may use the `GSCID` and `PSCID` to tag entries in the IOATC to avoid
 duplication and simplify invalidation operations.
@@ -147,7 +147,7 @@ the device context.
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
 | PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables 
+| PRI             | Page Request Interface - a PCIe protocol that enables
                     devices to request OS memory manager services to make pages
                     resident cite:[PCI].
 | PC              | Process Context.
@@ -181,25 +181,25 @@ the device context.
 | RID / PCIe RID  | PCIe routing identifier cite:[PCI].
 | RO              | Read-only - Register bits are read-only and cannot be altered
                     by software. Where explicitly defined, these bits are used
-                    to reflect changing hardware state, and as a result bit 
+                    to reflect changing hardware state, and as a result bit
                     values can be observed to change at run time. +
-                    If the optional feature that would Set the bits is not 
+                    If the optional feature that would Set the bits is not
                     implemented, the bits must be hardwired to Zero
-| RW              | Read-Write - Register bits are read-write and are permitted 
+| RW              | Read-Write - Register bits are read-write and are permitted
                     to be either Set or Cleared by software to the desired
                     state. +
-                    If the optional feature that is associated with the bits is 
+                    If the optional feature that is associated with the bits is
                     not implemented, the bits are permitted to be hardwired to
                     Zero.
-| RW1C            | Write-1-to-clear status - Register bits indicate status when 
+| RW1C            | Write-1-to-clear status - Register bits indicate status when
                     read. A Set bit indicates a status event which is Cleared by
                     writing a 1b. Writing a 0b to RW1C bits has no effect. +
-                    If the optional feature that would Set the bit is not 
+                    If the optional feature that would Set the bit is not
                     implemented, the bit must be read-only and hardwired to Zero
 | RW1S            | Read-Write-1-to-set - register bits indicate status when
                     read. The bit may be Set by writing 1b. Writing a 0b to RW1S
                     bits has no effect. +
-                    If the optional feature that introduces the bit is not 
+                    If the optional feature that introduces the bit is not
                     implemented, the bit must be read-only and hardwired to Zero
 | SOC             | System on a chip, also referred as system-on-a-chip and
                     system-on-chip.
@@ -248,7 +248,7 @@ by malicious software/hardware.
 
 The IOMMU offers a mechanism for the OS to defend against such unintended
 corruptions by limiting the memory that can be accessed by devices using DMA.
-Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System 
+Indeed, as depicted in <<fig:device-isolation>> diagram the Operating System
 configures the IOMMU to use the S-stage page table to translate IOVA to SPA and
 thereby limit the addresses that may be accessed.
 
@@ -483,10 +483,10 @@ The second instance, IOMMU 1 (associated with the IO Bridge 1), illustrates
 interfacing devices (IO Devices A and B) to the system fabric without the use
 of a Root Port.
 
-The IO Bridge is placed between the device(s) and the system interconnect to 
-process device originated DMA transactions. IO Devices may perform DMA 
-transactions using IO Virtual Addresses (VA, GVA or GPA). The IO Bridge 
-invokes the associated IOMMU to translate the IOVA to a Supervisor Physical 
+The IO Bridge is placed between the device(s) and the system interconnect to
+process device originated DMA transactions. IO Devices may perform DMA
+transactions using IO Virtual Addresses (VA, GVA or GPA). The IO Bridge
+invokes the associated IOMMU to translate the IOVA to a Supervisor Physical
 Addresses (SPA).
 
 The IOMMU is not invoked for outbound transactions.
@@ -597,8 +597,8 @@ the appropriate access control rules.
 
 [NOTE]
 ====
-The IOMMU does not validate the authenticity of the hardware IDs provided by 
-the IO bridge. 
+The IOMMU does not validate the authenticity of the hardware IDs provided by
+the IO bridge.
 
 The IO bridge and/or the root ports must include suitable mechanisms to
 authenticate the hardware IDs. In some SOC this may be trivially achieved as a
@@ -647,9 +647,9 @@ features:
 
 * A hardware performance monitor (HPM).
 
-* MSI and wire-signaled-interrupts to request service from software. 
+* MSI and wire-signaled-interrupts to request service from software.
 
-* A register interface for software to request an address translation to 
+* A register interface for software to request an address translation to
   support debug.
 
 Supported features may be discovered using the `capabilities` register <<CAP>>.

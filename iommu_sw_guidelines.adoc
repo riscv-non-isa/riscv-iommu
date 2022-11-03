@@ -2,7 +2,7 @@
 
 == Software guidelines
 
-This section provides guidelines to software developers on correct and 
+This section provides guidelines to software developers on correct andg
 expected sequence of using the IOMMU interfaces. The behavior of the IOMMU
 if these guidelines are not followed is implementation defined.
 
@@ -11,7 +11,7 @@ Read or write access to IOMMU registers must follow the following rules:
 
 * Address of the access must be aligned to the size of the access.
 * The access must not span multiple registers.
-* Registers that are 64-bit wide may be accessed using either a 32-bit or 
+* Registers that are 64-bit wide may be accessed using either a 32-bit org
   a 64-bit access.
 * Registers that are 32-bit wide must only be accessed using a 32-bit access.
 
@@ -22,7 +22,7 @@ The guidelines for initializing the IOMMU are as follows:
 . Read the `capabilities` register to discover the capabilities of the IOMMU.
 . Stop and report failure if `capabilities.version` is not supported.
 . Read the feature control register (`fctl`).
-. Stop and report failure if big-endian memory access is needed and the 
+. Stop and report failure if big-endian memory access is needed and theg
   `capabilities.END` field is 0 (i.e. only one endianness) and `fctl.BE` is
   0 (i.e. little endian).
 . If big-endian memory access is needed and the `capabilities.END` field is 1
@@ -33,27 +33,27 @@ The guidelines for initializing the IOMMU are as follows:
 . If wired-signaled-interrupts are needed for IOMMU initiated interrupts and
   `capabilities.IGS` is `BOTH`, set `fctl.WSI` to 1 if the field is not
   already 1.
-. Stop and report failure if other required capabilities 
+. Stop and report failure if other required capabilitiesg
   (e.g. virtual-addressing modes, MSI translation, etc.) are not supported.
-. The `icvec` register is used to program an interrupt vector for each 
-  interrupt cause. Determine the number of vectors supported by the IOMMU by 
-  writing 0xF to each field and reading back the number of writable bits. If 
+. The `icvec` register is used to program an interrupt vector for eachg
+  interrupt cause. Determine the number of vectors supported by the IOMMU byg
+  writing 0xF to each field and reading back the number of writable bits. Ifg
   the number of writable bits is `N` then the number of supported vectors is
-  `2^N^`. For each cause `C` associate a vector `V` with the cause. `V` is a 
-  number between 0 and `(2^N^ - 1)`. 
-. If the IOMMU is configured to use wired interrupts, then each vector `V` 
-  corresponds to an interrupt wire connected to a platform level interrupt 
-  controller (e.g. APLIC). Determine the interrupt controller configuration 
+  `2^N^`. For each cause `C` associate a vector `V` with the cause. `V` is ag
+  number between 0 and `(2^N^ - 1)`.g
+. If the IOMMU is configured to use wired interrupts, then each vector `V`g
+  corresponds to an interrupt wire connected to a platform level interruptg
+  controller (e.g. APLIC). Determine the interrupt controller configurationg
   register to be programmed for each such wire using configuration information
-  provided by configuration mechanisms such as device tree and program the 
+  provided by configuration mechanisms such as device tree and program theg
   interrupt controller.
 . If the IOMMU is configured to use MSI, then each vector `V` is an index into
-  the `msi_cfg_tbl`. For each vector `V`, allocate a MSI address `A` and 
+  the `msi_cfg_tbl`. For each vector `V`, allocate a MSI address `A` andg
   an interrupt identity `D`. Configure the `msi_addr_V` register with value `A`,
-  `msi_data_V` register with value `D`. Configure the interrupt mask `M` in 
+  `msi_data_V` register with value `D`. Configure the interrupt mask `M` ing
   `msi_vec_ctl_V` register appropriately.
 . To program the command queue, first determine the number of entries `N` needed
-  in the command queue. The number of entries in the command queue is always a 
+  in the command queue. The number of entries in the command queue is always ag
   power of two. If `N` is 256 or lower then allocate a memory buffer that is
   aligned to a 4-KiB page address and is of size `N` x 16-bytes.  If `N` is
   greater than 256 then allocate a memory buffer that is naturally aligned to a
@@ -69,7 +69,7 @@ The guidelines for initializing the IOMMU are as follows:
 **  Poll on `cqcsr.cqon` till it reads 1
 
 . To program the fault queue, first determine the number of entries N needed in
-  the fault queue. The number of entries in the fault queue is always a power 
+  the fault queue. The number of entries in the fault queue is always a powerg
   of two. If `N` is 128 or lower then allocate a memory buffer that is aligned
   to 4-KiB page address and is of size `N` x 32-bytes. If `N` is greater than
   128 then allocate a memory buffer that is naturally aligned to a
@@ -83,7 +83,7 @@ The guidelines for initializing the IOMMU are as follows:
 **  `fqcsr.fqen = 1`
 **  Poll on `fqcsr.fqon` till it reads 1
 
-. To program the page-request queue, first determine the number of entries `N` 
+. To program the page-request queue, first determine the number of entries `N`g
   needed in the page-request queue. The number of entries in the page-request
   queue is always a power of. If `N` is 256 or lower then allocate a memory
   buffer that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If
@@ -99,9 +99,9 @@ The guidelines for initializing the IOMMU are as follows:
 **  `pqcsr.pqen = 1`
 **  Poll on `pqcsr.pqon` till it reads 1
 
-. To program the DDT pointer, first determine the supported `device_id` width `Dw` 
+. To program the DDT pointer, first determine the supported `device_id` width `Dw`g
   and the format of the device-context data structure. If `capabilities.MSI` is
-  0, then the IOMMU uses base-format device-contexts else extended-format 
+  0, then the IOMMU uses base-format device-contexts else extended-formatg
   device-contexts are used. Allocate a page (4 KiB) of memory to use as the root
   table of the DDT. Initialize the allocated memory to all 0. Let `B` be the
   PPN of the allocated memory. Determine the mode `M` of the DDT based on `Dw`
@@ -127,13 +127,13 @@ for devices in scope of the IOMMU.
 
 === Guidelines for invalidations
 This section provides guidelines to software on the invalidation commands to
-send to the IOMMU through the `CQ` when modifying the IOMMU in-memory data 
+send to the IOMMU through the `CQ` when modifying the IOMMU in-memory datag
 structures. Software must perform the invalidation after the update is globally
 visible. The ordering on stores provided by FENCE instructions and the acquire/
 release bits on atomic instructions also orders the data structure updates
 associated with those stores as observed by IOMMU.
 
-A `IOFENCE.C` command may be used by software to ensure that all previous 
+A `IOFENCE.C` command may be used by software to ensure that all previousg
 commands fetched from the `CQ` have been completed and committed.
 
 [[DC_CHANGE]]
@@ -148,9 +148,9 @@ device with `device_id = D` then the following invalidations must be performed:
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
 ** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 * else
-** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare` 
+** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare`g
 *** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
-** else 
+** elseg
 *** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
 
 If software changes a non-leaf-level DDT entry the following invalidations
@@ -170,7 +170,7 @@ performed:
 
 * `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
 * If `DC.iohgatp.MODE != Bare`
-** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`, 
+** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,g
    and `PSCID=PC.PSCID`
 * else
 ** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
@@ -182,16 +182,16 @@ the new value of the entry.
 [[MSI_PT_CHANGE]]
 ==== Changing MSI page table entry
 If software changes a MSI page-table entry identified by by interrupt file
-number `I` that corresponds to an untranslated MSI address `A` then following 
+number `I` that corresponds to an untranslated MSI address `A` then followingg
 invalidations must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
-** If `DC.fsc.iosatp.MODE == Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, 
+** If `DC.fsc.iosatp.MODE == Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=0`,g
    `AV=1`, and `ADDR[63:12]=A[63:12]`
-** If `DC.fsc.iosatp.MODE != Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=1`, 
+** If `DC.fsc.iosatp.MODE != Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=1`,g
    `AV=1`, `PSCID=DC.ta.PSCID`, and `ADDR[63:12]=A[63:12]`
 * else
-** `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and 
+** `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` andg
     `GSCID=DC.iohgatp.GSCID`
 
 To invalidate all cache entries from a MSI page table the following
@@ -213,7 +213,7 @@ performed:
 
 * `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
 
-If software changes a non-leaf G-stage page-table entry of a VM 
+If software changes a non-leaf G-stage page-table entry of a VMg
 then following invalidations must be performed:
 
 * `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
@@ -237,17 +237,17 @@ using `process_id` from a process-directory-table (when `DC.tc.PDTV=1`).
 
 When `DC.iohgatp.MODE != Bare`, a `DC` may be configured with a VS-stage
 page table (when `DC.tc.PDTV=0`) or a directory of VS-stage page tables
-selected using `process_id` from a process-directory-table (when 
+selected using `process_id` from a process-directory-table (wheng
 `DC.tc.PDTV=1`).
 
 When a change is made to a S-stage page table then software must perform
 invalidations using `IOTINVAL.VMA` with `GV=0` and `AV` and `PSCV` operands
-appropriate for the modification as specified in <<IVMA>>.  
+appropriate for the modification as specified in <<IVMA>>. g
 
 When a change is made to a VS-stage page table then software must perform
 invalidations using `IOTINVAL.VMA` with `GV=1`, `GSCID=DC.iohgatp.GSCID` and
 `AV` and `PSCV` operands appropriate for the modification as specified in
-<<IVMA>>.  
+<<IVMA>>. g
 
 Between change to the S/VS-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
@@ -261,20 +261,20 @@ invalidate corresponding PTE entries that may be cached by the IOMMU. If such
 invalidations are not performed, then the IOMMU may not set these bits when
 processing subsequent transactions that use such entries.
 
-When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE to 
+When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE tog
 a superpage without first clearing the original non-leaf PTEs valid bit and
 invalidating cached translations in the IOMMU then it is possible for the
-IOMMU to cache multiple entries that match a single address. The IOMMU may 
+IOMMU to cache multiple entries that match a single address. The IOMMU mayg
 use either the old non-leaf PTE or the new non-leaf PTE but the behavior is
 otherwise well defined.
 
-When promoting and/or demoting page sizes, software must ensure that the 
+When promoting and/or demoting page sizes, software must ensure that theg
 original and new PTEs have identical permission and memory type attributes and
 the physical address that is determined as a result of translation using either
 the original or the new PTE is otherwise identical for any given input. The
 only PTE update supported by the IOMMU without first clearing the V bit in the
 original PTE and executing a appropriate `IOTINVAL` command is to do a page size
-promotion or demotion. The behavior of the IOMMU if other attributes are 
+promotion or demotion. The behavior of the IOMMU if other attributes areg
 changed in this fashion is implementation defined.
 
 ==== Device Address Translation Cache invalidations
@@ -283,26 +283,26 @@ When VS/S-stage and/or G-stage page tables are modified, invalidations may be
 needed to the DevATC in the devices that may have cached translations from
 the modified page tables. Invalidation of such page tables requires generating
 ATS invalidations using `ATS.INVAL` command. Software must specify the `PAYLOAD`
-following the rules defined in PCIe ATS specifications cite:[PCI]. 
+following the rules defined in PCIe ATS specifications cite:[PCI].g
 
-If software generates ATS invalidate requests at a rate that exceeds the 
-average DevATC service rate then flow control mechanisms may be triggered by 
+If software generates ATS invalidate requests at a rate that exceeds theg
+average DevATC service rate then flow control mechanisms may be triggered byg
 the device to throttle the rate and a side effect of this is congestion
-spreading to other channels and links and could lead to performance 
-degradation. An ATS capable device publishes the maximum number of 
+spreading to other channels and links and could lead to performanceg
+degradation. An ATS capable device publishes the maximum number ofg
 invalidations it can buffer before causing back-pressure through the Queue
 Depth field of the ATS capability structure. When the device is virtualized
 using PCIe SR-IOV, this queue depth is shared among all the VFs of the device.
-Software must limit the number of outstanding ATS invalidations queued to 
+Software must limit the number of outstanding ATS invalidations queued tog
 the device advertised limit.
 
-The `RID` field is used to specify the routing ID of the ATS invalidation 
+The `RID` field is used to specify the routing ID of the ATS invalidationg
 request message destination. A PASID specific invalidation may be performed by
 setting `PV=1` and specifying the PASID in `PID`. When the IOMMU supports
 multiple segments then the `RID` must be qualified by the destination segment
 number by setting `DSV=1` with the segment number provided in `DSEG`.
 
-When ATS protocol is enabled for a device, the IOMMU may still cache 
+When ATS protocol is enabled for a device, the IOMMU may still cacheg
 translations in its IOATC in addition to providing translations to the DevATC.
 Software must not skip IOMMU translation cache invalidations even when ATS is
 enabled in the device context of the device. Since a translation request from
@@ -312,8 +312,8 @@ invalidations to the DevATC.
 
 ==== Caching invalid entries
 
-This specification does not allow the caching of S/VS/G-stage PTEs whose `V` 
-(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear, 
+This specification does not allow the caching of S/VS/G-stage PTEs whose `V`g
+(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,g
 Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
 PTEs whose `V` bit is clear.
@@ -330,52 +330,52 @@ must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
 ==== Guidelines for handling interrupts from IOMMU
-IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each 
+IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the HPM. Eachg
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
 as a MSI or a wire-signaled-interrupt. The interrupt handler may perform the
 following actions:
 
 . Read the `ipsr` register to determine the source of the pending interrupts
-. If `ipsr.cip` bit is set then an interrupt is pending from the `CQ`. 
+. If `ipsr.cip` bit is set then an interrupt is pending from the `CQ`.g
 .. Read the `cqcsr` register.
-.. Determine if an error caused the interrupt and if so, the cause of the 
-   error by examining the state of the `cmd_to`, `cmd_ill`, and `cqmf` bits 
+.. Determine if an error caused the interrupt and if so, the cause of theg
+   error by examining the state of the `cmd_to`, `cmd_ill`, and `cqmf` bitsg
    If any of these bits are set then the `CQ` encountered an error and command
    processing is temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the corrected errors in `cqcsr` by writing 1 to the bits. 
-... Clearing all error indication bits in `cqcsr` re-enables command processing. 
-.. An IOMMU that supports wired-interrupts may be requested to generate an 
-   interrupt from the command queue on completion of a `IOFENCE.C` command. 
-   This cause is indicated by the `fence_w_ip` bit. Note that command 
+   corresponding to the corrected errors in `cqcsr` by writing 1 to the bits.g
+... Clearing all error indication bits in `cqcsr` re-enables command processing.g
+.. An IOMMU that supports wired-interrupts may be requested to generate ang
+   interrupt from the command queue on completion of a `IOFENCE.C` command.g
+   This cause is indicated by the `fence_w_ip` bit. Note that commandg
    processing does not stop when `fence_w_ip` is set to 1. Software handler
    may re-enable interrupts from `CQ` on `IOFENCE.C` completions by clearing
    this bit by writing 1 to it.
-. If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`. 
+. If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`.g
 .. Read the `fqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
    by examining the state of the `fqmf` and `fqof` bits. If either of these bits
-   are set then the `FQ` encountered an error and fault/event reporting is 
+   are set then the `FQ` encountered an error and fault/event reporting isg
    temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the corrected errors in `fqcsr` by writing 1 to the bits. 
-... Clearing all error indication bits in `cqcsr` re-enables fault/event 
-   reporting. 
+   corresponding to the corrected errors in `fqcsr` by writing 1 to the bits.g
+... Clearing all error indication bits in `cqcsr` re-enables fault/eventg
+   reporting.g
 .. Read the `fqt` and `fqh` registers.
 .. If value of `fqt` is not equal to value of `fqh` then the `FQ` is not empty
    and contains fault/event reports that need processing.
 .. Process pending fault/event reports that need processing and remove them from
    the `FQ` by advancing the `fqh` by the number of records processed.
-. If `ipsr.pip` bit is set then an interrupt is pending from the `PQ`. 
+. If `ipsr.pip` bit is set then an interrupt is pending from the `PQ`.g
 .. Read the `pqcsr`register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
    by examining the state of the `pqmf` and `pqof` bits. If either of these bits
-   are set then the `PQ` encountered an error and "Page Request" reporting is 
+   are set then the `PQ` encountered an error and "Page Request" reporting isg
    temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
-   corresponding to the corrected errors in `pqcsr` by writing 1 to the bits. 
-... Clearing all error indication bits in `pqcsr` re-enables "Page Request" 
+   corresponding to the corrected errors in `pqcsr` by writing 1 to the bits.g
+... Clearing all error indication bits in `pqcsr` re-enables "Page Request"g
    reporting.
 .. Read the `pqt` and `pqh` registers.
 .. If value of `pqt` is not equal to value of `pqh` then the `PQ` is not empty
@@ -395,25 +395,25 @@ following actions:
 
 To enable ATS and/or PRI:
 
-. Place the device in an idle state such that no transactions are generated 
-  by the device. 
-. If the device-context for the device is already valid then first mark the 
-  device-context as invalid and queue commands to the IOMMU to invalidate all 
-  cache G/S/VS-stage page table entries, DDT entries, MSI PT entries 
+. Place the device in an idle state such that no transactions are generatedg
+  by the device.g
+. If the device-context for the device is already valid then first mark theg
+  device-context as invalid and queue commands to the IOMMU to invalidate allg
+  cache G/S/VS-stage page table entries, DDT entries, MSI PT entriesg
   (if required), and PDT entries (if required).
 . Program the device-context with `EN_ATS` set to 1 and if required the `T2GPA`
   field set to 1. Set `EN_PRI` to 1 if required.
-. Mark the device-context as valid. 
+. Mark the device-context as valid.g
 . Enable device to use ATS and if required PRI.
 
 To disable ATS and/or PRI:
 
-. Place the device in an idle state such that no transactions are generated 
-  by the device. 
+. Place the device in an idle state such that no transactions are generatedg
+  by the device.g
 . Disable ATS and/or PRI at the device
 . Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context.
-. Queue commands to the IOMMU to invalidate all cached G/S/VS-stage page table 
-  entries, DDT entries, MSI PT entries (if required), and PDT entries 
+. Queue commands to the IOMMU to invalidate all cached G/S/VS-stage page tableg
+  entries, DDT entries, MSI PT entries (if required), and PDT entriesg
   (if required).
 . Queue commands to the IOMMU to invalidate DevATC by generating Invalidation
   Request messages.
