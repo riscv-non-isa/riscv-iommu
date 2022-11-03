@@ -256,9 +256,12 @@ capabilities allowing implementations to include only the exact set of
 capabilities required for an application. In addition, users may add
 their own custom extensions to the IOMMU.
 
-RISC-V platform and profile specifications may mandate a set of IOMMU
-capabilities that must be provided by an implementation to be compliant
-to those specification.
+The IOMMU must support all the virtual memory extensions that are supported
+by any of the harts in the implementation.
+
+RISC-V platform specifications may mandate a set of IOMMU capabilities
+that must be provided by an implementation to be compliant to those
+specification.
 ====
 
 [[FCTRL]]
