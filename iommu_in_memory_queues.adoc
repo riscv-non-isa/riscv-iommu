@@ -647,8 +647,8 @@ The `IOVA` is partitioned into a virtual page number (VPN) and page offset.
 Whereas the VPN is translated into a physical page number (PPN) by the address
 translation process, the page offset is not required for this process. The IO
 bridge in some implementations may not provided the page offset part of the
-`IOVA` to the IOMMU and the IOMMU may report report the page offset in `iotval`
-as 0.
+`IOVA` to the IOMMU and the IOMMU may report the page offset in `iotval` as 0.
+Likewise, an IOMMU may report the page offset as 0 in `iotval2` reporting a GPA.
 ====
 
 `DID` holds the `device_id` of the transaction. If `PV` is 0, then `PID` and 
