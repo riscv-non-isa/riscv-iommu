@@ -283,7 +283,7 @@ When VS/S-stage and/or G-stage page tables are modified, invalidations may be
 needed to the DevATC in the devices that may have cached translations from
 the modified page tables. Invalidation of such page tables requires generating
 ATS invalidations using `ATS.INVAL` command. Software must specify the `PAYLOAD`
-following the rules defined in PCIe ATS specifications. 
+following the rules defined in PCIe ATS specifications cite:[PCI]. 
 
 If software generates ATS invalidate requests at a rate that exceeds the 
 average DevATC service rate then flow control mechanisms may be triggered by 

@@ -82,7 +82,7 @@ difficult to retrofit to any other address-translation data structures.
 
 The `DC` further holds controls for the type of transactions that a device is
 allowed to generate. One example of such a control is whether the device is
-allowed to use the PCIe defined Address Translation Service (ATS).
+allowed to use the PCIe defined Address Translation Service (ATS) cite:[PCI].
 
 Two formats of the device-context structure are supported:
 
@@ -293,7 +293,7 @@ order.
 `DC` is valid if the `V` bit is 1; If it is 0, all other bits in `DC` are
 don't-care and may be freely used by software.
 
-If the IOMMU supports PCIe ATS specification (see `capabilities` register),
+If the IOMMU supports PCIe ATS specification cite:[PCI] (see `capabilities` register),
 the `EN_ATS` bit is used to enable ATS transaction processing. If `EN_ATS`
 is set to 1, IOMMU supports the following inbound transactions; otherwise
 they are treated as unsupported requests.
@@ -1350,11 +1350,12 @@ The process to translate an `IOVA` is as follows:
    it is a VS-stage page table.
 . If a G-stage page table is not active in the device-context then use the
   single stage address translation process specified in Section 4.3.2 of the
-  RISC-V privileged specification. If a fault is detecting by the single stage
-  address translation process then stop and report the fault else go to step 21.
+  RISC-V privileged specification cite:[PRIV]. If a fault is detecting by the
+  single stage address translation process then stop and report the fault else
+  go to step 21.
 . If a G-stage page table is active in the device-context then use the
   two-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification to perform the VS-stage address translation to
+  Privileged specification cite:[PRIV] to perform the VS-stage address translation to
   determine the GPA accessed by the transaction. If a fault is detecting by the
   two stage address translation process then stop and report the fault. If the
   translation process is completed then let `A` be the translated GPA.
@@ -1371,7 +1372,7 @@ The process to translate an `IOVA` is as follows:
    is enabled.
 . If a G-stage page table is active in the device-context then use the
   G-stage address translation process specified in Section 8.5 of the RISC-V
-  privileged specification to translate the GPA `A` to determine the SPA accessed
+  Privileged specification cite:[PRIV] to translate the GPA `A` to determine the SPA accessed
   by the transaction. If a fault is detecting by the two stage address translation
   process then stop and report the fault.
 . Translation process is complete
@@ -1471,8 +1472,8 @@ machine.
 
 MSIs originating from a single device that require conversion are expected
 to have been configured at the device by a single guest OS running within one
-RISC-V virtual machine. Assuming the VM itself conforms to the Advanced
-Interrupt Architecture, MSIs are sent to virtual harts within the VM by writing
+RISC-V virtual machine. Assuming the VM itself conforms to the RISC-V Advanced
+Interrupt Architecture cite:[AIA], MSIs are sent to virtual harts within the VM by writing
 to the memory-mapped registers of the interrupt files of virtual IMSICs. Each of
 these virtual interrupt files occupies a separate 4-KiB page in the VMs guest
 physical address space, the same as real interrupt files do in a real machines
@@ -1587,12 +1588,12 @@ set them to 1 in the PTE to improve performance.
 === Faults from virtual address translation process
 
 Faults detected during the S-stage or two-stage address translation specified
-in the privileged specification cause the IOVA translation process to stop and
+in the RISC-V Privileged specification cite:[PRIV] cause the IOVA translation process to stop and
 report the detected fault.
 
 [[ATS_FAULTS]]
 === PCIe ATS translation request handling
-ATS translation requests that encounter a configuration error results in a
+ATS cite:[PCI] translation requests that encounter a configuration error results in a
 Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
 
@@ -1705,7 +1706,7 @@ to set the CXL.io bit.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
-To process a "Page Request" or "Stop Marker" message, the IOMMU first locates
+To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first locates
 the device-context to determine if ATS and PRI are enabled for the requestor.
 If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
  IOMMU queues the message into an in-memory queue called the
