@@ -1158,7 +1158,7 @@ PTEs atomically. When updating of A and D bits in G-stage PTEs is enabled
   Privileged specification for validity, permission checking, and atomicity.
 
 . The PTE update must be globally visible before a memory access using the
-  translated address provided by the IOMMU becomes globally visible.u
+  translated address provided by the IOMMU becomes globally visible.
   Specifically, when a translated address is provided to a device in an ATS
   Translation completion, the PTE update must be globally visible before a
   memory access from the device using the translated address becomes globally
