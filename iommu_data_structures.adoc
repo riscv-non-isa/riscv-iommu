@@ -1472,7 +1472,7 @@ determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 [[ENDIAN_CONFIG]]
 .Endianness of memory access to data structures
 [width=75%]
-[%header, cols="16,4"]
+[%header, cols="16,8"]
 |===
 ^|Data Structure             ^| Controlled by
 | Device directory table     | `fctl.BE`
