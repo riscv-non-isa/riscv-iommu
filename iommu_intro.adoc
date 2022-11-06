@@ -517,7 +517,8 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
     be 0.
 .. The privilege mode associated with the request. When a privilege mode is not
    explicitly associated with the request (e.g., using a PCIe PASID), the default
-   privilege mode must be User.
+   privilege mode must be User. For requests without a `process_id` the privilege
+   mode must be User.
 .. The number of bytes accessed by the request.
 .. The IO Bridge may also provide some additional opaque information (e.g. tags)
    that are not interpreted by the IOMMU but returned along with the response
