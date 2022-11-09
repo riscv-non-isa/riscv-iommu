@@ -1686,9 +1686,9 @@ an implementation-defined method for determining PMA for the translated address
 to set the CXL.io bit.
 
 Use of `T2GPA` set to 1 may not be compatible with CXL type 1 or type 2 devices
-as they use the CXL.cache protocol to implement caches tagged by tagged by the
-translated address returned in response to a PCIe ATS Translation Request. The
-IOMMU may not be invoked for translating the addresses in CXL.cache transactions.
+as they use the CXL.cache protocol to implement caches tagged by the translated
+address returned in response to a PCIe ATS Translation Request. The IOMMU may
+not be invoked for translating addresses in CXL.cache transactions.
 ====
 
 
