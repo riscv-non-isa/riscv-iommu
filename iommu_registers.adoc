@@ -125,8 +125,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'Sv39'},
   {bits: 1, name: 'Sv48'},
   {bits: 1, name: 'Sv57'},
-  {bits: 2, name: 'reserved'},
-  {bits: 1, name: 'Svnapot'},
+  {bits: 3, name: 'reserved'},
   {bits: 1, name: 'Svpbmt'},
   {bits: 1, name: 'Sv32x4'},
   {bits: 1, name: 'Sv39x4'},
@@ -168,8 +167,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
                                 When `Sv48` field is set, `Sv39` field must be set.
 |11    |`Sv57`     |RO        | Page-based 57-bit virtual addressing is supported +
                                 When `Sv57` field is set, `Sv48` field must be set.
-|13:12 | reserved  |RO        | Reserved for standard use.
-|14    |`Svnapot`  |RO        | NAPOT translation contiguity.
+|14:12 | reserved  |RO        | Reserved for standard use.
 |15    |`Svpbmt`   |RO        | Page-based memory types.
 |16    |`Sv32x4`   |RO        | Page-based 34-bit virtual addressing for G-stage
                                 translation is supported.
@@ -225,6 +223,9 @@ least 1 hardware performance monitoring counter must be implemented.
 
 At least one method, `MSI` or `WSI`, of generating interrupts from the IOMMU
 must be supported.
+
+IOMMU implementations must support the Svnapot standard extension for NAPOT
+Translation Contiguity.
 
 [NOTE]
 ====
