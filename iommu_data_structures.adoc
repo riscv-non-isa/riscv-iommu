@@ -1274,10 +1274,11 @@ of the Priv, N, CXL.io, Global, and AMA fields is as follows:
 * If requesting device is not a CXL device then CXL.io is set to 0.
 * If requesting device is a CXL type 1 or type 2 device
 ** If the address is determined to be a MSI then the CXL.io bit is set to 1.
-** If the memory type, as determined by the Svpbmt extension, is NC or IO then
-   the CXL.io bit is set to 1. If the memory type is PMA then the determination
-   of the setting of this bit is `UNSPECIFIED`. If the Svpbmt extension is not
-   supported then the setting of this bit is `UNSPECIFIED`.
+** Else if `T2GPA` is 1 in the device context then the CXL.io bit is set to 1.
+** Else if the memory type, as determined by the Svpbmt extension, is NC or IO
+   then the CXL.io bit is set to 1. If the memory type is PMA then the
+   determination of the setting of this bit is `UNSPECIFIED`. If the Svpbmt
+   extension is not supported then the setting of this bit is `UNSPECIFIED`.
 ** In all other cases the setting of this bit is `UNSPECIFIED`.
 * The AMA field is by default set to 000b. The IOMMU may support an
   implementation specific method to provide other encodings.
@@ -1288,6 +1289,11 @@ The IO bridge may override the CXL.io bit in the ATS translation completion
 based on the PMA of the translated address. Other implementations may provide
 an implementation-defined method for determining PMA for the translated address
 to set the CXL.io bit.
+
+Use of `T2GPA` set to 1 may not be compatible with CXL type 1 or type 2 devices
+as they use the CXL.cache protocol to implement caches tagged by the translated
+address returned in response to a PCIe ATS Translation Request. The IOMMU may
+not be invoked for translating addresses in CXL.cache transactions.
 ====
 
 
