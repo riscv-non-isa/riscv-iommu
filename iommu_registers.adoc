@@ -1039,9 +1039,9 @@ status of the page-request-queue.
 === Interrupt pending status register (`ipsr`)
 This 32-bits register (RW1C) reports the pending interrupts which require
 software service. Each interrupt-pending bit in the register corresponds to
-a interrupt source in the IOMMU. When an interrupt-pending bit in the register
-is set to 1 the IOMMU will not signal another interrupt from that source till
-software clears that interrupt-pending bit by writing 1 to clear it.
+a interrupt source in the IOMMU. The interrupt-pending bit in the register once
+set to 1 stays 1 till software clears that interrupt-pending bit by writing 1 to
+clear it.
 
 .Interrupt pending status register fields
 
