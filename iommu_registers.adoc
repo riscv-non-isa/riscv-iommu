@@ -218,8 +218,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |63:56 |_custom_   |RO        | _Designated for custom use_
 |===
 
-If `HPM` is supported then the IOMMU must implement the cycles counter and at
-least 1 hardware performance monitoring counter must be implemented.
+When `HPM` is 1, the `iohpmcycles` and the `iohpmctr1` register must be present
+and be at least 32-bits wide.
 
 At least one method, `MSI` or `WSI`, of generating interrupts from the IOMMU
 must be supported.
@@ -1169,8 +1169,6 @@ There is no associated `iohpmevt0`.
 |63     |`OF`     |RW        | Overflow
 |===
 
-When `capabilities.HPM` is set, the `iohpmcycles` register must be present and
-be at least a 32-bits wide.
 
 [[CTR]]
 === Performance-monitoring event counters (`iohpmctr1-31`)
@@ -1192,8 +1190,6 @@ These registers are 64-bit WARL counter registers.
 |63:0   |`counter`|WARL      | Event counter value.
 |===
 
-When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmctr1` register
-must be present and be at least 32-bits wide.
 
 [[EVT]]
 === Performance-monitoring event selector (`iohpmevt1-31`)
@@ -1258,9 +1254,6 @@ a transactions with a range of IDs to be counted by the counter.
                                  `PID_PSCID` field holds a `PSCID`.
 | 63    |`OF`       |RW        | Overflow status or Interrupt disable
 |===
-
-When `capabilities.HPM` is set, the `iohpmcycles` and the `iohpmevt1` register
-must be present and be at least 32-bits wide.
 
 The table below summarizes the filtering option for events that support
 filtering by IDs.
