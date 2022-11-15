@@ -54,7 +54,7 @@ next entry will be written by the producer. The head register holds the index
 into the queue where the consumer will read the next entry to process.
 
 A queue is empty if the head is equal to the tail. A queue is full if the tail
-is one minus the head. The head and tail wrap around when they reach the end of
+is the head minus one. The head and tail wrap around when they reach the end of
 the circular buffer.
 
 The producer of data must ensure that the data written to queue and the
