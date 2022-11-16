@@ -1274,7 +1274,7 @@ filtering by IDs.
 | 0       |  0          | 1           | If the transaction has a valid
                                         `process_id`, counter increments if
                                         process_id matches `PID_PSCID`.
-| 0       |  1          | 0           | Counter incremented if `device_id`
+| 0       |  1          | 0           | Counter increments if `device_id`
                                         matches `DID_GSCID`.
 | 0       |  1          | 1           | If the transaction does not have a
                                         valid `process_id`, counter increments
@@ -1287,7 +1287,7 @@ filtering by IDs.
                                         `process_id`, counter increments if
                                         the `PSCID` of that process matches
                                         `PID_PSCID`.
-| 1       |  1          | 0           | Counter incremented if `GSCID` of the
+| 1       |  1          | 0           | Counter increments if `GSCID` of the
                                         device matches `DID_GSCID`.
 | 1       |  1          | 1           | If the transaction does not have a
                                         valid `process_id`, counter increments
@@ -1337,7 +1337,7 @@ The following table lists the standard events that can be counted:
 | 9 - 16383 | reserved for future standard | -
 |===
 
-Some events types may be filtered by IDs. When a event type that does not
+Some event types may be filtered by IDs. When an event type that does not
 support filtering by IDs is programmed then the associated counter does not
 increment.
 
@@ -1385,8 +1385,8 @@ required to comply with this specification. One counter may be used in a time
 multiplexed manner to sample events but such analysis may take longer to
 complete. The IOMMU, unlike the CPU MMU, services multiple streams of IO and
 the HPM may be used by a performance analyst to analyze one or more of those
-streams concurrently. Typically a performance analyst may require four
-programmable counters, to count events for an IO stream. To support concurrent
+streams concurrently. Typically, a performance analyst may require four
+programmable counters to count events for an IO stream. To support concurrent
 analysis of at least two streams of IO it is recommended to support seven
 programmable counters.
 ====
@@ -1451,9 +1451,9 @@ translation-request interface for debug. This register is present when
                                  The IOMMU indicates completion of the
                                  requested translation by clearing this
                                  bit to 0. On completion, the results
-                                 of the translation are in `tr_response`
+                                 of the translation are in the `tr_response`
                                  register.
-| 1     |`Priv`     |WARL      | When set to 1 the requests needs Privileged
+| 1     |`Priv`     |WARL      | When set to 1 the request needs Privileged
                                  Mode access for this translation.
 | 2     |`Exe`      |WARL      | When set to 1 the request needs execute
                                  access for this translation.
@@ -1504,7 +1504,7 @@ This register is present when `capabilities.DBG == 1`.
 |8:7    |`PBMT`     |RO        | Memory type determined for the translation
                                  using the PBMT fields in the S/VS-stage and/or
                                  the G-stage page tables used for the
-                                 translation. This value of field is
+                                 translation. This value of this field is
                                  `UNSPECIFIED` if the `fault` field is 1.
 |9      |`S`        |RO        | Translation range size field, when set to 1
                                  indicates that the translation applies to a
@@ -1562,11 +1562,11 @@ size configured in the page tables.
 === Interrupt-cause-to-vector register (`icvec`)
 
 Interrupt-cause-to-vector register maps a cause to a vector.  All causes can
-be mapped to same vector or a cause can be given a unique vector.
+be mapped to the same vector or a cause can be given a unique vector.
 
 The vector is used:
 
-. By an IOMMU that generates interrupts as MSI, to index into MSI
+. By an IOMMU that generates interrupts as MSIs, to index into MSI
   configuration table (`msi_cfg_tbl`) to determine the MSI to generate. An
   IOMMU is capable of generating interrupts as a MSI if `capabilities.IGS==MSI`
   or if `capabilities.IGS==BOTH`. When `capabilities.IGS==BOTH` the IOMMU may be
@@ -1612,13 +1612,13 @@ supported then only bit 0 for each cause could be writable.
                                is the vector number assigned to the
                                page-request-queue-interrupt.
 | 31:16 |`reserved`|WPRI     | Reserved for standard use
-| 63:32 |_custom_  |WPRI     | _Designated for custom use
+| 63:32 |_custom_  |WPRI     | _Designated for custom use_
 |===
 
 [[MSI]]
 === MSI configuration table (`msi_cfg_tbl`)
-IOMMU that supports generating IOMMU originated interrupts
-(i.e., `capabilities.IGS == MSI` or `capabilities.IGS == BOTH`) as MSI
+An IOMMU that supports generating IOMMU-originated interrupts
+(i.e., `capabilities.IGS == MSI` or `capabilities.IGS == BOTH`) as MSIs
 implements a MSI configuration table that is indexed by the vector from `icvec`
 to determine a MSI table entry. Each MSI table entry for interrupt vector `x`
 has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctl_x`. These
@@ -1691,7 +1691,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |0      |`M`   |RW        | When the mask bit `M` is 1, the corresponding
                             interrupt vector is masked and the IOMMU is
                             prohibited from sending the associated message.
-                            Pending message for that vector are later
+                            Pending messages for that vector are later
                             generated if the corresponding mask bit is
                             cleared to 0.
 |31:1   |`WPRI`|WPRI      | Reserved for standard use.
