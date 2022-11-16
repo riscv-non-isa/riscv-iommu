@@ -94,6 +94,7 @@ The reset value is 0 for the following registers/fields.
 * `cqcsr`
 * `fqcsr`
 * `pqcsr`
+* `ipsr`
 
 Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`. The
 reset value for `ddtp.busy` field must be 0.
