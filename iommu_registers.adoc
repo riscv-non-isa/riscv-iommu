@@ -1046,7 +1046,7 @@ clear it.
 When `fctl.WSI` is 1, the interrupt-pending bit drives the wire selected by
 the corresponding `icvec` field to signal an interrupt.
 
-When `fctl.WSI` is 0, the generates messages to signal interrupts. Unlike
+When `fctl.WSI` is 0, the IOMMU signals interrupts using messages. Unlike
 wire-signaled interrupts, MSI have edge semantics and an interrupt message is
 generated when an interrupt-pending bit transitions from 0 to 1. The address
 and data for the message are obtained from the `msi_cfg_tbl` entry selected by
