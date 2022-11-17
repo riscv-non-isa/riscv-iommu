@@ -1101,9 +1101,6 @@ file and translating the address using the MSI page table is as follows:
 . If the address is not determined to be that of a virtual interrupt file then
   stop this process and instead use the regular translation data structures to
   do the address translation.
-. If the request is a Untranslated or Translated read-for-execute transaction
-  then stop this process and instead use the regular translation data structures
-  to do the address translation.
 . Extract an interrupt file number `I` from `A` as
   `I = extract(A >> 12, DC.msi_addr_mask)`. The bit extract function
   `extract(x, y)` discards all bits from `x` whose matching bits in the same
