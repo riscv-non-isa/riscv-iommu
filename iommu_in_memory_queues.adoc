@@ -371,7 +371,7 @@ globally.
 
 The `AV` command operand indicates if `ADDR[63:2]` operand and `DATA` operands are
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address
-`ADDR[63:2] * 4` as a 4-byte store.
+`ADDR[63:2] * 4` as a 4-byte store when the command completes.
 
 [NOTE]
 ====
