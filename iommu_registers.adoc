@@ -1329,9 +1329,8 @@ The following table lists the standard events that can be counted:
 | 9 - 16383 | reserved for future standard | -
 |===
 
-Some event types may be filtered by IDs. When an event type that does not
-support filtering by IDs is programmed then the associated counter does not
-increment.
+When the programmed `IDT` setting is not supported for an event then the
+associated counter does not increment.
 
 The `OF` bit is set when the corresponding `iohpmctr1-31` counter overflows,
 and remains set until cleared by software. Since `iohpmctr1-31` values are
