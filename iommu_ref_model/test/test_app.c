@@ -1959,7 +1959,6 @@ main(void) {
     iodir(INVAL_DDT, 1, 0x112233, 0);
 
     // Do a napot PTE
-    g_reg_file.capabilities.Svnapot = 1;
     pte.raw = 0;
     pte.V = 1;
     pte.R = 1;

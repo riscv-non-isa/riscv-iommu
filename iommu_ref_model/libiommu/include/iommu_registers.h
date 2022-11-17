@@ -31,8 +31,7 @@ typedef union {
         uint64_t Sv39    : 1;      // Page-based 39-bit virtual addressing is supported
         uint64_t Sv48    : 1;      // Page-based 48-bit virtual addressing is supported
         uint64_t Sv57    : 1;      // Page-based 57-bit virtual addressing is supported
-        uint64_t rsvd0   : 2;      // Reserved for standard use.
-        uint64_t Svnapot : 1;      // NAPOT translation contiguity.
+        uint64_t rsvd0   : 3;      // Reserved for standard use.
         uint64_t Svpbmt  : 1;      // Page-based memory types.
         uint64_t Sv32x4  : 1;      // Page-based 34-bit virtual addressing for G-stage
                                    // translation is supported

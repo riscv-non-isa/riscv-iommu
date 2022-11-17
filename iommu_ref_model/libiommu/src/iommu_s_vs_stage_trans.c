@@ -137,7 +137,6 @@ step_2:
     //    encodings that are reserved for future standard use are set within pte,
     //    stop and raise a page-fault exception to the original access type.
     if ( (pte->V == 0) || (pte->R == 0 && pte->W == 1) || 
-         ((pte->N == 1) && (g_reg_file.capabilities.Svnapot == 0)) ||
          ((pte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (pte->PBMT == 3) ||
          (pte->reserved != 0) )
