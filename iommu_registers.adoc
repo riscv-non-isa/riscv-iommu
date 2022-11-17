@@ -88,17 +88,19 @@ the register returns 0 and writes to that offset are ignored.
 |===
 
 === Reset behavior
-The reset value is 0 for the following registers/fields.
+The reset value is 0 for the following registers fields.
 
-* `fctl`
-* `cqcsr`
-* `fqcsr`
-* `pqcsr`
+* `cqcsr` - `cqen`, `cqie`, `cqon`, and `busy`
+* `fqcsr` - `fqen`, `fqie`, `fqon`, and `busy`
+* `pqcsr` - `pqen`, `pqie`, `pqon`, and `busy`
+* `tr_req_ctl.Go/Busy`
+* `ddtp.busy`
 
-The reset value for the `ddtp.iommu_mode` field must be either `Off` or `Bare`. The
-reset value for the `ddtp.busy` field must be 0.
+The reset value is 0 for the following registers.
 
-The reset value for the `tr_req_ctl.Go/Busy` field must be 0.
+* `ipsr`
+
+Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`.
 
 After a reset the caches (<<CACHING>>) must have no valid entries.
 
