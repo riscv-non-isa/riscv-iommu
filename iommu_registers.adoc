@@ -377,7 +377,7 @@ The device-context is 64-bytes in size if `capabilities.MSI_FLAT` is 1 else it i
 
 When the `iommu_mode` is `Bare` or `Off`, the `PPN` field is don't-care. When
 in `Bare` mode only Untranslated requests are allowed. Translated requests,
-Translation request, and message transactions are unsupported.
+Translation request, and PCIe message transactions are unsupported.
 
 All IOMMUs must support `Off` and `Bare` mode. An IOMMU is allowed to support a
 subset of directory-table levels and device-context widths. At a minimum one
@@ -614,8 +614,8 @@ IOMMU queues the next fault record.
 [[PQB]]
 === Page-request-queue base (`pqb`)
 
-This 64-bit register (RW) holds the PPN of the root page of the
-page-request-queue and number of entries in the queue. Each page-request
+This 64-bit register (WARL) holds the PPN of the root page of the
+page-request-queue and number of entries in the queue. Each "Page Request"
 message is 16 bytes.
 
 The IOMMU behavior on writing `pqb` when `pqcsr.busy` or `pqon` bits are 1 is
@@ -988,10 +988,10 @@ status of the page-request-queue.
 |7:2   |`reserved`|WPRI     | Reserved for standard use
 |8     |`pqmf`    |RW1C     | The `pqmf` bit is set to 1 if the IOMMU
                               encounters an access fault when storing a
-                              page-request message to the page-request-queue. +
+                              "Page Request" message to the page-request-queue. +
                                                                                +
                               The "Page Request" message that caused the `pqmf`
-                              or `pqof` error and all subsequent page-request
+                              or `pqof` error and all subsequent "Page Request"
                               messages are discarded until software clears the
                               `pqof` and/or `pqmf` bits by writing 1 to it. +
                                                                                +
@@ -1002,12 +1002,12 @@ status of the page-request-queue.
                               <<ATS_PRI>>.
 |9     |`pqof`    |RW1C     | The page-request-queue-overflow bit is set to 1
                               if the page-request queue overflows i.e. IOMMU
-                              needs to queue a page-request message but the
+                              needs to queue a "Page Request" message but the
                               page-request queue is full
                               (i.e., `pqh == pqt - 1`). +
                                                                                +
                               The "Page Request" message that caused the `pqmf`
-                              or `pqof` error and all subsequent page-request
+                              or `pqof` error and all subsequent "Page Request"
                               messages are discarded until software clears the
                               `pqof` and/or `pqmf` bits by writing 1 to it. +
                                                                                +
@@ -1086,8 +1086,9 @@ interrupt-pending bit.
                               `iohpmctr1-31` registers transitions from 0 to 1.
 |3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending is set to
                               1 if `pqcsr.pie` is 1 and any of the `pqof` or
-                              `pqmf` bits in `pqcsr` are 1 or if a new message
-                              is produced in the page-request queue.
+                              `pqmf` bits in `pqcsr` are 1 or if a new "Page
+                              Request" message is produced in the page-request
+                              queue.
 |7:4    |`reserved`  |WPRI  | Reserved for standard use
 |15:8   |_custom_    |WPRI  | _Designated for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use
