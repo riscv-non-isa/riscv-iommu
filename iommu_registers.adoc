@@ -1039,9 +1039,18 @@ status of the page-request-queue.
 === Interrupt pending status register (`ipsr`)
 This 32-bit register (RW1C) reports the pending interrupts which require
 software service. Each interrupt-pending bit in the register corresponds to
-an interrupt source in the IOMMU. When an interrupt-pending bit in the register
-is set to 1 the IOMMU will not signal another interrupt from that source until
-software clears that interrupt-pending bit by writing 1 to clear it.
+a interrupt source in the IOMMU. The interrupt-pending bit in the register once
+set to 1 stays 1 till software clears that interrupt-pending bit by writing 1 to
+clear it.
+
+When `fctl.WSI` is 1, the interrupt-pending bit drives the wire selected by
+the corresponding `icvec` field to signal an interrupt.
+
+When `fctl.WSI` is 0, the IOMMU signals interrupts using messages. MSI have edge
+semantics and an interrupt message is generated when an interrupt-pending bit
+transitions from 0 to 1. The address and data for the message are obtained from
+the `msi_cfg_tbl` entry selected by the `icvec` field corresponding to the
+interrupt-pending bit.
 
 .Interrupt pending status register fields
 
