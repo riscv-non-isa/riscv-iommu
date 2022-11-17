@@ -981,6 +981,9 @@ The process to translate an `IOVA` is as follows:
   process then stop and report the fault.
 . Translation process is complete
 
+When checking the `U` bit in a G-stage PTE, the transaction is treated as not
+requesting supervisor privilege.
+
 When the translation process reports a fault, and the request is an Untranslated
 request or a Translated request, the IOMMU requests the IO bridge to abort the
 transaction. Guidelines for handling faulting transactions in the IO bridge are
@@ -1135,6 +1138,10 @@ file and translating the address using the MSI page table is as follows:
 .. The destination address of the notice MSI is `msipte.NPPN << 12`.
 .. Let `NID` be `(msipte.N10 << 10) | msipte.N[9:0]`. The data value for notice
    MSI is the 11-bit `NID` value zero-extended to 32-bits.
+. The access permissions associated with the translation determined through this
+  process are equivalent to that of a regualar RISC-V G-stage PTE with
+  `R`=`W`=`U`=1 and `X`=0. Similar to a G-stage PTE, when checking the `U` bit,
+  the transaction is treated as not requesting supervisor privilege.
 . MSI address translation process is complete.
 
 [NOTE]
