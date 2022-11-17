@@ -220,7 +220,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |63:56 |_custom_   |RO        | _Designated for custom use_
 |===
 
-When `HPM` is 1, the `iohpmcycles` and the `iohpmctr1` register must be present
+When `HPM` is 1, the `iohpmcycles` and the `iohpmctr1` registers must be present
 and be at least 32-bits wide.
 
 At least one method, `MSI` or `WSI`, of generating interrupts from the IOMMU
