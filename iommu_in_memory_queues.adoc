@@ -636,13 +636,13 @@ The `TTYP` field reports inbound transaction type.
 |6      | Translated read transaction
 |7      | Translated write/AMO transaction
 |8      | PCIe ATS Translation Request
-|9      | Message Request
+|9      | PCIe Message Request
 |10 - 15| Reserved
 |16 - 31| Designated for custom use
 |===
 
 If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If
-the `TTYP` is a message request then the message code is reported in `iotval`.
+the `TTYP` is a PCIe message request then the message code is reported in `iotval`.
 If `TTYP` is 0, then the value reported in `iotval` and `iotval2` fields is
 as defined by the `CAUSE`.
 
@@ -733,7 +733,7 @@ access fault (`pqmf`) bit in `pqcsr`. While either error bits are set in
 the message that caused the error bits to be set. "Page request" messages that
 do not require a response, i.e. those with the "Last Request in PRG" field is 0,
 are silently discarded. "Page request" messages that require a response, i.e.
-those with "Last Request in PRG" field set to 1 and are not Stop Marker
+those with "Last Request in PRG" field set to 1 and are not "Stop Marker"
 messages, may be auto-completed by an IOMMU generated “Page Request Group
 Response” message as specified in <<ATS_PRI>>.
 
@@ -762,7 +762,8 @@ message did not have a PASID, otherwise it holds the “Privilege Mode Requested
 bit from the TLP. `X` bit is set to 0 if the message did not have a PASID,
 otherwise it reports the “Execute Requested” bit from the TLP. All other fields
 are set to 0. The payload of the “Page Request” message (bytes 0x08 through 0x0F
-of the message) is held in the `PAYLOAD` field.
+of the message) is held in the `PAYLOAD` field. If `R` and `W` are both 0 and
+`L` is 1, the message is "Stop Marker".
 
 The page-request-queue records are interpreted as two 64-bit doublewords. The byte
 order of each of the doublewords in memory, little-endian or big-endian, is the
@@ -784,5 +785,3 @@ specification cite:[PCI]. The `PAYLOAD` field is formatted as follows:
   {bits: 32, name: 'Page Address[63:32]'},
 ], config:{lanes: 2, hspace:1024, fontsize:12}}
 ....
-
-
