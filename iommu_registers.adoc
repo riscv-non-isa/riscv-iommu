@@ -1674,7 +1674,7 @@ and `iotval` set to the value of `msi_addr_x`.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field |Attribute |Description
-|31:0   |`data`| RW       | Holds the 4-byte MSI data
+|31:0   |`data`| WARL     | Holds the MSI data
 |===
 
 
