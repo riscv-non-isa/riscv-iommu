@@ -637,9 +637,8 @@ features:
 * Hardware updating of PTE Accessed and Dirty bits.
 
 * Identifying memory accesses to a virtual interrupt file and MSI address
-  translation, using MSI page tables, to redirect MSIs to interrupt files in an
-  IMSIC using MSI PTEs in translate-R/W mode and redirecting MSI to
-  memory-resident interrupt files (MRIFs) using MSI PTEs in MRIF mode.
+  translation using MSI page tables specified by the RISC-V Advanced
+  Interrupt Architecture cite:[AIA].
 
 * Svnapot and Svpbmt extensions.
 
