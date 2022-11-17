@@ -1384,7 +1384,7 @@ programmable counters.
 
 [[TRR_IOVA]]
 === Translation-request IOVA (`tr_req_iova`)
-The `tr_req_iova` is a 64-bit WARL register used to implement a
+The `tr_req_iova` is a 64-bit register used to implement a
 translation-request interface for debug. This register is present when
 `capabilities.DBG == 1`.
 
@@ -1393,7 +1393,7 @@ translation-request interface for debug. This register is present when
 [wavedrom, , ]
 ....
 {reg: [
-  {bits: 12, name: 'pgoff'},
+  {bits: 12, name: 'reserved'},
   {bits: 52, name: 'iova_vpn'},
 ], config:{lanes: 2, hspace:1024}}
 ....
@@ -1402,7 +1402,7 @@ translation-request interface for debug. This register is present when
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field      |Attribute | Description
-| 11:0  |`pgoff`    |WARL      | The IOVA page-offset
+| 11:0  |`reserved` |WPRI      | Reserved for standard use
 | 63:12 |`iova_vpn` |WARL      | The IOVA virtual page number
 |===
 
