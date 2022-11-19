@@ -1139,9 +1139,11 @@ file and translating the address using the MSI page table is as follows:
 .. Let `NID` be `(msipte.N10 << 10) | msipte.N[9:0]`. The data value for notice
    MSI is the 11-bit `NID` value zero-extended to 32-bits.
 . The access permissions associated with the translation determined through this
-  process are equivalent to that of a regualar RISC-V G-stage PTE with
+  process are equivalent to that of a regular RISC-V G-stage PTE with
   `R`=`W`=`U`=1 and `X`=0. Similar to a G-stage PTE, when checking the `U` bit,
   the transaction is treated as not requesting supervisor privilege.
+. If the transaction is a Untranslated or Translated read-for-execute then stop
+  and report "Instruction guest page fault" (cause = 20).
 . MSI address translation process is complete.
 
 [NOTE]
