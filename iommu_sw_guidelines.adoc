@@ -2,7 +2,7 @@
 
 == Software guidelines
 
-This section provides guidelines to software developers on correct and
+This section provides guidelines to software developers on the correct and
 expected sequence of using the IOMMU interfaces. The behavior of the IOMMU
 if these guidelines are not followed is implementation defined.
 
@@ -26,7 +26,7 @@ The guidelines for initializing the IOMMU are as follows:
   `capabilities.END` field is 0 (i.e. only one endianness) and `fctl.BE` is
   0 (i.e. little endian).
 . If big-endian memory access is needed and the `capabilities.END` field is 1
-  (i.e. both endianness supported), set `fctl.BE` to 1 (i.e. big endian)
+  (i.e. both endiannesses supported), set `fctl.BE` to 1 (i.e. big endian)
   if the field is not already 1.
 . Stop and report failure if wired-signaled-interrupts are needed for IOMMU
   initiated interrupts and `capabilities.IGS` is not `WSI`.
@@ -61,12 +61,12 @@ The guidelines for initializing the IOMMU are as follows:
   number (PPN) of the allocated memory buffer. Program the command queue
   registers as follows:
 
-**  Poll on `cqcsr.busy` till it reads 0
+**  Poll on `cqcsr.busy` until it reads 0
 **  `temp_cqb_var.PPN = B`
 **  `temp_cqb_var.LOG2SZ-1 = (k - 1)`
 **  `cqb = temp_cqb_var`
 **  `cqcsr.cqen = 1`
-**  Poll on `cqcsr.cqon` till it reads 1
+**  Poll on `cqcsr.cqon` until it reads 1
 
 . To program the fault queue, first determine the number of entries N needed in
   the fault queue. The number of entries in the fault queue is always a power
@@ -76,28 +76,28 @@ The guidelines for initializing the IOMMU are as follows:
   `N` x 32-byte address boundary. Let `k=log~2~(N)` and `B` be the PPN of the
   allocated memory buffer. Program the fault queue registers as follows:
 
-**  Poll on `fqcsr.busy` till it reads 0
+**  Poll on `fqcsr.busy` until it reads 0
 **  `temp_fqb_var.PPN = B`
 **  `temp_fqb_var.LOG2SZ-1 = (k - 1)`
 **  `fqb = temp_fqb_var`
 **  `fqcsr.fqen = 1`
-**  Poll on `fqcsr.fqon` till it reads 1
+**  Poll on `fqcsr.fqon` until it reads 1
 
 . To program the page-request queue, first determine the number of entries `N`
   needed in the page-request queue. The number of entries in the page-request
-  queue is always a power of. If `N` is 256 or lower then allocate a memory
+  queue is always a power of two. If `N` is 256 or lower then allocate a memory
   buffer that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If
   `N` is greater than 256 then allocate a memory buffer at an address that is
   naturally aligned to a `N` x 16-byte address boundary. Let `k=log~2~(N)` and
   `B` be the PPN of the allocated memory buffer. Program the page-request queue
   registers as follows:
 
-**  Poll on `pqcsr.busy` till it reads 0
+**  Poll on `pqcsr.busy` until it reads 0
 **  `temp_pqb_var.PPN = B`
 **  `temp_pqb_var.LOG2SZ-1 = (k - 1)`
 **  `pqb = temp_pqb_var`
 **  `pqcsr.pqen = 1`
-**  Poll on `pqcsr.pqon` till it reads 1
+**  Poll on `pqcsr.pqon` until it reads 1
 
 . To program the DDT pointer, first determine the supported `device_id` width `Dw`
   and the format of the device-context data structure. If `capabilities.MSI` is
@@ -138,11 +138,11 @@ commands fetched from the `CQ` have been completed and committed.
 
 [[DC_CHANGE]]
 ==== Changing device directory table entry
-If software changes a leaf-level DDT entry i.e, a device context (`DC`), of
-device with `device_id = D` then the following invalidations must be performed:
+If software changes a leaf-level DDT entry (i.e, a device context (`DC`), of
+device with `device_id = D`) then the following invalidations must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
-* If `DC.tc.PDTV==1`, `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
+* If `DC.tc.PDTV==1` then `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
 
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
@@ -158,14 +158,14 @@ must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=0`
 
-Between change to the DDT entry and when an invalidation command to invalidate
+Between a change to the DDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or
 the new value of the entry.
 
 [[PC_CHANGE]]
 ==== Changing process directory table entry
-If software changes a leaf-level PDT entry i.e, a process context (PC), for
-`device_id=D` and `process_id=P` then the following invalidations must be
+If software changes a leaf-level PDT entry (i.e, a process context (PC), for
+`device_id=D` and `process_id=P`) then the following invalidations must be
 performed:
 
 * `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
@@ -175,14 +175,14 @@ performed:
 * else
 ** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
 
-Between change to the PDT entry and when an invalidation command to invalidate
+Between a change to the PDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or
 the new value of the entry.
 
 [[MSI_PT_CHANGE]]
 ==== Changing MSI page table entry
-If software changes a MSI page-table entry identified by by interrupt file
-number `I` that corresponds to an untranslated MSI address `A` then following
+If software changes a MSI page-table entry identified by interrupt file
+number `I` that corresponds to an untranslated MSI address `A` then the following
 invalidations must be performed:
 
 * If `DC.iohgatp.MODE == Bare`
@@ -202,19 +202,19 @@ invalidations must be performed:
 * else
 ** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 
-Between change to the MSI PTE and when an invalidation command to invalidate
+Between a change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
 or the new PTE value.
 
 ==== Changing G-stage page table entry
 If software changes a leaf G-stage page-table entry of a VM where the change
-affects translation for a guest-PPN `G` then following invalidations must be
+affects translation for a guest-PPN `G` then the following invalidations must be
 performed:
 
 * `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
 
 If software changes a non-leaf G-stage page-table entry of a VM
-then following invalidations must be performed:
+then the following invalidations must be performed:
 
 * `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
 
@@ -225,7 +225,7 @@ must invalidate all such cached `DC` using `IODIR.INVAL_DDT` with `DV=1` and
 `DID` set to the corresponding `device_id`.  Alternatively, an
 `IODIR.INVAL_DDT` with `DV=0` may be used to invalidate all cached `DC`.
 
-Between change to the G-stage PTE and when an invalidation command to
+Between a change to the G-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
@@ -249,20 +249,20 @@ invalidations using `IOTINVAL.VMA` with `GV=1`, `GSCID=DC.iohgatp.GSCID` and
 `AV` and `PSCV` operands appropriate for the modification as specified in
 <<IVMA>>.
 
-Between change to the S/VS-stage PTE and when an invalidation command to
+Between a change to the S/VS-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
 ==== Accessed (A)/Dirty (D) bit updates and page promotions
 
-When IOMMU supports hardware managed A and D bit updates, if software clears
+When IOMMU supports hardware-managed A and D bit updates, if software clears
 the A and/or D bit in the S/VS-stage and/or G-stage PTEs then software must
 invalidate corresponding PTE entries that may be cached by the IOMMU. If such
 invalidations are not performed, then the IOMMU may not set these bits when
 processing subsequent transactions that use such entries.
 
-When software upgrades a page in S/VS-stage PTE and/or a G-stage PTE to
-a superpage without first clearing the original non-leaf PTEs valid bit and
+When software upgrades a page in a S/VS-stage PTE and/or a G-stage PTE to
+a superpage without first clearing the original non-leaf PTE's valid bit and
 invalidating cached translations in the IOMMU then it is possible for the
 IOMMU to cache multiple entries that match a single address. The IOMMU may
 use either the old non-leaf PTE or the new non-leaf PTE but the behavior is
@@ -287,8 +287,8 @@ following the rules defined in PCIe ATS specifications cite:[PCI].
 
 If software generates ATS invalidate requests at a rate that exceeds the
 average DevATC service rate then flow control mechanisms may be triggered by
-the device to throttle the rate and a side effect of this is congestion
-spreading to other channels and links and could lead to performance
+the device to throttle the rate. A side effect of this is congestion
+spreading to other channels and links which could lead to performance
 degradation. An ATS capable device publishes the maximum number of
 invalidations it can buffer before causing back-pressure through the Queue
 Depth field of the ATS capability structure. When the device is virtualized
@@ -330,17 +330,17 @@ must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
 ==== Guidelines for handling interrupts from IOMMU
-IOMMU may generate an from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each
+IOMMU may generate an interrupt from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
 as a MSI or a wire-signaled-interrupt. The interrupt handler may perform the
 following actions:
 
 . Read the `ipsr` register to determine the source of the pending interrupts
-. If `ipsr.cip` bit is set then an interrupt is pending from the `CQ`.
+. If the `ipsr.cip` bit is set then an interrupt is pending from the `CQ`.
 .. Read the `cqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the
-   error by examining the state of the `cmd_to`, `cmd_ill`, and `cqmf` bits
+   error by examining the state of the `cmd_to`, `cmd_ill`, and `cqmf` bits.
    If any of these bits are set then the `CQ` encountered an error and command
    processing is temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
@@ -352,7 +352,7 @@ following actions:
    processing does not stop when `fence_w_ip` is set to 1. Software handler
    may re-enable interrupts from `CQ` on `IOFENCE.C` completions by clearing
    this bit by writing 1 to it.
-. If `ipsr.fip` bit is set then an interrupt is pending from the `FQ`.
+. If the `ipsr.fip` bit is set then an interrupt is pending from the `FQ`.
 .. Read the `fqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
    by examining the state of the `fqmf` and `fqof` bits. If either of these bits
@@ -367,7 +367,7 @@ following actions:
    and contains fault/event reports that need processing.
 .. Process pending fault/event reports that need processing and remove them from
    the `FQ` by advancing the `fqh` by the number of records processed.
-. If `ipsr.pip` bit is set then an interrupt is pending from the `PQ`.
+. If the `ipsr.pip` bit is set then an interrupt is pending from the `PQ`.
 .. Read the `pqcsr`register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
    by examining the state of the `pqmf` and `pqof` bits. If either of these bits
@@ -378,7 +378,7 @@ following actions:
 ... Clearing all error indication bits in `pqcsr` re-enables "Page Request"
    reporting.
 .. Read the `pqt` and `pqh` registers.
-.. If value of `pqt` is not equal to value of `pqh` then the `PQ` is not empty
+.. If value of `pqt` is not equal to the value of `pqh` then the `PQ` is not empty
    and contains "Page Request" messages that need processing.
 .. Process pending "Page Request" messages that need processing and remove them
    from the `PQ` by advancing the `pqh` by the number of records processed.
