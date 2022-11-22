@@ -571,7 +571,8 @@ identified by a VS-stage page table with a `process_id`.
 | 3    | `PD20`   | 20-bit process ID enabled. The directory has 3 levels.
                     The root PDT has 8 entries and the next non-leaf
                     level has 512 entries. The leaf level has 256 entries.
-| 4-15 | --       | Reserved
+|  4-13| --       | Reserved for standard use.
+| 14-15| --       | Designated for custom use.
 |===
 
 ===== MSI page table pointer (`msiptp`)
@@ -601,6 +602,8 @@ The `MODE` field is used to select the MSI address translation scheme.
                     a virtual interrupt file using MSI address mask and
                     pattern is not performed.
 | 1    | `Flat`   | Flat MSI page table
+|  2-13| --       | Reserved for standard use.
+| 14-15| --       | Designated for custom use.
 |===
 
 [[MSI_ID]]
