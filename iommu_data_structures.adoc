@@ -961,12 +961,12 @@ The process to translate an `IOVA` is as follows:
    (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a S-stage page-table else
    it is a VS-stage page table.
 . If a G-stage page table is not active in the device-context then use the
-  single stage address translation process specified in Section 4.3.2 of the
-  RISC-V privileged specification cite:[PRIV]. If a fault is detected by the
-  single stage address translation process then stop and report the fault else
-  go to step 21.
+  single-stage address translation process specified in Section "Virtual Address
+  Translation Process" of the RISC-V privileged specification cite:[PRIV]. If a
+  fault is detected by the single stage address translation process then stop and
+  report the fault else go to step 21.
 . If a G-stage page table is active in the device-context then use the
-  two-stage address translation process specified in Section 8.5 of the RISC-V
+  process specified in Section "Two-Stage Address Translation" of the RISC-V
   Privileged specification cite:[PRIV] to perform the VS-stage address translation to
   determine the GPA accessed by the transaction. If a fault is detected by the
   two stage address translation process then stop and report the fault. If the
@@ -978,10 +978,10 @@ The process to translate an `IOVA` is as follows:
   a fault is detected by the MSI address translation process then stop and
   report the fault else the process continues at step 21.
 . If a G-stage page table is active in the device-context then use the
-  G-stage address translation process specified in Section 8.5 of the RISC-V
-  Privileged specification cite:[PRIV] to translate the GPA `A` to determine the SPA accessed
-  by the transaction. If a fault is detected by the two stage address translation
-  process then stop and report the fault.
+  G-stage address translation process specified in Section "Two-Stage Address
+  Translation" of the RISC-V Privileged specification cite:[PRIV] to translate the
+  GPA `A` to determine the SPA accessed by the transaction. If a fault is detected
+  by the address translation process then stop and report the fault.
 . Translation process is complete
 
 When checking the `U` bit in a G-stage PTE, the transaction is treated as not
