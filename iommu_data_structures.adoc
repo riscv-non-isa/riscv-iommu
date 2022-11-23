@@ -1435,8 +1435,8 @@ atomic. When RV32 is implemented the size of a single-copy atomic memory access
 is up to 32-bits. When RV64 is implemented the size of a single-copy atomic
 memory access is up to 64-bits. The size of a single-copy atomic memory access
 implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
-when the harts in the system implement RV32 and is required to be 64-bits when
-the harts in the system implement RV64.
+if all of the harts in the system implement RV32 and is required to be 64-bits
+if any of the harts in the system implement RV64.
 
 The IOMMU data structure entries have a `V` bit that when set to 1 indicates
 that the entry is valid.
