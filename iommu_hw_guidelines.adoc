@@ -13,7 +13,7 @@ Such IOMMU must map the IOMMU registers defined in this specification as PCIe
 BAR mapped registers.
 
 The IOMMU may support MSI or MSI-X or both. When MSI-X is supported,  the MSI-X
-capability block must point to the `msi_tbl` in BAR mapped registers such that
+capability block must point to the `msi_cfg_tbl` in BAR mapped registers such that
 system software can configure MSI address and data pairs for each message
 supported by the IOMMU. The MSI-X PBA may be located in the same BAR or
 another BAR of the IOMMU. The IOMMU is recommended to support MSI-X capability.
@@ -85,8 +85,15 @@ faulting transactions:
 * MSI PT data corruption (cause = 270)
 * MSI MRIF data corruption (cause = 271)
 * Internal data-path error (cause = 272)
-* For VS/S/G-stage PTE report the cause code defined by the RISC-V RAS
-  specification.
+
+For data corruption detected on S/VS/G-stage PTEs, an implementation defined
+custom cause code may be reported.
+
+[NOTE]
+====
+A future RISC-V RAS extension may specify a standard cause code for S/VS/G-stage
+PTE data corruption.
+====
 
 If the IO bridge is not capable of signaling such deferred errors uniquely
 from other errors that prevent the IOMMU from accessing in-memory data
