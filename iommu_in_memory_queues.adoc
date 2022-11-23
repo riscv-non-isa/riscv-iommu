@@ -620,6 +620,9 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |273   | IOMMU MSI write access fault        | Yes
 |===
 
+The `CAUSE` encodings 274 through 2047 are reserved for future standard use and
+the encodings 2048 through 4095 are designated for custom use.
+
 The `TTYP` field reports inbound transaction type.
 
 .Fault record `TTYP` field encodings
