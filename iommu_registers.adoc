@@ -212,7 +212,7 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 
 |30    |`HPM`     |RO         | IOMMU implements a hardware performance monitor.
 |31    |`DBG`      |RO        | IOMMU supports the translation-request interface
-|37:32 |`PAS`      |RO        | Physical Address Size (value between 32 and 56)
+|37:32 |`PAS`      |RO        | Physical Address Size supported by the IOMMU.
 |38    |`PD8`      |RO        | One level PDT with 8-bit process_id supported.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
