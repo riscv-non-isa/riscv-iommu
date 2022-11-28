@@ -342,11 +342,13 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                                      memory accesses are passed
                                                      through.
                                 !2      ! `1LVL`   ! One-level
-                                                     device-directory-table
+                                                     device-directory-table.
                                 !3      ! `2LVL`   ! Two-level
-                                                     device-directory-table
+                                                     device-directory-table.
                                 !4      ! `3LVL`   ! Three-level
-                                                     device-directory-table
+                                                     device-directory-table.
+                                !5-13   ! reserved ! Reserved for standard use.
+                                !14-15  ! custom   ! Designated for custom use.
 !===
 |4     |`busy`     |RO        | A write to `ddtp` may require the IOMMU to
                                 perform many operations that may not occur
