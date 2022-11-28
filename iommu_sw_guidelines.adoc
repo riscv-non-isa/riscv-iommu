@@ -319,7 +319,7 @@ PTEs whose `V` bit is clear.
 Software need not perform invalidations when changing the `V` bit in these
 entries from 0 to 1.
 
-==== Reconfiguring PMAs
+=== Reconfiguring PMAs
 
 Where platforms support dynamic reconfiguration of PMAs, a machine-mode driver
 is usually provided that can correctly configure the platform. In some
@@ -327,7 +327,7 @@ platforms that might involve platform-specific operations and if the IOMMU
 must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
-==== Guidelines for handling interrupts from IOMMU
+=== Guidelines for handling interrupts from IOMMU
 IOMMU may generate an interrupt from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
