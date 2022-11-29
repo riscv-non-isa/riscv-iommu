@@ -1432,7 +1432,7 @@ translation-request interface for debug. This register is present when
   {bits: 1, name: 'Go/Busy'},
   {bits: 1, name: 'Priv'},
   {bits: 1, name: 'Exe'},
-  {bits: 1, name: 'RWn'},
+  {bits: 1, name: 'NW'},
   {bits: 8, name: 'reserved'},
   {bits: 20, name: 'PID'},
   {bits: 1, name: 'PV'},
@@ -1456,18 +1456,24 @@ translation-request interface for debug. This register is present when
                                  bit to 0. On completion, the results
                                  of the translation are in the `tr_response`
                                  register.
-| 1     |`Priv`     |WARL      | When set to 1 the request needs Privileged
-                                 Mode access for this translation.
-| 2     |`Exe`      |WARL      | When set to 1 the request needs execute
-                                 access for this translation.
-| 3     |`RWn`      |WARL      | When set to 1 the request only needs
-                                 read-only access for this translation.
+| 1     |`Priv`     |WARL      | If set to 1, Privileged Mode access
+                                 is requested else no Privileged Mode access
+                                 is not requested.
+| 2     |`Exe`      |WARL      | If set to 1, execute permission is
+                                 requested else execute permission is not
+                                 requested.
+| 3     |`NW`       |WARL      | If set to 1, read permission is requested.
+                                 If set to 0, both read and write permissions
+                                 are requested.
 | 11:4  |reserved   |WPRI      | Reserved for standard use
-| 31:12 |`PID`      |WARL      | When `PV` is 1 this field provides the
-                                 `process_id` for this translation
-                                 request.
-| 32    |`PV`       |WARL      | When set to 1 the `PID` field of the
-                                 register is valid.
+| 31:12 |`PID`      |WARL      | If `PV` is 1, this field provides the
+                                 `process_id` input for this translation request.
+                                 If `PV` is 0 then this field is not used.
+| 32    |`PV`       |WARL      | If set to 1, the `PID` field of the
+                                 register is valid and provides the `process_id`
+                                 for this translation request. If set to 0 then
+                                 the `PID` field is not used and a `process_id`
+                                 is not valid for this translation request.
 | 35:33 |reserved   |WPRI      | Reserved for standard use
 | 39:36 a|_custom_  |WPRI     a| _Designated for custom use_
 | 63:40 |`DID`      |WARL      | This field provides the `device_id` for
