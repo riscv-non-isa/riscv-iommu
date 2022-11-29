@@ -1069,6 +1069,8 @@ interrupt-pending bit.
 ], config:{lanes: 2, hspace:1024}}
 ....
 
+[[IPSR_FIELD]]
+.Interrupt pending status register fields
 [width=100%]
 [%header, cols="^1,1,^1,6"]
 |===
@@ -1093,6 +1095,10 @@ interrupt-pending bit.
 |15:8   |_custom_    |WPRI  | _Designated for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use
 |===
+
+If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
+If the conditions to set that bit are still present (See <<IPSR_FIELDS>>) or if
+they occur after the bit is cleared then that bit transitions again from 0->1.
 
 [[OVF]]
 === Performance-monitoring counter overflow status (`iocountovf`)

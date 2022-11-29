@@ -352,6 +352,7 @@ following actions:
    processing does not stop when `fence_w_ip` is set to 1. Software handler
    may re-enable interrupts from `CQ` on `IOFENCE.C` completions by clearing
    this bit by writing 1 to it.
+.. Clear `ipsr.cip` by writing 1 to the bit.
 . If the `ipsr.fip` bit is set then an interrupt is pending from the `FQ`.
 .. Read the `fqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
@@ -362,6 +363,7 @@ following actions:
    corresponding to the corrected errors in `fqcsr` by writing 1 to the bits.
 ... Clearing all error indication bits in `cqcsr` re-enables fault/event
    reporting.
+.. Clear `ipsr.fip` by writing 1 to the bit.
 .. Read the `fqt` and `fqh` registers.
 .. If value of `fqt` is not equal to value of `fqh` then the `FQ` is not empty
    and contains fault/event reports that need processing.
@@ -377,6 +379,7 @@ following actions:
    corresponding to the corrected errors in `pqcsr` by writing 1 to the bits.
 ... Clearing all error indication bits in `pqcsr` re-enables "Page Request"
    reporting.
+.. Clear `ipsr.pip` by writing 1 to the bit.
 .. Read the `pqt` and `pqh` registers.
 .. If value of `pqt` is not equal to the value of `pqh` then the `PQ` is not empty
    and contains "Page Request" messages that need processing.
@@ -387,9 +390,8 @@ following actions:
    may observe an incomplete page-request group. Software should ignore the
    group and not service such groups.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
+.. Clear `ipsr.pmip` by writing 1 to the bit.
 .. Process the performance monitoring counter overflows.
-. For each source that was serviced in this process, clear the interrupt pending
-  bit for the source by clearing the corresponding bit in `ipsr`.
 
 === Guidelines for enabling and disabling ATS and/or PRI
 
