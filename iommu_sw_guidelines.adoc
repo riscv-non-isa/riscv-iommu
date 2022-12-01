@@ -53,49 +53,47 @@ The guidelines for initializing the IOMMU are as follows:
   `msi_data_V` register with value `D`. Configure the interrupt mask `M` in
   `msi_vec_ctl_V` register appropriately.
 . To program the command queue, first determine the number of entries `N` needed
-  in the command queue. The number of entries in the command queue is always a
-  power of two. If `N` is 256 or lower then allocate a memory buffer that is
-  aligned to a 4-KiB page address and is of size `N` x 16-bytes.  If `N` is
-  greater than 256 then allocate a memory buffer that is naturally aligned to a
-  `N` x 16-byte address boundary. Let `k=log~2~(N)` and `B` be the physical page
-  number (PPN) of the allocated memory buffer. Program the command queue
-  registers as follows:
+  in the command queue. The number of entries in the command queue must be a
+  power of two. Allocate a `N` x 16-bytes sized memory buffer that is naturally
+  aligned to the greater of 4-KiB or `N` x 16-bytes. Let `k=log~2~(N)` and `B`
+  be the physical page number (PPN) of the allocated memory buffer. Program
+  the command queue registers as follows:
 
 **  Poll on `cqcsr.busy` until it reads 0
 **  `temp_cqb_var.PPN = B`
 **  `temp_cqb_var.LOG2SZ-1 = (k - 1)`
 **  `cqb = temp_cqb_var`
+**  `cqt = 0`
 **  `cqcsr.cqen = 1`
 **  Poll on `cqcsr.cqon` until it reads 1
 
 . To program the fault queue, first determine the number of entries N needed in
   the fault queue. The number of entries in the fault queue is always a power
-  of two. If `N` is 128 or lower then allocate a memory buffer that is aligned
-  to 4-KiB page address and is of size `N` x 32-bytes. If `N` is greater than
-  128 then allocate a memory buffer that is naturally aligned to a
-  `N` x 32-byte address boundary. Let `k=log~2~(N)` and `B` be the PPN of the
-  allocated memory buffer. Program the fault queue registers as follows:
+  of two.  Allocate a `N` x 32-bytes sized memory buffer that is naturally
+  aligned to the greater of 4-KiB or `N` x 32-bytes. Let `k=log~2~(N)` and `B`
+  be the PPN of the allocated memory buffer. Program the fault queue registers
+  as follows:
 
 **  Poll on `fqcsr.busy` until it reads 0
 **  `temp_fqb_var.PPN = B`
 **  `temp_fqb_var.LOG2SZ-1 = (k - 1)`
 **  `fqb = temp_fqb_var`
+**  `fqh = 0`
 **  `fqcsr.fqen = 1`
 **  Poll on `fqcsr.fqon` until it reads 1
 
 . To program the page-request queue, first determine the number of entries `N`
   needed in the page-request queue. The number of entries in the page-request
-  queue is always a power of two. If `N` is 256 or lower then allocate a memory
-  buffer that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If
-  `N` is greater than 256 then allocate a memory buffer at an address that is
-  naturally aligned to a `N` x 16-byte address boundary. Let `k=log~2~(N)` and
-  `B` be the PPN of the allocated memory buffer. Program the page-request queue
-  registers as follows:
+  queue is always a power of two. Allocate a `N` x 16-bytes sized buffer that is
+  naturally aligned to the greater of 4-KiB or `N` x 16-bytes. Let `k=log~2~(N)`
+  and `B` be the PPN of the allocated memory buffer. Program the page-request
+  queue registers as follows:
 
 **  Poll on `pqcsr.busy` until it reads 0
 **  `temp_pqb_var.PPN = B`
 **  `temp_pqb_var.LOG2SZ-1 = (k - 1)`
 **  `pqb = temp_pqb_var`
+**  `pqh = 0`
 **  `pqcsr.pqen = 1`
 **  Poll on `pqcsr.pqon` until it reads 1
 
@@ -106,19 +104,22 @@ The guidelines for initializing the IOMMU are as follows:
   table of the DDT. Initialize the allocated memory to all 0. Let `B` be the
   PPN of the allocated memory. Determine the mode `M` of the DDT based on `Dw`
   and the IOMMU device-contexts format as follows:
+** Determine the values supported by `ddtp.iommu_mode` by writing legal values
+   and reading it to see if the value was retained. Stop and report a failure if
+   the supported modes do not support the required `Dw`.
 ** If extended-format device-contexts are used then
-.. If `Dw` is less than or equal to  6-bits then `M = 1LVL`
-.. If `Dw` is less than or equal to 15-bits then `M = 2LVL`
-.. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
+.. If `Dw` is less than or equal to  6-bits and `1LVL` is supported then `M = 1LVL`
+.. If `Dw` is less than or equal to 15-bits and `2LVL` is supported then `M = 2LVL`
+.. If `Dw` is less than or equal to 24-bits and `3LVL` is supported then `M = 3LVL`
 ** If base-format device-contexts are used then
-.. If `Dw` is less than or equal to  7-bits then `M = 1LVL`
-.. If `Dw` is less than or equal to 16-bits then `M = 2LVL`
-.. If `Dw` is less than or equal to 24-bits then `M = 3LVL`
+.. If `Dw` is less than or equal to  7-bits and `1LVL` is supported then `M = 1LVL`
+.. If `Dw` is less than or equal to 16-bits and `2LVL` is supported then `M = 2LVL`
+.. If `Dw` is less than or equal to 24-bits and `3LVL` is supported then `M = 3LVL`
 
 +
 Program the `ddtp` register as follows:
 
-** `temp_ddtp_var.MODE = M`
+** `temp_ddtp_var.iommu_mode = M`
 ** `temp_ddtp_var.PPN = B`
 ** `ddtp = temp_ddtp_var`
 
@@ -164,7 +165,7 @@ the new value of the entry.
 
 [[PC_CHANGE]]
 ==== Changing process directory table entry
-If software changes a leaf-level PDT entry (i.e, a process context (PC), for
+If software changes a leaf-level PDT entry (i.e, a process context (`PC`), for
 `device_id=D` and `process_id=P`) then the following invalidations must be
 performed:
 
@@ -185,22 +186,13 @@ If software changes a MSI page-table entry identified by interrupt file
 number `I` that corresponds to an untranslated MSI address `A` then the following
 invalidations must be performed:
 
-* If `DC.iohgatp.MODE == Bare`
-** If `DC.fsc.iosatp.MODE == Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=0`,
-   `AV=1`, and `ADDR[63:12]=A[63:12]`
-** If `DC.fsc.iosatp.MODE != Bare`, then `IOTINVAL.VMA` with `GV=0`, `PSCV=1`,
-   `AV=1`, `PSCID=DC.ta.PSCID`, and `ADDR[63:12]=A[63:12]`
-* else
-** `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and
+* `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and
     `GSCID=DC.iohgatp.GSCID`
 
 To invalidate all cache entries from a MSI page table the following
 invalidations must be performed:
 
-* If `DC.iohgatp.MODE == Bare`
-** `IOTINVAL.VMA` with `GV=0`, `PSCV=0`, `AV=0`
-* else
-** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 
 Between a change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
@@ -321,7 +313,7 @@ PTEs whose `V` bit is clear.
 Software need not perform invalidations when changing the `V` bit in these
 entries from 0 to 1.
 
-==== Reconfiguring PMAs
+=== Reconfiguring PMAs
 
 Where platforms support dynamic reconfiguration of PMAs, a machine-mode driver
 is usually provided that can correctly configure the platform. In some
@@ -329,7 +321,7 @@ platforms that might involve platform-specific operations and if the IOMMU
 must participate in these operations then platform-specific operations in the
 IOMMU are used by the machine-mode driver to perform such reconfiguration.
 
-==== Guidelines for handling interrupts from IOMMU
+=== Guidelines for handling interrupts from IOMMU
 IOMMU may generate an interrupt from the `CQ`, the `FQ`, the `PQ`, or the HPM. Each
 interrupt source may be configured with a unique vector or a vector may be
 shared among one or more interrupt sources. The interrupt may be delivered
@@ -402,22 +394,25 @@ To enable ATS and/or PRI:
   cache G/S/VS-stage page table entries, DDT entries, MSI PT entries
   (if required), and PDT entries (if required).
 . Program the device-context with `EN_ATS` set to 1 and if required the `T2GPA`
-  field set to 1. Set `EN_PRI` to 1 if required.
+  field set to 1. Set `EN_PRI` to 1 if required. If `EN_PRI` is set to 1 then
+  set `PRPR` to 1 if required.
 . Mark the device-context as valid.
-. Enable device to use ATS and if required PRI.
+. Enable device to use ATS and if required enable the PRI.
 
 To disable ATS and/or PRI:
 
 . Place the device in an idle state such that no transactions are generated
   by the device.
 . Disable ATS and/or PRI at the device
-. Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context.
+. Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context. If `EN_ATS` is set to
+  0 then set `EN_PRI` and `T2GPA` to 0. If `EN_PRI` is set to 0 then set `PRPR`
+  to 0. 
 . Queue commands to the IOMMU to invalidate all cached G/S/VS-stage page table
   entries, DDT entries, MSI PT entries (if required), and PDT entries
   (if required).
 . Queue commands to the IOMMU to invalidate DevATC by generating Invalidation
   Request messages.
-. Enable DMA operations in the device
+. Enable DMA operations in the device.
 
 
 
