@@ -260,8 +260,9 @@ order.
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
   {bits: 1,  name: 'SXL'},
-  {bits: 20, name: 'reserved'},
-  {bits: 32, name: 'Designated for custom use'},
+  {bits: 12, name: 'reserved'},
+  {bits: 8, name: 'custom'},
+  {bits: 32, name: 'reserved'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
 ....
 
