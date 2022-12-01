@@ -600,6 +600,9 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |20    | Instruction guest page fault        | No
 |21    | Read guest-page fault               | No
 |23    | Write/AMO guest-page fault          | No
+|32    | Instruction data corruption         | No
+|33    | Load data corruption                | No
+|35    | Store/AMO data corruption           | No
 |256   | All inbound transactions disallowed | Yes
 |257   | DDT entry load access fault         | Yes
 |258   | DDT entry not valid                 | Yes
