@@ -1073,22 +1073,34 @@ interrupt-pending bit.
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field   |Attribute | Description
-|0      |`cip`   |RW1C      | The command-queue-interrupt-pending bit is set to
-                              1, if `cqcsr.cie` is 1 and any of the `fence_w_ip`,
-                              `cmd_ill`, `cmd_to`, or `cqmf` bits in `cqcsr`
-                              are 1.
-|1      |`fip`   |RW1C      | The fault-queue-interrupt-pending bit is set to 1
-                              if `fqcsr.fie` is 1 and any of the `fqof` or
-                              `fqmf` bits in `fqcsr` are 1 or if a new record
-                              is produced in the fault queue.
+|0      |`cip`   |RW1C     a| The command-queue-interrupt-pending bit is set to
+                              1 if `cqcsr.cie` is 1 and any of the following are
+                              true:
+
+                              * `cqcsr.fence_w_ip` is 1.
+                              * `cqcsr.cmd_ill` is 1.
+                              * `cqcsr.cmd_to` is 1.
+                              * `cqcsr.cqmf` is 1.
+
+|1      |`fip`   |RW1C     a| The fault-queue-interrupt-pending bit is set to 1
+                              if `fqcsr.fie` is 1 and any of the following are
+                              true:
+
+                              * `fqcsr.fqof` is 1.
+                              * `fqcsr.fqmf` is 1.
+                              * A new record is produced in the FQ.
+
 |2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending is
                               set to 1 when `OF` bit in `iohpmcycles` or in any of the
                               `iohpmctr1-31` registers transitions from 0 to 1.
-|3      | `pip`  |RW1C      | The page-request-queue-interrupt-pending is set to
-                              1 if `pqcsr.pie` is 1 and any of the `pqof` or
-                              `pqmf` bits in `pqcsr` are 1 or if a new "Page
-                              Request" message is produced in the page-request
-                              queue.
+|3      | `pip`  |RW1C     a| The page-request-queue-interrupt-pending is set to
+                              1 if `pqcsr.pie` is 1 and any of the following are
+                              true:
+
+                              * `pqcsr.pqof` is 1.
+                              * `pqcsr.pqmf` is 1.
+                              * A new message is produced in the PQ.
+
 |7:4    |`reserved`  |WPRI  | Reserved for standard use
 |15:8   |_custom_    |WPRI  | _Designated for custom use._
 |31:16  |`reserved`  |WPRI  | Reserved for standard use
