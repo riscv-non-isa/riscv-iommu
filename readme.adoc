@@ -1,7 +1,7 @@
 = RISC-V IOMMU specification baseline
 
-This document is capturing discussions at the IOMMU TG and attempts to document the baseline.
-This is not official specification and everything in this document may change.
+This document is capturing discussions at the IOMMU TG.
+This is not an official specification and everything in this document may change.
 
 = License
 
