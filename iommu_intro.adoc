@@ -237,7 +237,6 @@ functionalities:
 . Support 32-bit devices in 64-bit environment (avoidance of bounce buffers)
 . Support mapping of contiguous virtual addresses to an underlying fragmented
   physical addresses (avoidance of scatter/gather lists)
-. Dynamic redirection of interrupts
 . Support shared virtual addressing
 
 In the absence of an IOMMU, a device driver must program devices with Physical
