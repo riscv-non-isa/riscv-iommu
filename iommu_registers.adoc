@@ -1384,7 +1384,7 @@ with the desired value.
 
 [NOTE]
 ====
-If an HPM is implemented then a minimum of one programmable event counter
+If `capabilities.HPM` is 1 then a minimum of one programmable event counter
 besides the cycles counter is required to comply with this specification. One
 counter may be used in a time multiplexed manner to sample events but such
 analysis may take longer to complete. The IOMMU, unlike the CPU MMU, services
