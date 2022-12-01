@@ -54,11 +54,9 @@ The guidelines for initializing the IOMMU are as follows:
   `msi_vec_ctl_V` register appropriately.
 . To program the command queue, first determine the number of entries `N` needed
   in the command queue. The number of entries in the command queue must be a
-  power of two. If `N` is 256 or lower then allocate a memory buffer that is
-  aligned to a 4-KiB page address and is of size `N` x 16-bytes.  If `N` is
-  greater than 256 then allocate a memory buffer that is naturally aligned to a
-  `N` x 16-byte address boundary and is of size `N` x 16-bytes. Let `k=log~2~(N)`
-  and `B` be the physical page number (PPN) of the allocated memory buffer. Program
+  power of two. Allocate a `N` x 16-bytes sized memory buffer that is naturally
+  aligned to the greater of 4-KiB or `N` x 16-bytes. Let `k=log~2~(N)` and `B`
+  be the physical page number (PPN) of the allocated memory buffer. Program
   the command queue registers as follows:
 
 **  Poll on `cqcsr.busy` until it reads 0
@@ -71,12 +69,10 @@ The guidelines for initializing the IOMMU are as follows:
 
 . To program the fault queue, first determine the number of entries N needed in
   the fault queue. The number of entries in the fault queue is always a power
-  of two. If `N` is 128 or lower then allocate a memory buffer that is aligned
-  to 4-KiB page address and is of size `N` x 32-bytes. If `N` is greater than
-  128 then allocate a memory buffer that is naturally aligned to a
-  `N` x 32-byte address boundary and is of size `N` x 32-bytes. Let `k=log~2~(N)`
-  and `B` be the PPN of the allocated memory buffer. Program the fault queue
-  registers as follows:
+  of two.  Allocate a `N` x 32-bytes sized memory buffer that is naturally
+  aligned to the greater of 4-KiB or `N` x 32-bytes. Let `k=log~2~(N)` and `B`
+  be the PPN of the allocated memory buffer. Program the fault queue registers
+  as follows:
 
 **  Poll on `fqcsr.busy` until it reads 0
 **  `temp_fqb_var.PPN = B`
@@ -88,12 +84,10 @@ The guidelines for initializing the IOMMU are as follows:
 
 . To program the page-request queue, first determine the number of entries `N`
   needed in the page-request queue. The number of entries in the page-request
-  queue is always a power of two. If `N` is 256 or lower then allocate a memory
-  buffer that is aligned to 4-KiB page address and is of size `N` x 16-bytes. If
-  `N` is greater than 256 then allocate a memory buffer at an address that is
-  naturally aligned to a `N` x 16-byte address boundary and is of size `N` x
-  16-bytes. Let `k=log~2~(N)` and `B` be the PPN of the allocated memory buffer.
-  Program the page-request queue registers as follows:
+  queue is always a power of two. Allocate a `N` x 16-bytes sized buffer that is
+  naturally aligned to the greater of 4-KiB or `N` x 16-bytes. Let `k=log~2~(N)`
+  and `B` be the PPN of the allocated memory buffer. Program the page-request
+  queue registers as follows:
 
 **  Poll on `pqcsr.busy` until it reads 0
 **  `temp_pqb_var.PPN = B`
