@@ -46,6 +46,7 @@ indicate this condition. For AXI, for example, the completion status is provided
 by SLVERR on RRESP (Read Data channel). For PCIe, for example, the completion
 status field may be set to "Unsupported Request" (UR) or "Completer Abort" (CA).
 
+[[RAS]]
 === Reliability, Availability, and Serviceability (RAS)
 The IOMMU may support a RAS architecture that specifies the methods for
 enabling error detection, logging the detected errors (including their severity,
@@ -77,8 +78,9 @@ caused the corrupted data to be accessed.
 In the cases where the error affects the transaction being processed but
 otherwise allows the IOMMU to continue providing service, the IOMMU may abort
 (see <<IOBR_FAULT_RESP>>) the transaction and report the the fault by queuing
-a fault record in the `FQ`. The following cause codes are used to report such
-faulting transactions:
+a fault record in the `FQ`. For PCIe, for example, a "Completer Abort (CA)"
+response is appropriate to abort the transaction. The following cause codes are
+used to report such faulting transactions:
 
 * DDT data corruption (cause = 268)
 * PDT data corruption (cause = 269)
