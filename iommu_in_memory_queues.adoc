@@ -600,9 +600,6 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |20    | Instruction guest page fault        | No
 |21    | Read guest-page fault               | No
 |23    | Write/AMO guest-page fault          | No
-|32    | Instruction corruption              | No
-|33    | Load data corruption                | No
-|35    | Store/AMO data corruption           | No
 |256   | All inbound transactions disallowed | Yes
 |257   | DDT entry load access fault         | Yes
 |258   | DDT entry not valid                 | Yes
@@ -621,6 +618,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |271   | MSI MRIF data corruption            | No
 |272   | Internal data path error            | Yes
 |273   | IOMMU MSI write access fault        | Yes
+|274   | S/VS/G-stage PT data corruption     | No
 |===
 
 The `CAUSE` encodings 274 through 2047 are reserved for future standard use and
