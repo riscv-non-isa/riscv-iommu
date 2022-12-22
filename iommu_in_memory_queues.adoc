@@ -149,14 +149,14 @@ The following commands are supported:
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 
-IOMMU operations cause implicit reads to PDT, S/VS-stage and G-stage page
+IOMMU operations cause implicit reads to PDT, VS-stage and G-stage page
 tables. To reduce latency of such reads, the IOMMU may cache entries from the
-S/VS-stage and/or G-stage page tables in the IOMMU-address-translation-cache
+VS-stage and/or G-stage page tables in the IOMMU-address-translation-cache
 (IOATC). These caches might not observe modifications performed by software to
 these data structures in memory.
 
 The IOMMU translation-table cache invalidation commands, `IOTINVAL.VMA` and
-`IOTINVAL.GVMA` synchronize updates to in-memory S/VS-stage and G-stage
+`IOTINVAL.GVMA` synchronize updates to in-memory VS-stage and G-stage
 page table data structures respectively with the operation of the IOMMU and
 invalidate the matching IOATC entries.
 
@@ -164,12 +164,12 @@ The `GV` operand indicates if the Guest-Soft-Context ID (`GSCID`) operand is
 valid. The `PSCV` operand indicates if the Process Soft-Context ID (`PSCID`)
 operand is valid. Setting `PSCV` to 1 is allowed only for `IOTINVAL.VMA`. The
 `AV` operand indicates if the address (`ADDR`) operand is valid. When `GV` is 0,
- the translations associated with the host (i.e. those where the G-stage
-translation is not active) are operated on.
+the translations associated with the host (i.e. those where the G-stage
+is `Bare`) are operated on.
 
-`IOTINVAL.VMA` ensures that previous stores made to the S/VS-stage page
+`IOTINVAL.VMA` ensures that previous stores made to the VS-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
-reads from IOMMU to the corresponding S/VS-stage page tables.
+reads from IOMMU to the corresponding VS-stage page tables.
 
 [[IVMA]]
 
@@ -185,11 +185,11 @@ reads from IOMMU to the corresponding S/VS-stage page tables.
                    host address space identified by `PSCID` operand, except for
                    entries containing global mappings.
 |0   |1   |0     | Invalidates all address-translation cache entries that
-                   contain S-stage leaf page table entries, including those that
+                   contain VS-stage leaf page table entries, including those that
                    contain global mappings, corresponding to the IOVA in `ADDR`
                    operand, for all host address spaces.
 |0   |1   |1     | Invalidates all address-translation cache entries that
-                   contain S-stage leaf page table entries corresponding to the
+                   contain VS-stage leaf page table entries corresponding to the
                    IOVA in `ADDR` operand and that match the host address space
                    identified by `PSCID` operand, except for entries containing
                    global mappings.
@@ -618,7 +618,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |271   | MSI MRIF data corruption            | No
 |272   | Internal data path error            | Yes
 |273   | IOMMU MSI write access fault        | Yes
-|274   | S/VS/G-stage PT data corruption     | No
+|274   | VS/G-stage PT data corruption       | No
 |===
 
 The `CAUSE` encodings 275 through 2047 are reserved for future standard use and

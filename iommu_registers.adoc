@@ -1357,7 +1357,7 @@ The following table lists the standard events that can be counted:
 | 4          | TLB miss                     | 0/1
 | 5          | Device Directory Walks       | 0
 | 6          | Process Directory Walks      | 0
-| 7          | S/VS-stage Page Table Walks  | 0/1
+| 7          | VS-stage Page Table Walks    | 0/1
 | 8          | G-stage Page Table Walks     | 0/1
 | 9 - 16383 | reserved for future standard | -
 |===
@@ -1532,7 +1532,7 @@ This register is present when `capabilities.DBG == 1`.
                                  fault-queue.
 |6:1    |reserved   |RO        | Reserved for standard use
 |8:7    |`PBMT`     |RO        | Memory type determined for the translation
-                                 using the PBMT fields in the S/VS-stage and/or
+                                 using the PBMT fields in the VS-stage and/or
                                  the G-stage page tables used for the
                                  translation. This value of this field is
                                  `UNSPECIFIED` if the `fault` field is 1.

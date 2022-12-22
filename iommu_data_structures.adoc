@@ -6,16 +6,28 @@ by the IOMMU to perform address translations. A radix-tree data structure called
 device directory table (DDT) that is traversed using the `device_id` is used to
 locate the `DC`.
 
-The address space used by a device may require single-stage or two-stage address
-translation and protection. Two-stage address translation may be required when the
-control of the device is passed through to a Guest OS. Single-stage address
-translation using a S-stage page table may be used when the control of the
-device is retained by the hypervisor or Host OS itself.
+The IOMMU employs a two-stage address translation process to perform address
+translation and memory protection. The first stage (VS-stage) is used to convert
+an IOVA into a guest physical address. The guest physical address is then
+converted in the second stage (G-stage) into a supervisor physical address.
+Although there is no option to disable two-stage address translation, either
+stage may be effectivly disabled by configuring the corresponding mode to be
+`Bare` and thereby effectively disabling any address translation or protection at
+that stage. If the VS-stage mode is configured as `Bare` then the IOVA is equal
+to a GPA and there is no further VS-stage memory protection. If the G-stage mode
+is configured as `Bare` then the guest physical addressess are equal to
+supervisor physical addresses and there is no further G-stage memory protection
 
-When two-stage address translation is used the `DC` holds the PPN of the root
-G-stage page table; a guest-soft-context-ID (`GSCID`), which facilitates
-invalidation of cached address translations on a per-virtual-machine basis; and
-the G-stage address translation scheme.
+The address space used by a device may require G-stage address translation and
+protection when the control of the device is passed through to a Guest OS. When
+the control of the device is retained by the hypervisor or Host OS itself then
+only the VS-stage page table may be used and the the G-stage may be configured
+to be in `Bare` mode.
+
+When G-stage address translation scheme is not `Bare` the `DC` holds the PPN of
+the root G-stage page table; a guest-soft-context-ID (`GSCID`), which
+facilitates invalidation of cached address translations on a per-virtual-machine
+basis; and the G-stage address translation scheme.
 
 Some devices support multiple contexts where each context may be associated
 with a different process and thus a different virtual address space. The context
@@ -30,16 +42,16 @@ holds the PPN of the root Process Directory Table (PDT), a radix-tree data
 structure, indexed using fields of the `process_id` to locate a data structure
 called the Process Context (`PC`).
 
-When a PDT is active, the controls for S-stage or VS-stage address translation
-are held in the (`PC`).
+When a PDT is active, the controls for VS-stage address translation are held in
+the (`PC`).
 
-When a PDT is not active, the controls for S-stage or VS-stage address
-translation are be held in the `DC` itself.
+When a PDT is not active, the controls for VS-stage address translation are held
+in the `DC` itself.
 
-The S/VS-stage address translation controls include the PPN of the root
-S/VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
+The VS-stage address translation controls include the PPN of the root
+VS-stage page table; a process-soft-context-ID (`PSCID`), which facilitates
 invalidation of cached address translations on a per-address-space basis; and
-the S/VS-stage address translation scheme.
+the VS-stage address translation scheme.
 
 To handle MSIs from a device controlled by a guest OS, an IOMMU must be able to
 redirect those MSIs to a guest interrupt file in an IMSIC. Because MSIs from
@@ -356,12 +368,10 @@ identified conditions that may lead to a flurry of errors such as due to an
 abnormal termination of a virtual machine.
 ====
 
-The `fsc` field of `DC` holds the context for first-stage translations (S-stage
-or VS-stage). If the `PDTV` bit is 1, the field holds the PPN of the root page
-of PDT.  If the `PDTV` bit is 0 and `iohgatp.MODE` is `Bare`, the `fsc` field
-holds the PPN of the root page of a S-stage page table (i.e. `iosatp`).
-if the `PDTV` bit is 0 and `iohgatp.MODE` is not `Bare`, the `fsc` field holds
-the PPN of the root page of a VS-stage page table (i.e. `iovsatp`).
+The `fsc` field of `DC` holds the context for first-stage translation
+(VS-stage). If the `PDTV` bit is 1, the field holds the PPN of the root page
+of PDT.  If the `PDTV` bit is 0, the `fsc` field holds the PPN of the root page
+of a VS-stage page table (`iovsatp`).
 
 The `PDTV` bit is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
@@ -379,14 +389,13 @@ If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
 `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
 access type if the A bit is 0 or if the memory access is a store and the D bit is 0.
 
-If `SADE` is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. If
+If `SADE` is 1, the IOMMU updates A and D bits in VS-stage PTEs atomically. If
 `SADE` is 0, the IOMMU causes a page-fault corresponding to the original access
 type if the A bit is 0 or if the memory access is a store and the D bit is 0.
 
-If `SBE` is 0, implicit memory accesses to PDT entries and S/VS-stage PTEs are
+If `SBE` is 0, implicit memory accesses to PDT entries and VS-stage PTEs are
 little-endian else they are big-endian. The supported values of `SBE` are the
 same as that of the `fctl.BE` field.
-
 
 The `SXL` field controls the supported paged virtual-memory schemes as defined
 in <<IOSATP_MODE_ENC>>. If `fctl.GXL` is 1 then the `SXL` field must be 1; otherwise
@@ -394,9 +403,9 @@ the legal values for the `SXL` field are the same as that of the `fctl.GXL`.
 
 When `SXL` is 1, the following rules apply:
 
-* If the S/VS-stage page table is not `Bare` then a page fault corresponding to
+* If the VS-stage mode is not `Bare` then a page fault corresponding to
   the original access type occurs if the `IOVA` has bits set beyond bit 31.
-* If the G-stage page table is not `Bare`, then a guest page fault corresponding
+* If the G-stage mode is not `Bare`, then a guest page fault corresponding
   to the original access type occurs if the incoming GPA has bits set beyond bit
   33.
 
@@ -449,9 +458,9 @@ to a 16-KiB boundary.
 
 [NOTE]
 ====
-The `GSCID` field of `iohgatp` identifies an address space. Configuring
-identical `GSCID` in two `DC` when the G-stage page-table referenced by the two
-`DC` are not identical then it is unpredictable whether the IOMMU uses the
+The `GSCID` field of `iohgatp` identifies an address space. If an identical
+`GSCID` is configured in two `DC` when the G-stage page-table referenced by the
+two `DC` are not identical then it is unpredictable whether the IOMMU uses the
 PTEs from the first page table or the second page table. These are the only
 expected behaviors.
 ====
@@ -481,16 +490,14 @@ expected behaviors.
 The `PSCID` field of `ta` provides the process soft-context ID that identifies
 the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
-address-space ID if `PDTV` is 0 and the `iosatp`/`iovsatp` `MODE` field is not
+address-space ID if `PDTV` is 0 and the `iovsatp` `MODE` field is not
 `Bare`. When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
-is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide the
-controls for S-stage page table or VS-stage address translation and protection
-respectively.
+If `PDTV` is 0, the `fsc` field in `DC` holds the `iovsatp` that provide the
+controls for VS-stage address translation and protection.
 
-.IO (Virtual)Supervisor addr. translation and prot. (`iovsatp`/`iosatp`) field (when `PDTV` is 0)
+.IO Virtual Supervisor address translation and prot. (`iovsatp`) field (when `PDTV` is 0)
 [wavedrom, , ]
 ....
 {reg: [
@@ -500,16 +507,16 @@ respectively.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The S/VS-stage page table formats are as defined by the Privileged
+The VS-stage page table formats are as defined by the Privileged
 specification.
 
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
-The `iosatp`/`iovsatp` `MODE` identifies the paged virtual-memory schemes and
+The `iovsatp` `MODE` identifies the paged virtual-memory schemes and
 is encoded as follows:
 
 [[IOSATP_MODE_ENC]]
-.Encodings of `iosatp/iovsatp.MODE` field
+.Encodings of `iovsatp.MODE` field
 [width=75%]
 [%header, cols="3,3,20"]
 |===
@@ -532,7 +539,7 @@ is encoded as follows:
 
 When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
 (`pdtp`). When the device supports multiple process contexts, selected by the
-`process_id`, the PDT is used to determine the S/VS-stage page table and
+`process_id`, the PDT is used to determine the VS-stage page table and
 associated `PSCID` for virtual address translation and protection.
 
 The `pdtp` field holds the PPN of the root PDT and the `MODE` field that
@@ -548,13 +555,13 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When two-stage address translation is active (`iohgatp.MODE != Bare`), the `PPN`
-field holds a guest PPN.  The GPA of the root PDT is then converted by guest
-physical address translation, as controlled by the `iohgatp`, into a supervisor
-physical address. Translating addresses of root PDT root through G-stage page
-tables, allows the PDT to be held in memory allocated by the guest OS and allows
-the guest OS to directly edit the PDT to associate a virtual-address space
-identified by a VS-stage page table with a `process_id`.
+When G-stage address translation mode is not `Bare`, the `PPN` field holds a
+guest PPN.  The GPA of the root PDT is then converted by guest physical address
+translation, as controlled by the `iohgatp`, into a supervisor physical address.
+Translating addresses of root PDT root through G-stage page tables, allows the
+PDT to be held in memory allocated by the guest OS and allows the guest OS to
+directly edit the PDT to associate a virtual-address space identified by a
+VS-stage page table with a `process_id`.
 
 [[PDTP_MODE_ENC]]
 .Encoding of `pdtp.MODE` field
@@ -562,8 +569,7 @@ identified by a VS-stage page table with a `process_id`.
 [%header, cols="3,3,20"]
 |===
 |Value | Name     | Description
-| 0    | `Bare`   | No translation or protection. First stage translation is
-                    not enabled.
+| 0    | `Bare`   | No VS-stage address translation or protection.
 | 1    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
                     256 entries.The bits 19:8 of `process_id` must be 0.
 | 2    | `PD17`   | 17-bit process ID enabled. The directory has 2 levels.
@@ -698,14 +704,15 @@ misconfigured" (cause = 259).
 ====
 Some `DC` fields hold supervisor physical addresses or
 guest physical addresses. Some implementations may verify the validity of the
-addresses - e.g. the supervisor physical address is not wider than that supported as
-determined by `capabilities.PAS`, etc. at the time of locating the `DC`. Such
-implementations may cause a "DDT entry misconfigured" (cause = 259) fault.
+addresses - e.g. the supervisor physical address is not wider than that
+supported as determined by `capabilities.PAS`, etc. at the time of locating the
+`DC`. Such implementations may cause a "DDT entry misconfigured" (cause = 259)
+fault.
 
 Other implementations only detect such addresses to be invalid when the data
 structure referenced by these fields needs to be accessed. Such
-implementations may detect access-violation faults in the process of making the
-access.
+implementations may detect access-violation faults in the process of making
+the access.
 ====
 
 === Process-Directory-Table (PDT)
@@ -810,12 +817,10 @@ intent to pages mapped with `U` bit in PTE set to 1 will fault, regardless of
 the state of `SUM`.
 
 ===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
-is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide
-the controls for S-stage page or VS-stage address translation and protection
-respectively.
+If `PDTV` is 0, the `fsc` field in `DC` holds the `iovsatp` that provide the
+controls for VS-stage address translation and protection.
 
-.IO (Virtual)Supervisor addr. translation and prot. (`iovsatp`/`iosatp`) field (when `PDTV` is 1)
+.IO Virtual Supervisor address translation and protection (`iovsatp`) field (when `PDTV` is 0)
 [wavedrom, , ]
 ....
 {reg: [
@@ -825,15 +830,15 @@ respectively.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a S/VS-stage
-page table and the `MODE` used to determine the S/VS-stage address translation
+A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a VS-stage
+page table and the `MODE` used to determine the VS-stage address translation
 scheme. The `MODE` field encoding are as defined for the `MODE` field in the
-`satp`/`vsatp` CSR.
+`vsatp` CSR.
 
 The software assigned process soft-context ID (`PSCID`) is used as the address
-space ID for the process identified by the S/VS-stage page table.
+space ID for the process identified by the VS-stage page table.
 
-When two-stage address translation is active (`iohgatp.MODE != Bare`), the `PPN`
+When G-stage address translation scheme is not `Bare`, the `PPN`
 field holds a guest PPN of the root of a VS-stage page table. Addresses of the
 VS-stage page table entries are then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
@@ -843,10 +848,10 @@ device accesses.
 
 [NOTE]
 ====
-The `PSCID` field of `PC` identified an address space. Configuring identical
-`PSCID` in two `PC` when the page-table referenced by the two `PC` are not
-identical then it is unpredictable whether the IOMMU uses the PTEs from the
-first page table or the second page table. These are the only expected
+The `PSCID` field of `PC` identified an address space. If an identical
+`PSCID` is configured in two `PC` when the page-table referenced by the two `PC`
+are not identical then it is unpredictable whether the IOMMU uses the PTEs from
+the first page table or the second page table. These are the only expected
 behaviors.
 ====
 
@@ -896,7 +901,7 @@ The process to translate an `IOVA` is as follows:
   disallowed" (cause = 256).
 . If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
   stop and report "Transaction type disallowed" (cause = 260); else go to step
-  21 with translated address same as the `IOVA`.
+  20 with translated address same as the `IOVA`.
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
     or is a PCIe ATS Translation request.
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
@@ -921,32 +926,29 @@ The process to translate an `IOVA` is as follows:
     `process_id` is wider than supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
-  process is complete. Go to step 21.
+  process is complete. Go to step 20.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a
   GPA. Go to step 17 with following page table information:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
-.. Let `iosatp.MODE` be `Bare`
+.. Let `iovsatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
-.. Let `iosatp.MODE` be the value in the `DC.fsc.MODE` field
-.. Let `iosatp.PPN` be the value in the `DC.fsc.PPN` field
+.. Let `iovsatp.MODE` be the value in the `DC.fsc.MODE` field
+.. Let `iovsatp.PPN` be the value in the `DC.fsc.PPN` field
 .. Let `PSCID` be the value in the `DC.ta.PSCID` field
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
-.. If a G-stage page table is not active in the device-context
-     (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
-     it is a VS-stage page table.
 . If `DPE` is 1 and there is no `process_id` associated with the transaction
   then let `process_id` be the default value of 0.
 . If `DPE` is 0 and there is no `process_id` associated with the transaction
   then then go to step 17 with the following page table information:
-.. Let `iosatp.MODE` be `Bare`
+.. Let `iovsatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.fsc.pdtp.MODE = Bare` then go to step 17 with the following page table
   information:
-.. Let `iosatp.MODE` be `Bare`
+.. Let `iovsatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be value in `DC.iohgatp` field
 . Locate the process-context (`PC`) as specified in <<GET_PC>>.
@@ -954,20 +956,11 @@ The process to translate an `IOVA` is as follows:
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
 . Go to step 17 with the following page table information:
-.. Let `iosatp.MODE` be the value in the `PC.fsc.MODE` field
-.. Let `iosatp.PPN` be the value in the `PC.fsc.PPN` field
+.. Let `iovsatp.MODE` be the value in the `PC.fsc.MODE` field
+.. Let `iovsatp.PPN` be the value in the `PC.fsc.PPN` field
 .. Let `PSCID` be the value in the `PC.ta.PSCID` field
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
-.. If a G-stage page table is not active in the device-context
-   (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a S-stage page-table else
-   it is a VS-stage page table.
-. If a G-stage page table is not active in the device-context then use the
-  single-stage address translation process specified in Section "Virtual Address
-  Translation Process" of the RISC-V privileged specification cite:[PRIV]. If a
-  fault is detected by the single stage address translation process then stop and
-  report the fault else go to step 21.
-. If a G-stage page table is active in the device-context then use the
-  process specified in Section "Two-Stage Address Translation" of the RISC-V
+. Use the process specified in Section "Two-Stage Address Translation" of the RISC-V
   Privileged specification cite:[PRIV] to perform the VS-stage address translation to
   determine the GPA accessed by the transaction. If a fault is detected by the
   two stage address translation process then stop and report the fault. If the
@@ -975,11 +968,10 @@ The process to translate an `IOVA` is as follows:
 . If MSI address translations using MSI page tables is enabled
   (`DC.msiptp.MODE != Bare`) then the MSI address translation process specified
   in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be the
-  address of a virtual interrupt file then the process continues at step 20. If
+  address of a virtual interrupt file then the process continues at step 19. If
   a fault is detected by the MSI address translation process then stop and
-  report the fault else the process continues at step 21.
-. If a G-stage page table is active in the device-context then use the
-  G-stage address translation process specified in Section "Two-Stage Address
+  report the fault else the process continues at step 20.
+. Use the G-stage address translation process specified in Section "Two-Stage Address
   Translation" of the RISC-V Privileged specification cite:[PRIV] to translate the
   GPA `A` to determine the SPA accessed by the transaction. If a fault is detected
   by the address translation process then stop and report the fault.
@@ -1038,7 +1030,7 @@ The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the G-stage page table pointed to by `DC.iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
-by the G-stage page table.
+by the G-stage.
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
@@ -1187,8 +1179,8 @@ set them to 1 in the PTE to improve performance.
 
 === Faults from virtual address translation process
 
-Faults detected during the S-stage or two-stage address translation specified
-in the RISC-V Privileged specification cite:[PRIV] cause the IOVA translation process to stop and
+Faults detected during the two-stage address translation specified in the RISC-V
+Privileged specification cite:[PRIV] cause the IOVA translation process to stop and
 report the detected fault.
 
 [[ATS_FAULTS]]
@@ -1309,7 +1301,6 @@ address returned in response to a PCIe ATS Translation Request. The IOMMU may
 not be invoked for translating addresses in CXL.cache transactions.
 ====
 
-
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
 To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first locates
@@ -1400,11 +1391,11 @@ the following conditions:
 
 To speed up Direct Memory Access (DMA) translations, the IOMMU may make use of
 translation caches to hold entries from device-directory-table,
-process-directory-table, S/VS and G-stage translation tables, and/or MSI page
+process-directory-table, VS and G-stage translation tables, and/or MSI page
 tables. These caches are collectively referred to as the IOMMU Address
 Translation Caches (IOATC).
 
-This specification does not allow the caching of S/VS/G-stage PTEs whose `V`
+This specification does not allow the caching of VS/G-stage PTEs whose `V`
 (valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,
 Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
@@ -1426,8 +1417,10 @@ group of entries.
 |Data Structure cached  |IDs used to tag entries    | Invalidation command
 |Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
-|VS-stage page tables   |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
-|S-stage page tables    |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
+|VS-stage page tables
+ (G-stage is not `Bare`)|`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+|VS-stage page tables   
+ (G-stage is `Bare`     |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===
@@ -1498,7 +1491,7 @@ determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 | G-stage page table         | `fctl.BE`
 | MSI page table             | `fctl.BE`
 | Process directory Table    | `DC.tc.SBE`
-| S/VS-stage page table      | `DC.tc.SBE`
+| VS-stage page table        | `DC.tc.SBE`
 |===
 
 [NOTE]
