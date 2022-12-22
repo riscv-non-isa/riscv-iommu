@@ -44,10 +44,22 @@ by the unique 20-bit process address space identifier (PASID). This
 specification refers to such unique process identifiers as `process_id` and
 supports up to 20-bit wide identifiers.
 
-Using the same S/VS-stage and G-stage page table formats in IOMMU for address
+The IOMMU employs a two-stage address translation process to perform address
+translation and memory protection. The first stage (VS-stage) is used to convert
+an IOVA into a guest physical address. The guest physical address is then
+converted in the second stage (G-stage) into a supervisor physical address.
+Although there is no option to disable two-stage address translation, either
+stage may be effectivly disabled by configuring the corresponding mode to be
+`Bare` and thereby effectively disabling any address translation or protection at
+that stage. If the VS-stage mode is configured as `Bare` then the IOVA is equal
+to a GPA and there is no further VS-stage memory protection. If the G-stage mode
+is configured as `Bare` then the guest physical addressess are equal to
+supervisor physical addresses and there is no further G-stage memory protection.
+
+Using the same VS-stage and G-stage page table formats in IOMMU for address
 translation and protections as the CPU’s MMU removes some complexity from the
 core kernel memory management for DMA. Use of an identical format also allows
-the same G and S/VS-stage tables to be used by both MMU and the IOMMU.
+the same G and VS-stage tables to be used by both MMU and the IOMMU.
 
 DMA address translation in the IOMMU has certain performance implications for
 DMA accesses as DMA access time may be lengthened due to the time required to
@@ -267,6 +279,10 @@ to share process address space with devices. Sharing process address spaces with
 devices allows to rely on core kernel memory management for DMA, removing some
 complexity from application and device drivers.
 
+When the IOMMU is used by a non-virtualized OS, the VS-stage suffices to provide
+the required address translation and protection. The G-stage for such devices
+may be placed in `Bare` mode.
+
 ////
 Please in ditaa figures don't use the minus key '-' in your keyboard when
 typing text (like 'non-privileged' in the figure below).
@@ -299,7 +315,7 @@ Other potential unicode characters might be found in the following links:
 |       |       IOMMU |
 | +------------+      |
 | |   device   |      |
-| | S−stage PT |      |
+| | VS−stage PT|      |
 | +------------+      |
 |       ^             |
 +-------|-------------+
@@ -321,7 +337,8 @@ performs memory accesses using those addresses, an IOMMU is responsible for
 translating those guest physical addresses into supervisor physical addresses,
 referencing address-translation data structures supplied by the hypervisor.
 
-<<fig:dma-translation-direct-device-assignment>> diagram illustrates the concept. The device D1 is directly
+<<fig:dma-translation-direct-device-assignment>> diagram illustrates the concept. 
+The device D1 is directly
 assigned to VM-1 and device D2 is directly assigned to VM-2. The VMM configures
 the G-stage page table to be used by each device and restricts the memory
 that can be accessed by D1 to VM-1 associated memory and from D2 to VM-2
@@ -414,12 +431,11 @@ With two-stage address translations enabled, the IOVA may be first translated to
 a GPA using the VS-stage page tables managed by the guest OS and the GPA
 translated to a SPA using the G-stage page tables managed by the hypervisor.
 
-<<fig:iommu-for-guest-os>> diagram illustrates the concept. The IOMMU is configured to
-perform two-stage address translation (VS-stage and G-stage) for
-device D1 and to perform G-stage only translation for
-device D2. The host OS or hypervisor may also retain a device, such as D3, for
-its own use and configure the IOMMU to perform a single-stage (S-stage)
-translation.
+<<fig:iommu-for-guest-os>> diagram illustrates the concept. The IOMMU is configured
+to perform address translation using a VS-stage and G-stage page table for device D1.
+For device D2 the VS-stage is `Bare` and only the G-stage performs the address
+translations. The host OS or hypervisor may also retain a device, such as D3, for its
+own use. For device D3, the G-stage is configured to be in `Bare` mode.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
@@ -442,7 +458,7 @@ translation.
 |      |                  |                 |       |
 | +------------+          |         +------------+  |
 | |  device D1 |          |         |  device D3 |  |
-| | VS−stage PT|          |         | S−stage PT |  |
+| | VS−stage PT|          |         |VS−stage PT |  |
 | +------------+          |         +------------+  |
 |      ^                  |                 ^       |
 +------|------------------|-----------------|-------+
@@ -623,7 +639,7 @@ features:
 
 * 16-bit GSCIDs and 20-bit PSCIDs.
 
-* Single-stage and two-stage address translation.
+* Two-stage address translation.
 
 * VS/S-stage and G-stage virtual-memory system as specified by the RISC-V
   Privileged specification cite:[PRIV] to allow software flexibility to use a common page
