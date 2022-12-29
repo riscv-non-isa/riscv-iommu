@@ -40,6 +40,22 @@ endif::[]
 IOMMU Task Group
 
 // Preamble
+
+[[fig:trace-topo-single]]
+.Simplest trace: Single Hart, Trace Encoder and Trace Sink/Bridge
+["ditaa",shadows=false, separation=false, fontsize: 14]
+....
++----------------+
+| Single Hart    |
+|         +----------+    +---------+     +------------+ 
+|         |  Trace   |    |  Trace  |     | Trace Sink |
+|         | Ingress =====>| Encoder |---->|    or      |
+|         |  Port    |    |         |     | ATB Bridge |
+|         +----------+    +---------+     +------------+
+|                |
++----------------+
+....
+
 [WARNING]
 .This document is in the link:http://riscv.org/spec-state[Development state]
 ====
