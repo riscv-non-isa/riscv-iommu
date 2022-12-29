@@ -11,36 +11,36 @@ translation and memory protection. The first stage (VS-stage) is used to convert
 an IOVA into a guest physical address. The guest physical address is then
 converted in the second stage (G-stage) into a supervisor physical address.
 Although there is no option to disable two-stage address translation, either
-stage may be effectivly disabled by configuring the corresponding mode to be
-`Bare` and thereby effectively disabling any address translation or protection at
-that stage. If the VS-stage mode is configured as `Bare` then the IOVA is equal
-to a GPA and there is no further VS-stage memory protection. If the G-stage mode
-is configured as `Bare` then the guest physical addressess are equal to
-supervisor physical addresses and there is no further G-stage memory protection
+stage may be effectivly disabled by configuring the corresponding address
+translation scheme to be `Bare` and thereby effectively disabling any address
+translation or protection by that stage. If the VS-stage scheme is configured as
+`Bare` then the IOVA is equal to a GPA and there is no further VS-stage address
+translation or memory protection. If the G-stage scheme is configured as `Bare`
+then the guest physical addressess are equal to supervisor physical addresses
+and there is no further G-stage address translation or memory protection
 
 The address space used by a device may require G-stage address translation and
 protection when the control of the device is passed through to a Guest OS. When
 the control of the device is retained by the hypervisor or Host OS itself then
-only the VS-stage page table may be used and the the G-stage may be configured
-to be in `Bare` mode.
+the G-stage scheme may be configured to be `Bare`.
 
 When G-stage address translation scheme is not `Bare` the `DC` holds the PPN of
 the root G-stage page table; a guest-soft-context-ID (`GSCID`), which
 facilitates invalidation of cached address translations on a per-virtual-machine
 basis; and the G-stage address translation scheme.
 
-Some devices support multiple contexts where each context may be associated
-with a different process and thus a different virtual address space. The context
-in such devices may be configured with a `process_id` that identifies the
-address space. When making a memory access, such devices signal the `process_id`
-along with the `device_id` to identify the accessed address space. An example of
-such a device is a GPU that supports multiple process contexts, where each
-context is associated with a different user process, such that the GPU may
-access memory using the virtual address provided by the user process itself. To
-support selecting an address space associated with the `process_id`, the `DC`
-holds the PPN of the root Process Directory Table (PDT), a radix-tree data
-structure, indexed using fields of the `process_id` to locate a data structure
-called the Process Context (`PC`).
+Some devices support multiple process contexts where each context may be
+associated with a different process and thus a different virtual address space.
+The context in such devices may be configured with a `process_id` that
+identifies the address space. When making a memory access, such devices signal
+the `process_id` along with the `device_id` to identify the accessed address
+space. An example of such a device may be a GPU that supports multiple process
+contexts, where each context is associated with a different user process, such
+that the GPU may access memory using the virtual address provided by the user
+process itself. To support selecting an address space associated with the
+`process_id`, the `DC` holds the PPN of the root Process Directory Table (PDT),
+a radix-tree data structure, indexed using fields of the `process_id` to locate
+a data structure called the Process Context (`PC`).
 
 When a PDT is active, the controls for VS-stage address translation are held in
 the (`PC`).
@@ -83,9 +83,9 @@ If `capabilities.MSI_FLAT` is 1 then the Extended Format is used else the Base
 Format is used.
 
 The DDT used to locate the `DC` may be configured to be a 1, 2, or 3 level
-radix-table depending on the maximum width of the `device_id` supported. The
+radix-tree depending on the maximum width of the `device_id` supported. The
 partitioning of the `device_id` to obtain the device directory indexes (DDI) to
-traverse the DDT radix-tree table are as follows:
+traverse the DDT radix-tree are as follows:
 
 .Base format `device_id` partitioning
 
@@ -109,10 +109,10 @@ traverse the DDT radix-tree table are as follows:
 ], config:{lanes: 1, hspace:1024, fontsize: 16}}
 ....
 
-The PDT may be configured to be a 1, 2, or 3 level radix table depending on the
-maximum width of the `process_id` supported for that device.  The partitioning
+The PDT may be configured to be a 1, 2, or 3 level radix-tree depending on the
+maximum width of the `process_id` supported by that device.  The partitioning
 of the `process_id` to obtain the process directory indices (PDI) to traverse
-the PDT radix-tree table are as follows:
+the PDT radix-tree are as follows:
 
 .`process_id` partitioning for PDT radix-tree traversal
 
@@ -142,8 +142,8 @@ is not prohibited by this specification.
 ====
 
 === Device-Directory-Table (DDT)
-DDT is up to 3-level radix tree indexed using the device directory index (DDI)
-bits of the `device_id`.
+The DDT is a 1, 2, or 3-level radix-tree indexed using the device directory
+index (DDI) bits of the `device_id` to locate a `DC`.
 
 The following diagrams illustrate the DDT radix-tree. The PPN of the root
 device-directory-table is held in a memory-mapped register called the
@@ -281,10 +281,10 @@ order.
 `DC` is valid if the `V` bit is 1; If it is 0, all other bits in `DC` are
 don't-care and may be freely used by software.
 
-If the IOMMU supports PCIe ATS specification cite:[PCI] (see `capabilities` register),
-the `EN_ATS` bit is used to enable ATS transaction processing. If `EN_ATS`
-is set to 1, IOMMU supports the following inbound transactions; otherwise
-they are treated as unsupported requests.
+If the IOMMU supports PCIe ATS specification cite:[PCI] (see `capabilities`
+register), the `EN_ATS` bit is used to enable ATS transaction processing. If
+`EN_ATS` is set to 1, IOMMU supports the following inbound transactions;
+otherwise they are treated as unsupported requests.
 
 * Translated read for execute transaction
 * Translated read transaction
@@ -296,7 +296,7 @@ If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU performs the
 two-stage address translation to determine the permissions and the size of the
 translation to be provided in the completion of a PCIe ATS Translation Request
 from the device. However, the IOMMU returns a GPA, instead of a SPA, as the
-translation of an IOVA in the response. In this mode of operations, the ATC in the
+translation of an IOVA in the response. In this mode of operation, the ATC in the
 device caches a GPA as a translation for an IOVA and uses the GPA as the address
 in subsequent translated memory access transactions. Usually, translated requests
 use a SPA and need no further translation to be performed by the IOMMU. However
@@ -378,16 +378,18 @@ that supports multiple process contexts and thus generates a valid `process_id`
 with its memory accesses. For PCIe, for example, if the request has a PASID
 then the PASID is used as the `process_id`.
 
-When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the default
-value of `process_id` for translating requests without a valid `process_id`. When
-`PDTV` is 0, the `DPE` bit is reserved for future standard extension.
+When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the
+default value of `process_id` for translating requests without a valid
+`process_id`. When `PDTV` is 0, the `DPE` bit is reserved for future standard
+extension.
 
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
 is 1. When `capabilities.AMO` is 0, these bits are reserved.
 
 If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
 `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
-access type if the A bit is 0 or if the memory access is a store and the D bit is 0.
+access type if the A bit is 0 or if the memory access is a store and the D bit
+is 0.
 
 If `SADE` is 1, the IOMMU updates A and D bits in VS-stage PTEs atomically. If
 `SADE` is 0, the IOMMU causes a page-fault corresponding to the original access
@@ -398,16 +400,17 @@ little-endian else they are big-endian. The supported values of `SBE` are the
 same as that of the `fctl.BE` field.
 
 The `SXL` field controls the supported paged virtual-memory schemes as defined
-in <<IOSATP_MODE_ENC>>. If `fctl.GXL` is 1 then the `SXL` field must be 1; otherwise
-the legal values for the `SXL` field are the same as that of the `fctl.GXL`.
+in <<IOSATP_MODE_ENC>>. If `fctl.GXL` is 1 then the `SXL` field must be 1;
+otherwise the legal values for the `SXL` field are the same as those for the
+`fctl.GXL` field.
 
 When `SXL` is 1, the following rules apply:
 
 * If the VS-stage mode is not `Bare` then a page fault corresponding to
-  the original access type occurs if the `IOVA` has bits set beyond bit 31.
+  the original access type occurs if the `IOVA` has bits beyond bit 31 set to 1.
 * If the G-stage mode is not `Bare`, then a guest page fault corresponding
-  to the original access type occurs if the incoming GPA has bits set beyond bit
-  33.
+  to the original access type occurs if the incoming GPA has bits beyond bit 33
+  set to 1.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root G-stage page table and a
@@ -507,13 +510,12 @@ controls for VS-stage address translation and protection.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The VS-stage page table formats are as defined by the Privileged
-specification.
+The VS-stage page table formats are as defined by the Privileged specification.
 
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
-The `iovsatp` `MODE` identifies the paged virtual-memory schemes and
-is encoded as follows:
+The `iovsatp.MODE` identifies the paged virtual-memory schemes and is encoded
+as follows:
 
 [[IOSATP_MODE_ENC]]
 .Encodings of `iovsatp.MODE` field
@@ -557,9 +559,9 @@ determines the number of levels of the PDT.
 
 When G-stage address translation mode is not `Bare`, the `PPN` field holds a
 guest PPN.  The GPA of the root PDT is then converted by guest physical address
-translation, as controlled by the `iohgatp`, into a supervisor physical address.
-Translating addresses of root PDT root through G-stage page tables, allows the
-PDT to be held in memory allocated by the guest OS and allows the guest OS to
+translation process, as controlled by the `iohgatp`, into a supervisor physical
+address. Translating addresses of PDT using a G-stage page table, allows the PDT
+to be held in memory allocated by the guest OS and allows the guest OS to
 directly edit the PDT to associate a virtual-address space identified by a
 VS-stage page table with a `process_id`.
 
@@ -655,7 +657,7 @@ A `DC` with `V=1` is considered as misconfigured if any of the following
 conditions are true. If misconfigured then, stop and report "DDT entry
 misconfigured" (cause = 259).
 
-. If any bits or encoding that are reserved for future standard use are set
+. If any bits or encodings that are reserved for future standard use are set.
 . `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`,
    or `DC.tc.PRPR` is 1
 . `DC.tc.EN_ATS` is 0 and `DC.tc.T2GPA` is 1
@@ -717,7 +719,7 @@ the access.
 
 === Process-Directory-Table (PDT)
 
-The PDT is a 1, 2, or 3-level radix tree indexed using the process directory
+The PDT is a 1, 2, or 3-level radix-tree indexed using the process directory
 index (`PDI`) bits of the `process_id`.
 
 The following diagrams illustrate the PDT radix-tree. The root
@@ -807,14 +809,14 @@ When Enable-Supervisory-access (`ENS`) is 1, transactions requesting supervisor
 privilege are allowed with this `process_id` else the transaction is treated as
 an unsupported request.
 
-When `ENS` is 1, the `SUM` (permit Supervisor User Memory access) bit
-modifies the privilege with which supervisor privilege transactions access
-virtual memory. When `SUM` is 0, supervisor privilege transactions to pages
-mapped with `U`-bit in PTE set to 1 will fault.
+When `ENS` is 1, the `SUM` (permit Supervisor User Memory access) bit modifies
+the privilege with which supervisor privilege transactions access virtual
+memory. When `SUM` is 0, supervisor privilege transactions to pages mapped with
+`U` bit in PTE set to 1 are disallowed.
 
 When `ENS` is 1, supervisor privilege transactions that read with execute
-intent to pages mapped with `U` bit in PTE set to 1 will fault, regardless of
-the state of `SUM`.
+intent to pages mapped with `U` bit in PTE set to 1 are disallowed, regardless
+of the value of `SUM`.
 
 ===== First-Stage context (`fsc`)
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iovsatp` that provide the
@@ -838,13 +840,12 @@ scheme. The `MODE` field encoding are as defined for the `MODE` field in the
 The software assigned process soft-context ID (`PSCID`) is used as the address
 space ID for the process identified by the VS-stage page table.
 
-When G-stage address translation scheme is not `Bare`, the `PPN`
-field holds a guest PPN of the root of a VS-stage page table. Addresses of the
-VS-stage page table entries are then converted by guest physical address
-translation process, as controlled by the `iohgatp`, into a supervisor physical
-address. A guest OS may thus directly edit the VS-stage page table to limit
-access by the device to a subset of its memory and specify permissions for the
-device accesses.
+When G-stage address translation scheme is not `Bare`, the `PPN` field holds a
+guest PPN of the root of a VS-stage page table. Addresses of the VS-stage page
+table entries are then converted by guest physical address translation process,
+as controlled by the `iohgatp`, into a supervisor physical address. A guest OS
+may thus directly edit the VS-stage page table to limit access by the device to
+a subset of its memory and specify permissions for the device accesses.
 
 [NOTE]
 ====
@@ -910,9 +911,9 @@ The process to translate an `IOVA` is as follows:
 . If `capabilities.MSI_FLAT` is 1 then the IOMMU uses extended-format device
   context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
   `DDI[2]` be `device_id[23:15]`.
-. The `device_id` is wider than that supported by the IOMMU mode if any of the
-  following conditions hold. If the following conditions hold then stop and
-  report "Transaction type disallowed" (cause = 260).
+. If the `device_id` is wider than that supported by the IOMMU mode, as
+  determined by the following checks, then stop and report "Transaction type
+  disallowed" (cause = 260).
 .. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
 .. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
 . Use `device_id` to then locate the device-context (`DC`) as specified in
@@ -923,15 +924,13 @@ The process to translate an `IOVA` is as follows:
     or is a PCIe ATS Translation request and `DC.tc.EN_ATS` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 0.
 ..  Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the
-    `process_id` is wider than supported by `pdtp.MODE`.
+    `process_id` is wider than that supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
   process is complete. Go to step 20.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a
-  GPA. Go to step 17 with following page table information:
+  GPA. Go to step 18 with following page table information:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
-.. Let `iovsatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage mode is `Bare`.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
@@ -1420,7 +1419,7 @@ group of entries.
 |VS-stage page tables
  (G-stage is not `Bare`)|`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
 |VS-stage page tables   
- (G-stage is `Bare`     |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
+ (G-stage is `Bare`)    |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |G-stage page table     |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===
