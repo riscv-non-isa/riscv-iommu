@@ -198,58 +198,58 @@ Between a change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
 or the new PTE value.
 
-==== Changing G-stage page table entry
-If software changes a leaf G-stage page-table entry of a VM where the change
+==== Changing second-stage page table entry
+If software changes a leaf second-stage page-table entry of a VM where the change
 affects translation for a guest-PPN `G` then the following invalidations must be
 performed:
 
 * `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
 
-If software changes a non-leaf G-stage page-table entry of a VM
+If software changes a non-leaf second-stage page-table entry of a VM
 then the following invalidations must be performed:
 
 * `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
 
 The `DC` has fields that hold a guest-PPN. An implementation may translate such
-fields to a supervisor-PPN as part of caching the `DC`. If the G-stage page
+fields to a supervisor-PPN as part of caching the `DC`. If the second-stage page
 table update affects translation of guest-PPN held in the `DC` then software
 must invalidate all such cached `DC` using `IODIR.INVAL_DDT` with `DV=1` and
 `DID` set to the corresponding `device_id`.  Alternatively, an
 `IODIR.INVAL_DDT` with `DV=0` may be used to invalidate all cached `DC`.
 
-Between a change to the G-stage PTE and when an invalidation command to
+Between a change to the second-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
-==== Changing VS-stage page table entry
+==== Changing first-stage page table entry
 
-A `DC` may be configured with a VS-stage page table (when `DC.tc.PDTV=0`) or
-a directory of VS-stage page tables selected using `process_id` from a
+A `DC` may be configured with a first-stage page table (when `DC.tc.PDTV=0`) or
+a directory of first-stage page tables selected using `process_id` from a
 process-directory-table (when `DC.tc.PDTV=1`).
 
-When a change is made to a VS-stage page table, and the associated G-stage is
+When a change is made to a first-stage page table, and the `DC.iohgatp.MODE` is
 `Bare`, then software must perform invalidations using `IOTINVAL.VMA` with
 `GV=0` and `AV` and `PSCV` operands appropriate for the modification as
 specified in <<IVMA>>.
 
-When a change is made to a VS-stage page table, and the associated G-stage is
+When a change is made to a first-stage page table, and the `DC.iohgatp.MODE` is
 not `Bare`, then software must perform invalidations using `IOTINVAL.VMA` with
 `GV=1`, `GSCID=DC.iohgatp.GSCID` and `AV` and `PSCV` operands appropriate for
 the modification as specified in <<IVMA>>.
 
-Between a change to the VS-stage PTE and when an invalidation command to
+Between a change to the first-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
 ==== Accessed (A)/Dirty (D) bit updates and page promotions
 
 When IOMMU supports hardware-managed A and D bit updates, if software clears
-the A and/or D bit in the VS-stage and/or G-stage PTEs then software must
-invalidate corresponding PTE entries that may be cached by the IOMMU. If such
-invalidations are not performed, then the IOMMU may not set these bits when
-processing subsequent transactions that use such entries.
+the A and/or D bit in the first-stage and/or second-stage PTEs then software
+must invalidate corresponding PTE entries that may be cached by the IOMMU. If
+such invalidations are not performed, then the IOMMU may not set these bits
+when processing subsequent transactions that use such entries.
 
-When software upgrades a page in a VS-stage PTE and/or a G-stage PTE to
+When software upgrades a page in a first-stage PT and/or a second-stage PT to
 a superpage without first clearing the original non-leaf PTE's valid bit and
 invalidating cached translations in the IOMMU then it is possible for the
 IOMMU to cache multiple entries that match a single address. The IOMMU may
@@ -267,8 +267,8 @@ changed in this fashion is implementation defined.
 
 ==== Device Address Translation Cache invalidations
 
-When VS-stage and/or G-stage page tables are modified, invalidations may be
-needed to the DevATC in the devices that may have cached translations from
+When first-stage and/or second-stage page tables are modified, invalidations may
+be needed to the DevATC in the devices that may have cached translations from
 the modified page tables. Invalidation of such page tables requires generating
 ATS invalidations using `ATS.INVAL` command. Software must specify the `PAYLOAD`
 following the rules defined in PCIe ATS specifications cite:[PCI].
@@ -300,8 +300,8 @@ invalidations to the DevATC.
 
 ==== Caching invalid entries
 
-This specification does not allow the caching of VS/G-stage PTEs whose `V`
-(valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,
+This specification does not allow the caching of first/second-stage PTEs whose
+`V` (valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,
 Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
 PTEs whose `V` bit is clear.
@@ -389,7 +389,7 @@ To enable ATS and/or PRI:
   by the device.
 . If the device-context for the device is already valid then first mark the
   device-context as invalid and queue commands to the IOMMU to invalidate all
-  cache G/VS-stage page table entries, DDT entries, MSI PT entries
+  cached first/second-stage page table entries, DDT entries, MSI PT entries
   (if required), and PDT entries (if required).
 . Program the device-context with `EN_ATS` set to 1 and if required the `T2GPA`
   field set to 1. Set `EN_PRI` to 1 if required. If `EN_PRI` is set to 1 then
@@ -405,8 +405,8 @@ To disable ATS and/or PRI:
 . Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context. If `EN_ATS` is set to
   0 then set `EN_PRI` and `T2GPA` to 0. If `EN_PRI` is set to 0 then set `PRPR`
   to 0. 
-. Queue commands to the IOMMU to invalidate all cached G/VS-stage page table
-  entries, DDT entries, MSI PT entries (if required), and PDT entries
+. Queue commands to the IOMMU to invalidate all cached first/second-stage page
+  table entries, DDT entries, MSI PT entries (if required), and PDT entries
   (if required).
 . Queue commands to the IOMMU to invalidate DevATC by generating Invalidation
   Request messages.

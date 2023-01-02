@@ -171,14 +171,14 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
                                 When `Sv57` is set, `Sv48` must be set.
 |14:12 | reserved  |RO        | Reserved for standard use.
 |15    |`Svpbmt`   |RO        | Page-based memory types.
-|16    |`Sv32x4`   |RO        | Page-based 34-bit virtual addressing for G-stage
-                                translation is supported.
-|17    |`Sv39x4`   |RO        | Page-based 41-bit virtual addressing for G-stage
-                                translation is supported.
-|18    |`Sv48x4`   |RO        | Page-based 50-bit virtual addressing for G-stage
-                                translation is supported.
-|19    |`Sv57x4`   |RO        | Page-based 59-bit virtual addressing for G-stage
-                                translation is supported.
+|16    |`Sv32x4`   |RO        | Page-based 34-bit virtual addressing for
+                                second-stage address translation is supported.
+|17    |`Sv39x4`   |RO        | Page-based 41-bit virtual addressing for
+                                second-stage address translation is supported.
+|18    |`Sv48x4`   |RO        | Page-based 50-bit virtual addressing for
+                                second-stage address translation is supported.
+|19    |`Sv57x4`   |RO        | Page-based 59-bit virtual addressing for
+                                second-stage address translation is supported.
 |21:20 | reserved  |RO        | Reserved for standard use.
 |22    |`MSI_FLAT` |RO        | MSI address translation using Pass-through
                                 mode MSI PTE is supported.
@@ -232,12 +232,12 @@ Translation Contiguity.
 [NOTE]
 ====
 Hypervisor may provide an SW emulated IOMMU to allow the guest to manage
-the VS-stage page tables for fine grained control on memory accessed by guest
+the first-stage page tables for fine grained control on memory accessed by guest
 controlled devices.
 
 A hypervisor that provides such an emulated IOMMU to the guest may retain
-control of the G-stage page tables and clear the `SvNx4` fields of the
-emulated `capabilities` register.
+control of the second-stage address translation and clear the `SvNx4` fields of
+the emulated `capabilities` register.
 
 A hypervisor that provides such an emulated IOMMU to the guest may retain
 control of the MSI page tables used to direct MSIs to guest interrupt files in
@@ -1357,9 +1357,9 @@ The following table lists the standard events that can be counted:
 | 4          | TLB miss                     | 0/1
 | 5          | Device Directory Walks       | 0
 | 6          | Process Directory Walks      | 0
-| 7          | VS-stage Page Table Walks    | 0/1
-| 8          | G-stage Page Table Walks     | 0/1
-| 9 - 16383 | reserved for future standard | -
+| 7          | First-stage Page Table Walks | 0/1
+| 8          | Second-stage Page Table Walks| 0/1
+| 9 - 16383  | reserved for future standard | -
 |===
 
 When the programmed `IDT` setting is not supported for an event then the
@@ -1532,8 +1532,8 @@ This register is present when `capabilities.DBG == 1`.
                                  fault-queue.
 |6:1    |reserved   |RO        | Reserved for standard use
 |8:7    |`PBMT`     |RO        | Memory type determined for the translation
-                                 using the PBMT fields in the VS-stage and/or
-                                 the G-stage page tables used for the
+                                 using the PBMT fields in the first-stage and/or
+                                 the second-stage page tables used for the
                                  translation. This value of this field is
                                  `UNSPECIFIED` if the `fault` field is 1.
 |9      |`S`        |RO        | Translation range size field, when set to 1

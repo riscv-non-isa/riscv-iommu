@@ -149,14 +149,14 @@ The following commands are supported:
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
 ....
 
-IOMMU operations cause implicit reads to PDT, VS-stage and G-stage page
+IOMMU operations cause implicit reads to PDT, first-stage and second-stage page
 tables. To reduce latency of such reads, the IOMMU may cache entries from the
-VS-stage and/or G-stage page tables in the IOMMU-address-translation-cache
-(IOATC). These caches might not observe modifications performed by software to
-these data structures in memory.
+first-stage and/or second-stage page tables in the
+IOMMU-address-translation-cache (IOATC). These caches might not observe
+modifications performed by software to these data structures in memory.
 
 The IOMMU translation-table cache invalidation commands, `IOTINVAL.VMA` and
-`IOTINVAL.GVMA` synchronize updates to in-memory VS-stage and G-stage
+`IOTINVAL.GVMA` synchronize updates to in-memory first-stage and second-stage
 page table data structures respectively with the operation of the IOMMU and
 invalidate the matching IOATC entries.
 
@@ -164,12 +164,12 @@ The `GV` operand indicates if the Guest-Soft-Context ID (`GSCID`) operand is
 valid. The `PSCV` operand indicates if the Process Soft-Context ID (`PSCID`)
 operand is valid. Setting `PSCV` to 1 is allowed only for `IOTINVAL.VMA`. The
 `AV` operand indicates if the address (`ADDR`) operand is valid. When `GV` is 0,
-the translations associated with the host (i.e. those where the G-stage
-is `Bare`) are operated on.
+the translations associated with the host (i.e. those where the second-stage
+address translation mode is `Bare`) are operated on.
 
-`IOTINVAL.VMA` ensures that previous stores made to the VS-stage page
+`IOTINVAL.VMA` ensures that previous stores made to the first-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
-reads from IOMMU to the corresponding VS-stage page tables.
+reads from IOMMU to the corresponding first-stage page tables.
 
 [[IVMA]]
 
@@ -185,14 +185,14 @@ reads from IOMMU to the corresponding VS-stage page tables.
                    host address space identified by `PSCID` operand, except for
                    entries containing global mappings.
 |0   |1   |0     | Invalidates all address-translation cache entries that
-                   contain VS-stage leaf page table entries, including those that
-                   contain global mappings, corresponding to the IOVA in `ADDR`
-                   operand, for all host address spaces.
+                   contain first-stage leaf page table entries, including those
+                   that contain global mappings, corresponding to the IOVA in
+                   `ADDR` operand, for all host address spaces.
 |0   |1   |1     | Invalidates all address-translation cache entries that
-                   contain VS-stage leaf page table entries corresponding to the
-                   IOVA in `ADDR` operand and that match the host address space
-                   identified by `PSCID` operand, except for entries containing
-                   global mappings.
+                   contain first-stage leaf page table entries corresponding to
+                   the IOVA in `ADDR` operand and that match the host address
+                   space identified by `PSCID` operand, except for entries
+                   containing global mappings.
 |1   |0   |0     | Invalidates all address-translation cache entries, including
                    those that contain global mappings, for all VM address spaces
                    associated with `GSCID` operand.
@@ -200,20 +200,20 @@ reads from IOMMU to the corresponding VS-stage page tables.
                    for the VM address space identified by `PSCID` and `GSCID`
                    operands, except for entries containing global mappings.
 |1   |1   |0     | Invalidates all address-translation cache entries that
-                   contain VS-stage leaf page table entries, including those that
-                   contain global mappings, corresponding to the IOVA in `ADDR`
-                   operand, for all VM address spaces associated with the `GSCID`
-                   operand.
+                   contain first-stage leaf page table entries, including those
+                   that contain global mappings, corresponding to the IOVA in
+                   `ADDR` operand, for all VM address spaces associated with the
+                   `GSCID` operand.
 |1   |1   |1     | Invalidates all address-translation cache entries that
-                   contain VS-stage leaf page table entries corresponding to the
-                   IOVA in `ADDR` operand, for the VM address space identified by
-                   `PSCID` and `GSCID` operands, except for entries containing
-                   global mappings.
+                   contain first-stage leaf page table entries corresponding to
+                   the IOVA in `ADDR` operand, for the VM address space
+                   identified by `PSCID` and `GSCID` operands, except for
+                   entries containing global mappings.
 |===
 
-`IOTINVAL.GVMA` ensures that previous stores made to the G-stage page
+`IOTINVAL.GVMA` ensures that previous stores made to the second-stage page
 tables are observed before all subsequent implicit reads from IOMMU to the
-corresponding G-stage page tables. Setting `PSCV` to 1 with IOTINVAL.GVMA
+corresponding second-stage page tables. Setting `PSCV` to 1 with IOTINVAL.GVMA
 is illegal.
 
 [[IGVMA]]
@@ -224,11 +224,11 @@ is illegal.
 |===
 | `GV` | `AV`   | Operation
 | 0    | n/a    | Invalidates information cached from any level of the
-                  G-stage page table, for all VM address spaces.
+                  second-stage page table, for all VM address spaces.
 | 1    | 0      | Invalidates information cached from any level of the
-                  G-stage page tables, but only for VM address spaces
+                  second-stage page tables, but only for VM address spaces
                   identified by the `GSCID` operand.
-| 1    | 1      | Invalidates information cached from leaf G-stage page
+| 1    | 1      | Invalidates information cached from leaf second-stage page
                   table entries corresponding to the guest-physical-address in
                   `ADDR` operand, for only for VM address spaces identified
                   `GSCID` operand.
@@ -434,11 +434,11 @@ Some fields in the Device-context or Process-context may be guest-physical
 addresses. An implementation when caching the device-context or process-context
 may cache these fields after translating them to a supervisor physical address.
 Other implementations may cache them as guest-physical addresses and
-translate them to supervisor physical addresses using a G-stage page table just
-prior to accessing memory referenced by these addresses.
+translate them to supervisor physical addresses using a second-stage page table
+just prior to accessing memory referenced by these addresses.
 
-If G-stage page tables used for these translations are modified, software must
-issue the appropriate `IODIR` command as some implementations may choose to
+If second-stage page tables used for these translations are modified, software
+must issue the appropriate `IODIR` command as some implementations may choose to
 cache the translated supervisor physical address pointer in the IOMMU directory
 caches.
 
@@ -618,7 +618,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |271   | MSI MRIF data corruption            | No
 |272   | Internal data path error            | Yes
 |273   | IOMMU MSI write access fault        | Yes
-|274   | VS/G-stage PT data corruption       | No
+|274   | First/second-stage PT data corruption | No
 |===
 
 The `CAUSE` encodings 275 through 2047 are reserved for future standard use and
@@ -667,20 +667,21 @@ else it's 0. The `DID`, `PV`, `PID`, and `PRIV` fields are 0 if `TTYP` is 0.
 
 If the `CAUSE` is a guest-page fault then bits 63:2 of the zero-extended
 guest-physical-address are reported in `iotval2[63:2]`. If bit 0 of `iotval2` is
-1, then the guest-page-fault was caused by an implicit memory access for VS-stage
-address translation. If bit 0 of `iotval2` is 1, and the implicit access was a
-write then bit 1 of `iotval2` is set to 1 else it is set to 0.
+1, then the guest-page-fault was caused by an implicit memory access for
+first-stage address translation. If bit 0 of `iotval2` is 1, and the implicit
+access was a write then bit 1 of `iotval2` is set to 1 else it is set to 0.
 
 [NOTE]
 ====
 The bit 1 of `iotval2` is set for the case where the implementation supports
 hardware updating of A/D bits and the implicit memory access was attempted to
-automatically update A and/or D in VS-stage page tables. All other implicit
-memory accesses for VS-stage address translation will be reads. If the hardware
-updating of A/D bits is not implemented, the _write_ case will never arise.
+automatically update A and/or D in first-stage page tables. All other implicit
+memory accesses for first-stage address translation will be reads. If the
+hardware updating of A/D bits is not implemented, the _write_ case will never
+arise.
 
-When the G-stage is active, the memory accesses for reading PDT entries to
-locate the Process-context are implicit memory accesses for VS-stage address
+When the second-stage is enabled, the memory accesses for reading PDT entries to
+locate the Process-context are implicit memory accesses for first-stage address
 translation. If a guest-page fault was caused by implicit memory access to read
 PDT entries, then bit 0 of `iotval2` is reported as 1 and bit 1 as 0.
 ====

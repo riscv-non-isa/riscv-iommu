@@ -43,26 +43,41 @@ example, the process context may be identified by the unique 20-bit process
 address space identifier (PASID). This specification refers to such unique
 process identifiers as `process_id` and supports up to 20-bit wide identifiers.
 
-Devices perform DMA using an I/O virtual address (IOVA). The IOVA may be a
-supervisor physical address (SPA), guest physical address (GPA), or a virtual
-address (VA). The IOMMU employs a two-stage address translation process to
-translate the IOVA to an SPA and to enforce memory protections for the DMA.
-The first stage (VS-stage) is used to convert an IOVA into a GPA. The GPA is
-then converted in the second stage (G-stage) into a SPA. 
+The IOMMU employs a two-stage address translation process to translate the IOVA
+to an SPA and to enforce memory protections for the DMA. To perform address
+translation and memory protection the IOMMU uses same page table formats as used
+by the CPU's MMU for the first-stage and second-stage address translation. Using
+the same page table formats as the CPU’s MMU removes some of the memory
+management complexity for DMA. Use of an identical format also allows the same
+page tables to be used simultaneously by both the CPU MMU and the IOMMU.
 
 Although there is no option to disable two-stage address translation, either
 stage may be effectivly disabled by configuring the virtual memory scheme for
 that stage to be `Bare` i.e. perfom no address translation or memory protection.
-If the scheme for the VS-stage is configured as `Bare` then the IOVA is equal to
-a GPA and there is no further VS-stage memory protection. If the scheme for the
-G-stage is configured as `Bare` then the GPA are equal to SPA and there is no
-further G-stage memory protection.
 
-The IOMMU uses same page table formats as used by the CPU's MMU for VS-stage and
-G-stage address translation. Using the same page table formats as the CPU’s MMU
-removes some complexity from the core kernel memory management for DMA. Use of
-an identical format also allows the same G-stage and VS-stage tables to be used
-by both the CPU MMU and the IOMMU.
+The virtual memory scheme employed by the IOMMU may be configured individually
+per device in the IOMMU. Devices perform DMA using an I/O virtual address (IOVA).
+Depending on the virtual memory scheme selected for a device, the IOVA used by
+the device may be a supervisor physical address (SPA), guest physical address
+(GPA), or a virtual address (VA).
+
+If the virtual memory scheme selected for both stages is `Bare` then the IOVA is
+a SPA. There is no address translation or protection performed by the IOMMU.
+
+If the virtual memory scheme selected for first-stage is `Bare` but the scheme
+for the second-stage is not `Bare` then the IOVA is a GPA. Then the first-stage
+is disabled. The second-stage translates the GPA to SPA and enforces the
+configured memory protections.
+
+If the virtual memory scheme selected for first-stage is not `Bare` but the
+scheme for the second-stage is `Bare` then IOVA is a VA. The second-stage is
+disabled. The first-stage translate the VA to a SPA and enforces the configured
+memory protections.
+
+If the virtual memory scheme selected for neither stages is `Bare` then the IOVA
+is a VA. Two-stage address translation is in effect. The first-stage translates
+the VA to a GPA and the second-stage translates the GPA to a SPA. Each stage
+enforces the configured memory protections.
 
 DMA address translation in the IOMMU has certain performance implications for
 DMA accesses as the access time may be lengthened by the time required to
@@ -145,8 +160,8 @@ in the device context.
                     by software to uniquely identify a collection of devices
                     assigned to a virtual machine. An IOMMU may tag IOATC
                     entries with the GSCID. Device contexts programmed with
-                    same GSCID must also be programmed with identical G-stage
-                    page tables.
+                    same GSCID must also be programmed with identical
+                    second-stage page tables.
 | Guest           | Software in a virtual machine.
 | HPM             | Hardware Performance Monitor.
 | Hypervisor      | Software entity that controls virtualization.
@@ -254,15 +269,15 @@ functionalities:
   physical addresses (avoidance of scatter/gather lists)
 . Support shared virtual addressing
 
-In the absence of an IOMMU a device could access any memory, such as
-privileged memory, and cause malicious or unintended corruptions. This may be
-due to hardware bugs, device driver bugs, or due to malicious software/hardware.
+In the absence of an IOMMU a device could access any memory, such as privileged
+memory, and cause malicious or unintended corruptions. This may be due to
+hardware bugs, device driver bugs, or due to malicious software/hardware.
 
 The IOMMU offers a mechanism for the OS to defend against such unintended
-corruptions by limiting the memory that can be accessed by devices.
-As depicted in <<fig:device-isolation>> the OS may configure the
-IOMMU with a page table to translate the IOVA and thereby limit the addresses
-that may be accessed to those allowed by the page table.
+corruptions by limiting the memory that can be accessed by devices.  As depicted
+in <<fig:device-isolation>> the OS may configure the IOMMU with a page table to
+translate the IOVA and thereby limit the addresses that may be accessed to those
+allowed by the page table.
 
 Legacy 32-bit devices cannot access the memory above 4 GiB. The IOMMU, through
 its address remapping capability, offers a simple mechanism for the device to
@@ -280,9 +295,9 @@ The IOMMU can be used to support shared virtual addressing which is the ability
 to share a process address space with devices. The virtual addresses used for
 DMA are then translated by the IOMMU to an SPA.
 
-When the IOMMU is used by a non-virtualized OS, the VS-stage suffices to provide
-the required address translation and protection function and the G-stage may be
-disabled.
+When the IOMMU is used by a non-virtualized OS, the first-stage suffices to
+provide the required address translation and protection function and the
+second-stage may be disabled.
 
 [[fig:device-isolation]]
 .Device isolation in non-virtualized OS
@@ -299,7 +314,7 @@ disabled.
 |       |       IOMMU |
 | +------------+      |
 | |   device   |      |
-| | VS−stage PT|      |
+| |1st−stage PT|      |
 | +------------+      |
 |       ^             |
 +-------|-------------+
@@ -323,7 +338,7 @@ referencing address-translation data structures supplied by the hypervisor.
 
 <<fig:dma-translation-direct-device-assignment>> illustrates the concept. 
 The device D1 is directly assigned to VM-1 and device D2 is directly assigned
-to VM-2. The VMM configures the G-stage page table to be used for each device
+to VM-2. The VMM configures a second-stage page table to be used for each device
 and restricts the memory that can be accessed by D1 to VM-1 associated memory
 and from D2 to VM-2 associated memory.
 
@@ -341,7 +356,7 @@ and from D2 to VM-2 associated memory.
 |      |       IOMMU       |        |
 | +------------+     +------------+ |
 | |  device D1 |     |  device D2 | |
-| | G−stage PT |     | G−stage PT | |
+| |2nd−stage PT|     |2nd−stage PT| |
 | +------------+     +------------+ |
 |      ^                   ^        |
 +------|-------------------|--------+
@@ -394,18 +409,24 @@ The hypervisor may provide a virtual IOMMU facility, through hardware
 emulation or by enlightening the guest OS to use a software interface with
 the Hypervisor (also known as para-virtualization). The guest OS may then use
 the facilities provided by the virtual IOMMU to avail the same benefits as
-those discussed for a non-virtualized OS through the use of a VS-stage page
-table that it controls.
+those discussed for a non-virtualized OS through the use of a first-stage page
+table that it controls. The hypervisor establishes a second-stage page table
+that it controls to virtualize the address space for the virtual machine and to
+contain memory accesses from the devices passed through to the VM to the memory
+associated with the VM.
 
 With two-stage address translations enabled, the IOVA is first translated to
-a GPA using the VS-stage page tables managed by the guest OS and the GPA
-translated to a SPA using the G-stage page tables managed by the hypervisor.
+a GPA using the first-stage page tables managed by the guest OS and the GPA
+translated to a SPA using the second-stage page tables managed by the hypervisor.
 
-<<fig:iommu-for-guest-os>> illustrates the concept. The IOMMU is configured
-to perform address translation using a VS-stage and G-stage page table for
-device D1. For device D2 the VS-stage is `Bare` and only the G-stage is
-enabled. The host OS or hypervisor may also retain a device, such as D3, for
-its own use. For device D3, the G-stage is `Bare`.
+<<fig:iommu-for-guest-os>> illustrates the concept. 
+
+The IOMMU is configured to perform address translation using a first-stage
+and second-stage page table for device D1. For device D2 the first-stage is
+`Bare` and only the second-stage is enabled. 
+
+The host OS or hypervisor may also retain a device, such as D3, for its own use.
+For device D3, the second-stage is `Bare`.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
@@ -422,13 +443,13 @@ its own use. For device D3, the G-stage is `Bare`.
 |      |       IOMMU      |                 |       |
 | +------------+     +------------+         |       |
 | |  device D1 |     |  device D2 |         |       |
-| | G−stage PT |     | G−stage PT |         |       |
+| |2nd−stage PT|     |2nd−stage PT|         |       |
 | +------------+     +------------+         |       |
 |      ^                  ^                 |       |
 |      |                  |                 |       |
 | +------------+          |         +------------+  |
 | |  device D1 |          |         |  device D3 |  |
-| | VS−stage PT|          |         |VS−stage PT |  |
+| |1st−stage PT|          |         |1st−stage PT|  |
 | +------------+          |         +------------+  |
 |      ^                  |                 ^       |
 +------|------------------|-----------------|-------+
@@ -510,7 +531,7 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
   required data structure from main memory. This interface is used to access:
 .. The device and process directories to get the context information and
    translation rules.
-.. The G-stage and/or VS-stage page table entries to translate the IOVA.
+.. The first-stage and/or second-stage page table entries to translate the IOVA.
 .. The in-memory queues (command-queue, fault-queue, and page-request-queue)
    used to interface with software.
 * Device Translation Completion interface: it is an interface which
@@ -524,7 +545,8 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
 .. Opaque information (e.g. tags), if applicable, associated with the request.
 .. The page-based memory types (PBMT), if Svpbmt is supported, obtained from the
    IOMMU address translation page tables. The IOMMU provides the page-based
-   memory type as resolved between the G-stage and VS-stage page table entries.
+   memory type as resolved between the first-stage and second-stage page table
+   entries.
 * ATS interface: The ATS interface, if the optional PCIe ATS capability is
   supported by the IOMMU, is used to communicate with ATS capable endpoints
   through the PCIe Root Port. This interface is used:
@@ -606,9 +628,9 @@ features:
 
 * Two-stage address translation.
 
-* VS-stage and G-stage virtual-memory system as specified by the RISC-V
-  Privileged specification cite:[PRIV] to allow software flexibility to either
-  use a common page table for the CPU MMU as well as the IOMMU or to use a
+* Page based virtual-memory system as specified by the RISC-V Privileged
+  specification cite:[PRIV] to allow software flexibility to either use a
+  common page table for the CPU MMU as well as the IOMMU or to use a
   separate page table for the IOMMU.
 
 * Up to 57-bit virtual-address width, 56-bit system-physical-address, and

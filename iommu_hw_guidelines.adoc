@@ -67,7 +67,7 @@ the IOMMU, may not be correctable but the effects of such errors may be containe
 to the transaction being processed by the IOMMU.
 
 As part of processing a transaction, the IOMMU may need to read data from
-in-memory data structures such as the DDT, PDT, or VS/G-stage page tables.
+in-memory data structures such as the DDT, PDT, or first/second-stage page tables.
 The provider (a memory controller or a cache) of the data may detect that the
 data requested has an uncorrectable error and signal that the data is corrupted
 and defer the error to the IOMMU. Such technique to defer the handling of the
@@ -87,7 +87,7 @@ used to report such faulting transactions:
 * MSI PT data corruption (cause = 270)
 * MSI MRIF data corruption (cause = 271)
 * Internal data-path error (cause = 272)
-* VS/G-stage PT data corruption (cause = 274)
+* First/second-stage PT data corruption (cause = 274)
 
 If the IO bridge is not capable of signaling such deferred errors uniquely
 from other errors that prevent the IOMMU from accessing in-memory data
