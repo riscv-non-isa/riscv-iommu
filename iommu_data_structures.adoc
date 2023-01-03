@@ -401,11 +401,11 @@ otherwise the legal values for the `SXL` field are the same as those for the
 
 When `SXL` is 1, the following rules apply:
 
-* If the first-stage mode is not `Bare` then a page fault corresponding to
-  the original access type occurs if the `IOVA` has bits beyond bit 31 set to 1.
-* If the second-stage mode is not `Bare`, then a guest page fault corresponding
-  to the original access type occurs if the incoming GPA has bits beyond bit 33
-  set to 1.
+* If the first-stage is enabled, then a page fault corresponding to the original
+  access type occurs if the `IOVA` has bits beyond bit 31 set to 1.
+* If the second-stage is enabled, then a guest page fault corresponding to the
+  original access type occurs if the incoming GPA has bits beyond bit 33 set to
+  1.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 The `iohgatp` field holds the PPN of the root second-stage page table and a
@@ -929,7 +929,7 @@ The process to translate an `IOVA` is as follows:
   GPA. Go to step 17 with following page table information:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage mode is `Bare`.
+... The `PSCID` value is not used when first-stage is not enabled.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
@@ -942,12 +942,12 @@ The process to translate an `IOVA` is as follows:
 . If `DPE` is 0 and there is no `process_id` associated with the transaction
   then then go to step 17 with the following page table information:
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage mode is `Bare`.
+... The `PSCID` value is not used when first-stage is not enabled.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.fsc.pdtp.MODE = Bare` then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage mode is `Bare`.
+... The `PSCID` value is not used when first-stage is not enabled
 .. Let `iohgatp` be value in `DC.iohgatp` field
 . Locate the process-context (`PC`) as specified in <<GET_PC>>.
 . if any of the following conditions hold then stop and report
