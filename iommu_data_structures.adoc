@@ -19,8 +19,8 @@ then only the first-stage suffices to perform necessary address translations and
 protections; the second-stage scheme may be disabled for the device by
 programming the second-stage address translation scheme to be `Bare`.
 
-When second-stage address translation scheme is not `Bare` the `DC` holds the
-PPN of the root second-stage page table; a guest-soft-context-ID (`GSCID`), which
+When second-stage address translation is enabled, the `DC` holds the PPN of the
+root second-stage page table; a guest-soft-context-ID (`GSCID`), which
 facilitates invalidation of cached address translations on a per-virtual-machine
 basis; and the second-stage address translation scheme.
 
@@ -835,13 +835,12 @@ scheme. The `MODE` field encoding are as defined for the `MODE` field in the
 The software assigned process soft-context ID (`PSCID`) is used as the address
 space ID for the process identified by the first-stage page table.
 
-When second-stage address translation scheme is not `Bare`, the `PPN` field
-holds a guest PPN of the root of a first-stage page table. Addresses of the
-first-stage page table entries are then converted by guest physical address
-translation process, as controlled by the `iohgatp`, into a supervisor physical
-address. A guest OS may thus directly edit the first-stage page table to limit
-access by the device to a subset of its memory and specify permissions for the
-device accesses.
+When second-stage address translation is enabled, the `PPN` field holds a guest
+PPN of the root of a first-stage page table. Addresses of the first-stage page
+table entries are then converted by guest physical address translation process,
+as controlled by the `iohgatp`, into a supervisor physical address. A guest OS
+may thus directly edit the first-stage page table to limit access by the device
+to a subset of its memory and specify permissions for the device accesses.
 
 [NOTE]
 ====
