@@ -552,8 +552,8 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When second-stage address translation mode is not `Bare`, the `PPN` field holds a
-guest PPN.  The GPA of the root PDT is then converted by guest physical address
+When second-stage address translation is enabled, the `PPN` field holds a
+guest PPN. The GPA of the root PDT is then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. Translating addresses of PDT using a second-stage page table, allows the
 PDT to be held in memory allocated by the guest OS and allows the guest OS to
