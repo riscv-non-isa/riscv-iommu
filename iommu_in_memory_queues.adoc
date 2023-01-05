@@ -130,13 +130,13 @@ The following commands are defined:
 | Custom   | 64-127   | Designated for custom use.
 |===
 
-If an illegal or unsupported command is fetched and decoded by the command-queue
-then the command-queue sets the `cqcsr.cmd_ill` bit and stops processing
-commands from the command-queue. To re-enable command processing software should
-clear this bit by writing 1. A command is determined to be illegal if it uses a
-uses a reserved encoding or if a reserved bit is set to 1. A command is
-unsupported if it is defined but not implemented as determined by the IOMMU
-`capabilities` register.
+A command is determined to be illegal if it uses a reserved encoding or if a
+reserved bit is set to 1. A command is unsupported if it is defined but not
+implemented as determined by the IOMMU `capabilities` register. If an illegal or
+unsupported command is fetched and decoded by the command-queue then the
+command-queue sets the `cqcsr.cmd_ill` bit and stops processing commands from
+the command-queue. To re-enable command processing software should clear the
+`cmd_ill` bit by writing 1 to it.
 
 ==== IOMMU Page-Table cache invalidation commands
 
