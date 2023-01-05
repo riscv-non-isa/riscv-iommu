@@ -492,7 +492,7 @@ address-space ID if `PDTV` is 0 and the `iosatp` `MODE` field is not `Bare`.
 When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provide the
+If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides the
 controls for first-stage address translation and protection.
 
 .IO Supervisor address translation and prot. (`iosatp`) field (when `PDTV` is 0)
@@ -957,19 +957,16 @@ The process to translate an `IOVA` is as follows:
 .. Let `iosatp.PPN` be the value in the `PC.fsc.PPN` field
 .. Let `PSCID` be the value in the `PC.ta.PSCID` field
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
-. If second-stage address translation is not enabled
-  (i.e., `DC.iohgatp.MODE = Bare`) then use the single-stage address translation
-  process specified in Section "Virtual Address Translation Process" of the
-  RISC-V privileged specification cite:[PRIV]. If a fault is detected by the
-  single-stage address translation process then stop and report the fault else
-  go to step 21.
-. If second-stage address translation is enabled
-  (i.e., `DC.iohgatp.MODE != Bare`), then use the process specified in Section
-  "Two-Stage Address Translation" of the RISC-V Privileged specification
-  cite:[PRIV] to determine the GPA accessed by the transaction. If a fault is
-  detected by the two-stage address translation process then stop and report the
-  fault. If the translation process is completed successfully then let `A` be the
-  translated GPA.
+. If second-stage address translation is not enabled, then use the process
+  specified in Section "Two-Stage Address Translation" of the RISC-V Privileged
+  specification cite:[PRIV]. If a fault is detected by the address translation
+  process then stop and report the fault else go to step 21.
+. If second-stage address translation is enabled then use the process specified
+  in Section "Two-Stage Address Translation" of the RISC-V Privileged
+  specification cite:[PRIV] to determine the GPA accessed by the transaction. If
+  a fault is detected by the two-stage address translation process then stop and
+  report the fault. If the translation process is completed successfully then
+  let `A` be the translated GPA.
 . If MSI address translations using MSI page tables is enabled
   (i.e., `DC.msiptp.MODE != Bare`) then the MSI address translation process
   specified in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be
@@ -1186,14 +1183,14 @@ set them to 1 in the PTE to improve performance.
 
 === Faults from virtual address translation process
 
-Faults detected during the single/two-stage address translation specified in the
-RISC-V Privileged specification cite:[PRIV] cause the IOVA translation process
-to stop and report the detected fault.
+Faults detected during the two-stage address translation specified in the RISC-V
+Privileged specification cite:[PRIV] cause the IOVA translation process to stop
+and report the detected fault.
 
 [[ATS_FAULTS]]
 === PCIe ATS translation request handling
-ATS cite:[PCI] translation requests that encounter a configuration error results in a
-Completer Abort (CA) response to the requester. The following cause codes
+ATS cite:[PCI] translation requests that encounter a configuration error results
+in a Completer Abort (CA) response to the requester. The following cause codes
 belong to this category:
 
 * Instruction access fault (cause = 1)
@@ -1424,12 +1421,12 @@ group of entries.
 |Data Structure cached  |IDs used to tag entries    | Invalidation command
 |Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
-|First-stage page tables
- (second-stage is not
+|First-stage page table
+ (when second-stage is
   enabled)              |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
-|First-stage page tables   
- (second-stage is
-  enabled)              |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
+|First-stage page table   
+ (when second-stage is
+  not enabled)          |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |Second-stage page table|`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===

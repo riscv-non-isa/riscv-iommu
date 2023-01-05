@@ -65,9 +65,9 @@ If the virtual memory scheme selected for both stages is `Bare` then the IOVA is
 a SPA. There is no address translation or protection performed by the IOMMU.
 
 If the virtual memory scheme selected for first-stage is `Bare` but the scheme
-for the second-stage is not `Bare` then the IOVA is a GPA. Then the first-stage
-is disabled. The second-stage translates the GPA to SPA and enforces the
-configured memory protections.
+for the second-stage is not `Bare` then the IOVA is a GPA. The first-stage is
+disabled. The second-stage translates the GPA to SPA and enforces the configured
+memory protections.
 
 If the virtual memory scheme selected for first-stage is not `Bare` but the
 scheme for the second-stage is `Bare` then IOVA is a VA. The second-stage is
