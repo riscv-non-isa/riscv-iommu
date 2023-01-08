@@ -315,28 +315,30 @@ second-stage may be disabled.
 
 [[fig:device-isolation]]
 .Device isolation in non-virtualized OS
-["ditaa",shadows=false, separation=false, fontsize: 16]
-....
-+----------------+ +--------------+
-| non−privileged | |  privileged  |
-|      memory    | |    memory    |
-|                | |              |
-|       ^        | |              |
-+-------|--------+ +--------------+
-        |
-+-------|-------------+
-|       |       IOMMU |
-| +------------+      |
-| |   device   |      |
-| |1st−stage PT|      |
-| +------------+      |
-|       ^             |
-+-------|-------------+
-        |
-   +--------+
-   | Device |
-   +--------+
-....
+image::non-virt-OS.svg[width=300,height=300]
+
+//["ditaa",shadows=false, separation=false, fontsize: 16]
+//....
+//+----------------+ +--------------+
+//| non−privileged | |  privileged  |
+//|      memory    | |    memory    |
+//|                | |              |
+//|       ^        | |              |
+//+-------|--------+ +--------------+
+//        |
+//+-------|-------------+
+//|       |       IOMMU |
+//| +------------+      |
+//| |   device   |      |
+//| |1st−stage PT|      |
+//| +------------+      |
+//|       ^             |
+//+-------|-------------+
+//        |
+//   +--------+
+//   | Device |
+//   +--------+
+//....
 
 ==== Hypervisor
 
@@ -358,27 +360,28 @@ and from D2 to VM-2 associated memory.
 
 [[fig:dma-translation-direct-device-assignment]]
 .DMA translation to enable direct device assignment
-["ditaa",shadows=false, separation=false, fontsize: 16]
-....
-+----------------+ +----------------+
-|      VM−1      | |      VM−2      |
-|     memory     | |     memory     |
-|      ^         | |       ^        |
-+------|---------+ +-------|--------+
-       |                   |
-+------|-------------------|--------+
-|      |       IOMMU       |        |
-| +------------+     +------------+ |
-| |  device D1 |     |  device D2 | |
-| |2nd−stage PT|     |2nd−stage PT| |
-| +------------+     +------------+ |
-|      ^                   ^        |
-+------|-------------------|--------+
-       |                   |
-  +-----------+      +-----------+
-  | Device D1 |      | Device D2 |
-  +-----------+      +-----------+
-....
+image::hypervisor.svg[width=300,height=300]
+//["ditaa",shadows=false, separation=false, fontsize: 16]
+//....
+//+----------------+ +----------------+
+//|      VM−1      | |      VM−2      |
+//|     memory     | |     memory     |
+//|      ^         | |       ^        |
+//+------|---------+ +-------|--------+
+//       |                   |
+//+------|-------------------|--------+
+//|      |       IOMMU       |        |
+//| +------------+     +------------+ |
+//| |  device D1 |     |  device D2 | |
+//| |2nd−stage PT|     |2nd−stage PT| |
+//| +------------+     +------------+ |
+//|      ^                   ^        |
+//+------|-------------------|--------+
+//       |                   |
+//  +-----------+      +-----------+
+//  | Device D1 |      | Device D2 |
+//  +-----------+      +-----------+
+//....
 
 To handle MSIs from a device controlled by a guest OS, the hypervisor configures
 an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC
@@ -391,31 +394,32 @@ address, the same as supported by regular RISC-V page-based address translation.
 
 [[MSI_REDIR]]
 .MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
-["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
-....
-                                                                +-----------------------+
-                                                                |IMSIC                  |
-                                                                | +-------------------+ |
-                                                                | | M−level int. file | |
-                                                                | +-------------------+ |
-                                                                |                       |
-                                                                | +-------------------+ |
-                                                                | | S−level int. file | |
-                                                                | +-------------------+ |
-                                                                |                       |
-                                                                | +-------------------+ |
-                    +----------+                                | | Guest int. file 1 | |
-                    |   IOMMU  |           +---------------+    | +-------------------+ |
-                    |          |           |               |    |                       |
-  +-------+   MSI   | +------+ | MSI       |  IO Bridge    |    | +-------------------+ |
-  |Device +-----------|MSI PT|----------------------------------->| Guest int. file 2 | |
-  +-------+  Write  | +------+ | Write     |               |    | +-------------------+ |
-             (GPA)  |          | (SPA)     +---------------+    |          ,,,          |
-                    +----------+                                | +-------------------+ |
-                                                                | | Guest int. file N | |
-                                                                | +-------------------+ |
-                                                                +-----------------------+
-....
+image::msi-imsic.svg[width=500,height=400]
+//["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+//....
+//                                                                +-----------------------+
+//                                                                |IMSIC                  |
+//                                                                | +-------------------+ |
+//                                                                | | M−level int. file | |
+//                                                                | +-------------------+ |
+//                                                                |                       |
+//                                                                | +-------------------+ |
+//                                                                | | S−level int. file | |
+//                                                                | +-------------------+ |
+//                                                                |                       |
+//                                                                | +-------------------+ |
+//                    +----------+                                | | Guest int. file 1 | |
+//                    |   IOMMU  |           +---------------+    | +-------------------+ |
+//                    |          |           |               |    |                       |
+//  +-------+   MSI   | +------+ | MSI       |  IO Bridge    |    | +-------------------+ |
+//  |Device +-----------|MSI PT|----------------------------------->| Guest int. file 2 | |
+//  +-------+  Write  | +------+ | Write     |               |    | +-------------------+ |
+//             (GPA)  |          | (SPA)     +---------------+    |          ,,,          |
+//                    +----------+                                | +-------------------+ |
+//                                                                | | Guest int. file N | |
+//                                                                | +-------------------+ |
+//                                                                +-----------------------+
+//....
 
 ==== Guest OS
 
@@ -444,34 +448,35 @@ For device D3, the second-stage is `Bare`.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
-["ditaa",shadows=false, separation=false, fontsize: 16]
-....
-+---------------------------------------------------+
-|      Main memory                                  |
-|                                                   |
-|                                                   |
-|      ^                  ^                 ^       |
-+------|------------------|-----------------|-------+
-       |                  |                 |
-+------|------------------|-----------------|-------+
-|      |       IOMMU      |                 |       |
-| +------------+     +------------+         |       |
-| |  device D1 |     |  device D2 |         |       |
-| |2nd−stage PT|     |2nd−stage PT|         |       |
-| +------------+     +------------+         |       |
-|      ^                  ^                 |       |
-|      |                  |                 |       |
-| +------------+          |         +------------+  |
-| |  device D1 |          |         |  device D3 |  |
-| |1st−stage PT|          |         |1st−stage PT|  |
-| +------------+          |         +------------+  |
-|      ^                  |                 ^       |
-+------|------------------|-----------------|-------+
-       |                  |                 |
-  +-----------+     +-----------+     +-----------+
-  | Device D1 |     | Device D2 |     | Device D3 |
-  +-----------+     +-----------+     +-----------+
-....
+image::guest-OS.svg[width=500,height=400]
+//["ditaa",shadows=false, separation=false, fontsize: 16]
+//....
+//+---------------------------------------------------+
+//|      Main memory                                  |
+//|                                                   |
+//|                                                   |
+//|      ^                  ^                 ^       |
+//+------|------------------|-----------------|-------+
+//       |                  |                 |
+//+------|------------------|-----------------|-------+
+//|      |       IOMMU      |                 |       |
+//| +------------+     +------------+         |       |
+//| |  device D1 |     |  device D2 |         |       |
+//| |2nd−stage PT|     |2nd−stage PT|         |       |
+//| +------------+     +------------+         |       |
+//|      ^                  ^                 |       |
+//|      |                  |                 |       |
+//| +------------+          |         +------------+  |
+//| |  device D1 |          |         |  device D3 |  |
+//| |1st−stage PT|          |         |1st−stage PT|  |
+//| +------------+          |         +------------+  |
+//|      ^                  |                 ^       |
+//+------|------------------|-----------------|-------+
+//       |                  |                 |
+//  +-----------+     +-----------+     +-----------+
+//  | Device D1 |     | Device D2 |     | Device D3 |
+//  +-----------+     +-----------+     +-----------+
+//....
 
 === Placement and data flow
 
