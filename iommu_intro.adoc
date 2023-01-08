@@ -435,16 +435,22 @@ associated with the VM.
 
 With two-stage address translations enabled, the IOVA is first translated to
 a GPA using the first-stage page tables managed by the guest OS and the GPA
-translated to a SPA using the second-stage page tables managed by the hypervisor.
+translated to a SPA using the second-stage page tables managed by the
+hypervisor.
 
 <<fig:iommu-for-guest-os>> illustrates the concept. 
 
 The IOMMU is configured to perform address translation using a first-stage
-and second-stage page table for device D1. For device D2 the first-stage is
-`Bare` and only the second-stage is enabled. 
+and second-stage page table for device D1. The second-stage is typically used by
+the hypervisor to translate GPA to SPA and limit the device D1 to memory
+associated with VM-1. The first-stage is typically configured by the Guest OS to
+translate a VA to a GPA and contain device D1 access to a subset of VM-1 memory.
+
+For device D2 only the second-stage is enabled and the first-stage is disabled.
 
 The host OS or hypervisor may also retain a device, such as D3, for its own use.
-For device D3, the second-stage is `Bare`.
+The first-stage suffices to provide the required address translation and
+protection function for device D3 and the second-stage is disabled.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
