@@ -16,7 +16,7 @@ add_s_stage_pte (
     PTESIZE = 8;
     if ( satp.MODE == IOSATP_Sv32 ) {
         vpn[0] = get_bits(21, 12, va);
-        vpn[1] = get_bits(34, 22, va);
+        vpn[1] = get_bits(31, 22, va);
         LEVELS = 2;
         PTESIZE = 4;
     }
@@ -30,7 +30,7 @@ add_s_stage_pte (
         vpn[0] = get_bits(20, 12, va);
         vpn[1] = get_bits(29, 21, va);
         vpn[2] = get_bits(38, 30, va);
-        vpn[3] = get_bits(49, 39, va);
+        vpn[3] = get_bits(47, 39, va);
         LEVELS = 4;
     }
     if ( satp.MODE == IOSATP_Sv57 ) {
@@ -38,7 +38,7 @@ add_s_stage_pte (
         vpn[1] = get_bits(29, 21, va);
         vpn[2] = get_bits(38, 30, va);
         vpn[3] = get_bits(47, 39, va);
-        vpn[4] = get_bits(58, 48, va);
+        vpn[4] = get_bits(56, 48, va);
         LEVELS = 5;
     }
     i = LEVELS - 1;
