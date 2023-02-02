@@ -175,7 +175,7 @@ valid. The `PSCV` operand indicates if the Process Soft-Context ID (`PSCID`)
 operand is valid. Setting `PSCV` to 1 is allowed only for `IOTINVAL.VMA`. The
 `AV` operand indicates if the address (`ADDR`) operand is valid. When `GV` is 0,
 the translations associated with the host (i.e. those where the second-stage
-is not enabled) are operated on.
+is Bare) are operated on.
 
 `IOTINVAL.VMA` ensures that previous stores made to the first-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
@@ -693,7 +693,7 @@ memory accesses for first-stage address translation will be reads. If the
 hardware updating of A/D bits is not implemented, the _write_ case will never
 arise.
 
-When the second-stage is enabled, the memory accesses for reading PDT entries to
+When the second-stage is not Bare, the memory accesses for reading PDT entries to
 locate the Process-context are implicit memory accesses for first-stage address
 translation. If a guest-page fault was caused by implicit memory access to read
 PDT entries, then bit 0 of `iotval2` is reported as 1 and bit 1 as 0.
