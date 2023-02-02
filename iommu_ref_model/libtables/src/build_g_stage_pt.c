@@ -23,7 +23,7 @@ add_g_stage_pte (
     if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
-        vpn[2] = get_bits(38, 30, gpa);
+        vpn[2] = get_bits(40, 30, gpa);
         LEVELS = 3;
     }
     if ( iohgatp.MODE == IOHGATP_Sv48x4 ) {

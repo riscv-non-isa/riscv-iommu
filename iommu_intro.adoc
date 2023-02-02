@@ -66,17 +66,17 @@ a SPA. There is no address translation or protection performed by the IOMMU.
 
 If the virtual memory scheme selected for first-stage is `Bare` but the scheme
 for the second-stage is not `Bare` then the IOVA is a GPA. The first-stage is
-disabled. The second-stage translates the GPA to SPA and enforces the configured
+effectively disabled. The second-stage translates the GPA to SPA and enforces the configured
 memory protections. Such a configuration would be typically be employed when the
 device control is passed-through to a virtual machine but the Guest OS in the VM
 does not use first-stage address translation to further constrain memory accesses
 from such devices. Comparing to a RISC-V hart, this configuration is analogous
 to two-stage address translation being in effect on a RISC-V hart with the
-G-stage enabled and the VS-stage effectively disabled.
+G-stage active and the VS-stage set to Bare.
 
 If the virtual memory scheme selected for first-stage is not `Bare` but the
 scheme for the second-stage is `Bare` then IOVA is a VA. The second-stage is
-disabled. The first-stage translate the VA to a SPA and enforces the configured
+effectively disabled. The first-stage translate the VA to a SPA and enforces the configured
 memory protections. This configuration would be typically employed when the
 IOMMU is used by a native OS or when the control of the device is retained by
 the hypervisor itself. Comparing to a RISC-V hart, this configuration is
@@ -91,7 +91,7 @@ machine and the Guest OS in the VM uses the first-stage addresss translation to
 further constrain the memory accessed by such devices and associated privileges
 and memory protections. Comparing to a RISC-V hart, this configuration is
 analogous to two-stage address translation being in effect on a RISC-V hart with
-both G-stage and VS-stage being enabled.
+both G-stage and VS-stage active (not Bare).
 
 DMA address translation in the IOMMU has certain performance implications for
 DMA accesses as the access time may be lengthened by the time required to
@@ -311,7 +311,7 @@ DMA are then translated by the IOMMU to an SPA.
 
 When the IOMMU is used by a non-virtualized OS, the first-stage suffices to
 provide the required address translation and protection function and the
-second-stage may be disabled.
+second-stage may be set to Bare.
 
 [[fig:device-isolation]]
 .Device isolation in non-virtualized OS
@@ -433,7 +433,7 @@ that it controls to virtualize the address space for the virtual machine and to
 contain memory accesses from the devices passed through to the VM to the memory
 associated with the VM.
 
-With two-stage address translations enabled, the IOVA is first translated to
+With two-stage address translations active, the IOVA is first translated to
 a GPA using the first-stage page tables managed by the guest OS and the GPA
 translated to a SPA using the second-stage page tables managed by the
 hypervisor.
@@ -446,11 +446,11 @@ the hypervisor to translate GPA to SPA and limit the device D1 to memory
 associated with VM-1. The first-stage is typically configured by the Guest OS to
 translate a VA to a GPA and contain device D1 access to a subset of VM-1 memory.
 
-For device D2 only the second-stage is enabled and the first-stage is disabled.
+For device D2 only the second-stage is active and the first-stage is set to Bare.
 
 The host OS or hypervisor may also retain a device, such as D3, for its own use.
 The first-stage suffices to provide the required address translation and
-protection function for device D3 and the second-stage is disabled.
+protection function for device D3 and the second-stage is set to Bare.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
