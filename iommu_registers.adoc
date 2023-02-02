@@ -1007,7 +1007,7 @@ status of the page-request-queue.
                               if the page-request queue overflows i.e. IOMMU
                               needs to queue a "Page Request" message but the
                               page-request queue is full
-                              (i.e., `pqh == pqt - 1`). +
+                              (i.e., `pqt == pqh - 1`). +
                                                                                +
                               The "Page Request" message that caused the `pqmf`
                               or `pqof` error and all subsequent "Page Request"
