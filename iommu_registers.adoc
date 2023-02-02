@@ -905,7 +905,7 @@ status of the fault-queue.
                            writing 1 to the bit.
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the
                            IOMMU needs to queue a fault record but the
-                           fault-queue is full (i.e., `fqh == fqt - 1`). +
+                           fault-queue is full (i.e., `fqt == fqh - 1`). +
                                                                                +
                            The fault-record is discarded and no more fault
                            records are generated until software clears `fqof`
