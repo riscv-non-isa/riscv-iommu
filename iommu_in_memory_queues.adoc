@@ -175,7 +175,9 @@ valid. The `PSCV` operand indicates if the Process Soft-Context ID (`PSCID`)
 operand is valid. Setting `PSCV` to 1 is allowed only for `IOTINVAL.VMA`. The
 `AV` operand indicates if the address (`ADDR`) operand is valid. When `GV` is 0,
 the translations associated with the host (i.e. those where the second-stage
-is not enabled) are operated on.
+is not active) are operated on. When `GV` is 0, the `GSCID` operand is ignored.
+When `AV` is 0, the `ADDR` operand is ignored. When `PSCV` operand is 0, the
+`PSCID` operand is ignored.
 
 `IOTINVAL.VMA` ensures that previous stores made to the first-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
@@ -223,7 +225,7 @@ reads from IOMMU to the corresponding first-stage page tables.
 
 `IOTINVAL.GVMA` ensures that previous stores made to the second-stage page
 tables are observed before all subsequent implicit reads from IOMMU to the
-corresponding second-stage page tables. Setting `PSCV` to 1 with IOTINVAL.GVMA
+corresponding second-stage page tables. Setting `PSCV` to 1 with `IOTINVAL.GVMA`
 is illegal.
 
 [[IGVMA]]
@@ -381,7 +383,8 @@ globally.
 
 The `AV` command operand indicates if `ADDR[63:2]` operand and `DATA` operands are
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address
-`ADDR[63:2] * 4` as a 4-byte store when the command completes.
+`ADDR[63:2] * 4` as a 4-byte store when the command completes. When `AV` is 0,
+the `ADDR[63:2]` and `DATA` operands are ignored.
 
 [NOTE]
 ====
@@ -425,7 +428,9 @@ The IOMMU PDT cache invalidation command, `IODIR.INVAL_PDT`, synchronizes update
 to PDT with the operation of the IOMMU and flushes the matching cached entries.
 
 The `DV` operand indicates if the device ID (`DID`) operand is valid. The `DV`
-operand must be 1 for `IODIR.INVAL_PDT` else the command is illegal.
+operand must be 1 for `IODIR.INVAL_PDT` else the command is illegal. When `DV`
+operand is 1, the value of the `DID` operand must not be wider than that
+supported by the `ddtp.iommu_mode`.
 
 `IODIR.INVAL_DDT` guarantees that any previous stores made by a RISC-V hart to
 the DDT are observed before all subsequent implicit reads from IOMMU to DDT.
@@ -438,6 +443,8 @@ operand and all associated PDT entries. The `PID` operand is reserved for the
 `IODIR.INVAL_PDT` guarantees that any previous stores made by a RISC-V hart to
 the PDT are observed before all subsequent implicit reads from IOMMU to PDT.
 The command invalidates cached leaf PDT entry for the specified `PID` and `DID`.
+The `PID` operand of `IODIR.INVAL_PDT` must not be wider than the width
+supported by the IOMMU (see <<CAP>>).
 
 [NOTE]
 ====
