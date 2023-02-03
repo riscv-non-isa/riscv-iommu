@@ -1353,7 +1353,7 @@ The status is set to Invalid Request if the following faults are encountered:
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
-(`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
+(`pqt == pqh - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [NOTE]
 ====
@@ -1386,7 +1386,7 @@ the following conditions:
 * Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
 * Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)
 * "Page Request" could not be queued due to the page-request queue being full
-  (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
+  (`pqt == pqh - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [[CACHING]]
 === Caching in-memory data structures
