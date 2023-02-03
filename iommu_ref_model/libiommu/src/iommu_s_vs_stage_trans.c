@@ -71,7 +71,7 @@ s_vs_stage_address_translation(
         LEVELS = 3;
         PTESIZE = 8;
         mask = (1UL << (64 - 39)) - 1;
-        masked_upper_bits = (iova >> 38) & mask;
+        masked_upper_bits = (iova >> 39) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv48 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
@@ -81,7 +81,7 @@ s_vs_stage_address_translation(
         LEVELS = 4;
         PTESIZE = 8;
         mask = (1UL << (64 - 48)) - 1;
-        masked_upper_bits = (iova >> 47) & mask;
+        masked_upper_bits = (iova >> 48) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv57 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
@@ -92,7 +92,7 @@ s_vs_stage_address_translation(
         LEVELS = 5;
         PTESIZE = 8;
         mask = (1UL << (64 - 57)) - 1;
-        masked_upper_bits = (iova >> 56) & mask;
+        masked_upper_bits = (iova >> 57) & mask;
     }
     // Instruction fetch addresses and load and store effective addresses, 
     // which are 64 bits, must have bits 63:<VASIZE> all equal to bit 
@@ -277,16 +277,10 @@ step_5:
     //    ≥ 1  x xxxx xxxx      Reserved                           −
     if ( i == 0 && pte->N && ((pte->PPN & 0xF) != 0x8) ) goto page_fault;
 
-    // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO
-    // is 1. When capabilities.AMO is 0, these bits are reserved.
-    // If SADE is 1, the IOMMU updates A and D bits in S/VS-stage PTEs atomically. 
-    // If SADE is 0, the IOMMU ignores the A and D bits in the PTEs; the IOMMU does
-    // not update the A or D bits and does not cause any faults based on A and/or D
-    // bit being 0.
-    if ( g_reg_file.capabilities.amo == 0 ) goto step_8;
-    if ( SADE == 0 ) goto step_8;
-
     // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
+    //    If SADE is 1, the IOMMU updates A and D bits in first-stage PTEs atomically. If
+    //    SADE is 0, the IOMMU causes a page-fault corresponding to the original access type
+    //    if the A bit is 0 or if the memory access is a store and the D bit is 0.
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
     //      corresponding to the original access type.
     //    Perform the following steps atomically:
@@ -295,6 +289,9 @@ step_5:
     //      also set pte.d to 1.
     //    – If the comparison fails, return to step 2
     if ( (pte->A == 1) && ((pte->D == 1) || (is_write == 0)) ) goto step_8;
+
+    // A and/or D bit update needed
+    if ( SADE == 0 ) goto page_fault;
 
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);

@@ -10,16 +10,16 @@ The address space used by a device may require second-stage address translation
 and protection when the control of the device is passed through to a Guest OS.
 A Guest OS may optionally provide a first-stage page table for translating IOVA
 used by a device controlled by the Guest OS to a GPA. When the use of a
-first-stage is not required, then it may be disabled by selecting the
+first-stage is not required, then it may be effectively disabled by selecting the
 first-stage address translation scheme to be `Bare`. The second-stage is used to
 translate the GPA to a SPA.
 
 When the control of the device is retained by the hypervisor or Host OS itself
 then only the first-stage suffices to perform necessary address translations and
-protections; the second-stage scheme may be disabled for the device by
+protections; the second-stage scheme may be effectively disabled for the device by
 programming the second-stage address translation scheme to be `Bare`.
 
-When second-stage address translation is enabled, the `DC` holds the PPN of the
+When second-stage address translation is not Bare, the `DC` holds the PPN of the
 root second-stage page table; a guest-soft-context-ID (`GSCID`), which
 facilitates invalidation of cached address translations on a per-virtual-machine
 basis; and the second-stage address translation scheme.
@@ -150,50 +150,52 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
-....
-  +-------+-------+-------+      +-------+-------+    +-------+
-  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
-  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
-     |       |       |             |       |            |
-     +-9−bit +-9−bit +-6−bit       +-9−bit +-6−bit      +-6−bit
-     |       |       |             |       |            |
-     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
-     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
-     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
-     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
-     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
-     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
-     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
-     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
-        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
-        +--+ |  |  | |  |  |          |  | |  |  |          |  |
-        |  | |  |  | |  |  |          |  | |  |  |          |  |
-ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
-....
+image::ddt-ext.svg[width=800,height=400]
+//["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+//....
+//  +-------+-------+-------+      +-------+-------+    +-------+
+//  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
+//  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
+//     |       |       |             |       |            |
+//     +-9−bit +-9−bit +-6−bit       +-9−bit +-6−bit      +-6−bit
+//     |       |       |             |       |            |
+//     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
+//     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
+//     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
+//     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
+//     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
+//     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
+//     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
+//     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
+//        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
+//        +--+ |  |  | |  |  |          |  | |  |  |          |  |
+//        |  | |  |  | |  |  |          |  | |  |  |          |  |
+//ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
+//....
 
 .Three, two and single-level device directory with base format `DC`
-["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
-....
-  +-------+-------+-------+      +-------+-------+    +-------+
-  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
-  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
-     |       |       |             |       |            |
-     +-8−bit +-9−bit +-7−bit       +-9−bit +-7−bit      +-7−bit
-     |       |       |             |       |            |
-     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
-     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
-     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
-     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
-     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
-     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
-     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
-     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
-        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
-        +--+ |  |  | |  |  |          |  | |  |  |          |  |
-        |  | |  |  | |  |  |          |  | |  |  |          |  |
-ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
-....
+image::ddt-base.svg[width=800,height=400]
+//["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+//....
+//  +-------+-------+-------+      +-------+-------+    +-------+
+//  |DDI[2] |DDI[1] |DDI[0] |      |DDI[1] |DDI[0] |    |DDI[0] |
+//  +--+----+--+----+--+----+      +-+-----+-+-----+    +-+-----+
+//     |       |       |             |       |            |
+//     +-8−bit +-9−bit +-7−bit       +-9−bit +-7−bit      +-7−bit
+//     |       |       |             |       |            |
+//     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+      |   +--+
+//     |  |  | |  |  | |  |  |       |  |  | |  |  |      |   |  |
+//     |  |  | |  |  | |  +--+       |  |  | |  +--+      |   |  |
+//     |  |  | |  |  | +->|DC|       |  |  | +->|DC|      |   |  |
+//     |  |  | |  +--+    +--+       |  |  |    +--+      |   |  |
+//     |  |  | +->|NL+-+  |  |       |  +--+    |  |      |   |  |
+//     |  |  |    +--+ |  |  |       +->|NL+-+  |  |      |   +--+
+//     +->+--+    |  | |  |  |          +--+ |  |  |      +-->|DC|
+//        |NL+-+  |  | |  |  |          |  | |  |  |          +--+
+//        +--+ |  |  | |  |  |          |  | |  |  |          |  |
+//        |  | |  |  | |  |  |          |  | |  |  |          |  |
+//ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
+//....
 
 ==== Non-leaf DDT entry
 
@@ -401,9 +403,9 @@ otherwise the legal values for the `SXL` field are the same as those for the
 
 When `SXL` is 1, the following rules apply:
 
-* If the first-stage is enabled, then a page fault corresponding to the original
+* If the first-stage is not Bare, then a page fault corresponding to the original
   access type occurs if the `IOVA` has bits beyond bit 31 set to 1.
-* If the second-stage is enabled, then a guest page fault corresponding to the
+* If the second-stage is not Bare, then a guest page fault corresponding to the
   original access type occurs if the incoming GPA has bits beyond bit 33 set to
   1.
 
@@ -552,7 +554,7 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When second-stage address translation is enabled, the `PPN` field holds a
+When second-stage address translation is not Bare, the `PPN` field holds a
 guest PPN. The GPA of the root PDT is then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. Translating addresses of PDT using a second-stage page table, allows the
@@ -602,7 +604,7 @@ The `MODE` field is used to select the MSI address translation scheme.
 [%header, cols="3,3,20"]
 |===
 |Value | Name     | Description
-| 0    | `Bare`   | No translation or protection. Recognition of accesses to
+| 0    | `Off`    | Recognition of accesses to
                     a virtual interrupt file using MSI address mask and
                     pattern is not performed.
 | 1    | `Flat`   | Flat MSI page table
@@ -683,7 +685,7 @@ misconfigured" (cause = 259).
 .. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
 . `fctl.GXL` is 1 and `DC.iohgatp.MODE` is not a supported mode
 .. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
-. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
+. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Off`
    and not `Flat`
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
@@ -724,27 +726,28 @@ provides the PPN of the next level process-directory-table. The leaf
 process-directory-table entry holds the process-context (`PC`).
 
 .Three, two and single-level process directory
-["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
-....
-  +-------+-------+-------+      +-------+-------+   +-------+
-  |PDI[2] |PDI[1] |PDI[0] |      |PDI[1] |PDI[0] |   |PDI[0] |
-  +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
-     |       |       |             |       |           |
-     +-3−bit +-9−bit +-8−bit       +-9−bit +-8−bit     +-8−bit
-     |       |       |             |       |           |
-     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
-     |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
-     |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
-     |  |  | |  |  | +->|PC|       |  |  | +->|PC|     |   |  |
-     |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
-     |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
-     |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
-     +->+--+    |  | |  |  |          +--+ |  |  |     +-->|PC|
-        |NL+-+  |  | |  |  |          |  | |  |  |         +--+
-        +--+ |  |  | |  |  |          |  | |  |  |         |  |
-        |  | |  |  | |  |  |          |  | |  |  |         |  |
-pdtp--->+--+ +->+--+ +->+--+  pdtp--->+--+ +->+--+ pdtp--->+--+
-....
+image::pdt.svg[width=800,height=400]
+//["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
+//....
+//  +-------+-------+-------+      +-------+-------+   +-------+
+//  |PDI[2] |PDI[1] |PDI[0] |      |PDI[1] |PDI[0] |   |PDI[0] |
+//  +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
+//     |       |       |             |       |           |
+//     +-3−bit +-9−bit +-8−bit       +-9−bit +-8−bit     +-8−bit
+//     |       |       |             |       |           |
+//     |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
+//     |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
+//     |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
+//     |  |  | |  |  | +->|PC|       |  |  | +->|PC|     |   |  |
+//     |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
+//     |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
+//     |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
+//     +->+--+    |  | |  |  |          +--+ |  |  |     +-->|PC|
+//        |NL+-+  |  | |  |  |          |  | |  |  |         +--+
+//        +--+ |  |  | |  |  |          |  | |  |  |         |  |
+//        |  | |  |  | |  |  |          |  | |  |  |         |  |
+//pdtp--->+--+ +->+--+ +->+--+  pdtp--->+--+ +->+--+ pdtp--->+--+
+//....
 
 ==== Non-leaf PDT entry
 
@@ -835,7 +838,7 @@ scheme. The `MODE` field encoding are as defined for the `MODE` field in the
 The software assigned process soft-context ID (`PSCID`) is used as the address
 space ID for the process identified by the first-stage page table.
 
-When second-stage address translation is enabled, the `PPN` field holds a guest
+When second-stage address translation is not Bare, the `PPN` field holds a guest
 PPN of the root of a first-stage page table. Addresses of the first-stage page
 table entries are then converted by guest physical address translation process,
 as controlled by the `iohgatp`, into a supervisor physical address. A guest OS
@@ -898,7 +901,7 @@ The process to translate an `IOVA` is as follows:
   disallowed" (cause = 256).
 . If `ddtp.iommu_mode == Bare` and any of the following conditions hold then
   stop and report "Transaction type disallowed" (cause = 260); else go to step
-  21 with translated address same as the `IOVA`.
+  20 with translated address same as the `IOVA`.
 .. Transaction type is a Translated request (read, write/AMO, read-for-execute)
    or is a PCIe ATS Translation request.
 . If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
@@ -923,12 +926,12 @@ The process to translate an `IOVA` is as follows:
     `process_id` is wider than that supported by `pdtp.MODE`.
 ..  Transaction type is not supported by the IOMMU.
 . If request is a Translated request and `DC.tc.T2GPA` is 0 then the translation
-  process is complete. Go to step 21.
+  process is complete. Go to step 20.
 . If request is a Translated request and `DC.tc.T2GPA` is 1 then the IOVA is a
   GPA. Go to step 17 with following page table information:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage is not enabled.
+... The `PSCID` value is not used when first-stage is Bare.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
@@ -941,12 +944,12 @@ The process to translate an `IOVA` is as follows:
 . If `DPE` is 0 and there is no `process_id` associated with the transaction
   then then go to step 17 with the following page table information:
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage is not enabled.
+... The `PSCID` value is not used when first-stage is Bare.
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
 . If `DC.fsc.pdtp.MODE = Bare` then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be `Bare`
-... The `PSCID` value is not used when first-stage is not enabled
+... The `PSCID` value is not used when first-stage is Bare.
 .. Let `iohgatp` be value in `DC.iohgatp` field
 . Locate the process-context (`PC`) as specified in <<GET_PC>>.
 . if any of the following conditions hold then stop and report
@@ -957,22 +960,17 @@ The process to translate an `IOVA` is as follows:
 .. Let `iosatp.PPN` be the value in the `PC.fsc.PPN` field
 .. Let `PSCID` be the value in the `PC.ta.PSCID` field
 .. Let `iohgatp` be the value in the `DC.iohgatp` field
-. If second-stage address translation is not enabled, then use the process
-  specified in Section "Two-Stage Address Translation" of the RISC-V Privileged
-  specification cite:[PRIV]. If a fault is detected by the address translation
-  process then stop and report the fault else go to step 21.
-. If second-stage address translation is enabled then use the process specified
-  in Section "Two-Stage Address Translation" of the RISC-V Privileged
-  specification cite:[PRIV] to determine the GPA accessed by the transaction. If
-  a fault is detected by the two-stage address translation process then stop and
-  report the fault. If the translation process is completed successfully then
-  let `A` be the translated GPA.
+. Use the process specified in Section "Two-Stage Address Translation" of the
+  RISC-V Privileged specification cite:[PRIV] to determine the GPA accessed by
+  the transaction. If a fault is detected by the first stage address translation
+  process then stop and report the fault. If the translation process is completed
+  successfully then let `A` be the translated GPA.
 . If MSI address translations using MSI page tables is enabled
-  (i.e., `DC.msiptp.MODE != Bare`) then the MSI address translation process
+  (i.e., `DC.msiptp.MODE != Off`) then the MSI address translation process
   specified in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be
-  the address of a virtual interrupt file then the process continues at step 20.
+  the address of a virtual interrupt file then the process continues at step 19.
   If a fault is detected by the MSI address translation process then stop and
-  report the fault else the process continues at step 21.
+  report the fault else the process continues at step 20.
 . If second-stage address translation is enabled then use the
   second-stage address translation process specified in Section "Two-Stage
   Address Translation" of the RISC-V Privileged specification cite:[PRIV] to
@@ -1355,7 +1353,7 @@ The status is set to Invalid Request if the following faults are encountered:
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
-(`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
+(`pqt == pqh - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [NOTE]
 ====
@@ -1388,7 +1386,7 @@ the following conditions:
 * Page-request queue is not enabled (`pqcsr.pqen == 0` or `pqcsr.pqon == 0`)
 * Page-request queue encountered a memory access fault (`pqcsr.pqmf == 1`)
 * "Page Request" could not be queued due to the page-request queue being full
-  (`pqh == pqt - 1`) or had a overflow (`pqcsr.pqof == 1`).
+  (`pqt == pqh - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
 [[CACHING]]
 === Caching in-memory data structures
@@ -1423,10 +1421,10 @@ group of entries.
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
 |First-stage page table
  (when second-stage is
-  enabled)              |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+  not Bare)             |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
 |First-stage page table   
  (when second-stage is
-  not enabled)          |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
+  Bare)                 |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |Second-stage page table|`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
 |===

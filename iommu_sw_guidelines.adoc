@@ -227,13 +227,13 @@ A `DC` may be configured with a first-stage page table (when `DC.tc.PDTV=0`) or
 a directory of first-stage page tables selected using `process_id` from a
 process-directory-table (when `DC.tc.PDTV=1`).
 
-When a change is made to a first-stage page table, and the second-stage is not
-enabled, then software must perform invalidations using `IOTINVAL.VMA` with
+When a change is made to a first-stage page table, and the second-stage is
+Bare, then software must perform invalidations using `IOTINVAL.VMA` with
 `GV=0` and `AV` and `PSCV` operands appropriate for the modification as
 specified in <<IVMA>>.
 
 When a change is made to a first-stage page table, and the second-stage is
-enabled, then software must perform invalidations using `IOTINVAL.VMA` with
+not Bare, then software must perform invalidations using `IOTINVAL.VMA` with
 `GV=1`, `GSCID=DC.iohgatp.GSCID` and `AV` and `PSCV` operands appropriate for
 the modification as specified in <<IVMA>>.
 

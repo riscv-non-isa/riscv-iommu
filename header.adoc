@@ -1,7 +1,7 @@
 [[header]]
-:description: RISC-V IOMMU Specification Document
+:description: RISC-V IOMMU Architecture Specification
 :company: RISC-V.org
-:revdate: 10/2022
+:revdate: 01/2023
 :revnumber: 0.9
 :revremark: This document is in development. Assume everything can change. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
@@ -14,8 +14,6 @@
 // Settings:
 :experimental:
 :reproducible:
-// needs to be changed? bug discussion started
-//:WaveDromEditorApp: app/wavedrom-editor.app
 :imagesoutdir: images
 :bibtex-file: iommu.bib
 :bibtex-order: appearance
@@ -36,7 +34,7 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
-= RISC-V IOMMU Specification Document
+= RISC-V IOMMU Architecture Specification
 IOMMU Task Group
 
 // Preamble
@@ -59,7 +57,6 @@ Copyright 2022 by RISC-V International.
 
 [preface]
 include::contributors.adoc[]
-
 include::iommu_intro.adoc[]
 include::iommu_data_structures.adoc[]
 include::iommu_in_memory_queues.adoc[]
@@ -67,6 +64,4 @@ include::iommu_debug.adoc[]
 include::iommu_registers.adoc[]
 include::iommu_sw_guidelines.adoc[]
 include::iommu_hw_guidelines.adoc[]
-//the index must precede the bibliography
-//include::index.adoc[]
 include::bibliography.adoc[]

@@ -905,7 +905,7 @@ status of the fault-queue.
                            writing 1 to the bit.
 |9     |`fqof`|RW1C      | The fault-queue-overflow bit is set to 1 if the
                            IOMMU needs to queue a fault record but the
-                           fault-queue is full (i.e., `fqh == fqt - 1`). +
+                           fault-queue is full (i.e., `fqt == fqh - 1`). +
                                                                                +
                            The fault-record is discarded and no more fault
                            records are generated until software clears `fqof`
@@ -1007,7 +1007,7 @@ status of the page-request-queue.
                               if the page-request queue overflows i.e. IOMMU
                               needs to queue a "Page Request" message but the
                               page-request queue is full
-                              (i.e., `pqh == pqt - 1`). +
+                              (i.e., `pqt == pqh - 1`). +
                                                                                +
                               The "Page Request" message that caused the `pqmf`
                               or `pqof` error and all subsequent "Page Request"

@@ -30,7 +30,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
         return;
 
     // The fault-queue-overflow bit is set to 1 if the IOMMU needs to
-    // queue a fault record but the fault-queue is full (i.e., fqh == fqt - 1)
+    // queue a fault record but the fault-queue is full (i.e., fqt == fqh - 1)
     // The fault-record is discarded and no more fault records are
     // generated till software clears fqof by writing 1 to the bit. An
     // interrupt is generated if not already pending (i.e. ipsr.fip == 1)
