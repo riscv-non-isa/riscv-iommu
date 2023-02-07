@@ -59,7 +59,6 @@ The guidelines for initializing the IOMMU are as follows:
   be the physical page number (PPN) of the allocated memory buffer. Program
   the command queue registers as follows:
 
-**  Poll on `cqcsr.busy` until it reads 0
 **  `temp_cqb_var.PPN = B`
 **  `temp_cqb_var.LOG2SZ-1 = (k - 1)`
 **  `cqb = temp_cqb_var`
@@ -74,7 +73,6 @@ The guidelines for initializing the IOMMU are as follows:
   be the PPN of the allocated memory buffer. Program the fault queue registers
   as follows:
 
-**  Poll on `fqcsr.busy` until it reads 0
 **  `temp_fqb_var.PPN = B`
 **  `temp_fqb_var.LOG2SZ-1 = (k - 1)`
 **  `fqb = temp_fqb_var`
@@ -89,7 +87,6 @@ The guidelines for initializing the IOMMU are as follows:
   and `B` be the PPN of the allocated memory buffer. Program the page-request
   queue registers as follows:
 
-**  Poll on `pqcsr.busy` until it reads 0
 **  `temp_pqb_var.PPN = B`
 **  `temp_pqb_var.LOG2SZ-1 = (k - 1)`
 **  `pqb = temp_pqb_var`
