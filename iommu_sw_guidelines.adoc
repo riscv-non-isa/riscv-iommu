@@ -374,10 +374,11 @@ following actions:
 .. Process pending "Page Request" messages that need processing and remove them
    from the `PQ` by advancing the `pqh` by the number of records processed.
 ... When a `PQ` overflow condition occurs, software may observe incomplete
-    page-request groups and the IOMMU might have automatically responded (see
-    <<ATS_PRI>>) to a "Page Request" in such groups if the "Last Request in PRG"
-    flag was set to 1. Software should ignore the such incomplete groups and not
-    service such groups.
+    page-request groups due to the "Page Request" messages received being
+    dropped due to the overflow. The IOMMU might have automatically responded (see
+    <<ATS_PRI>>) to a droped "Page Request" in such groups if the "Last Request in
+    PRG" flag was set to 1. Software should ignore and not service the such
+    incomplete groups.
 ... The automatic response to the "Page Request" with "Last request in PRG" set
     to 1 on a `PQ` overflow is expected to cause the device to retry the ATS
     translation request. However, since the IOMMU response was generated without
