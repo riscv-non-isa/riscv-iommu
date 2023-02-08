@@ -381,12 +381,12 @@ following actions:
     incomplete groups.
 ... The automatic response to the "Page Request" with "Last request in PRG" set
     to 1 on a `PQ` overflow is expected to cause the device to retry the ATS
-    translation request. However, since the IOMMU response was generated without
+    translation request. However, since the IOMMU generated response was without
     actually resolving the condition that caused the "Page Request" to be
-    originally generated, this will likely lead to the device sending the
-    "Page Request" messages again. These retried messages may now be stored in
-    the `PQ` if the overflow condition has been corrected by creating space in
-    the `PQ`.
+    originally sent by the device, this will likely lead to the device sending
+    the "Page Request" messages again. These retried messages may now be stored
+    in the `PQ` if the overflow condition has been corrected by creating space
+    in the `PQ`.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
 .. Clear `ipsr.pmip` by writing 1 to the bit.
 .. Process the performance monitoring counter overflows.
