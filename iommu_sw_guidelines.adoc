@@ -373,7 +373,7 @@ following actions:
    and contains "Page Request" messages that need processing.
 .. Process pending "Page Request" messages that need processing and remove them
    from the `PQ` by advancing the `pqh` by the number of records processed.
-... Software may observe an incomplete page-request group in `PQ` when a
+... Software may observe an incomplete page-request group in `PQ` when an
     overflow occurs. Software should ignore the group and not service such
     groups.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
