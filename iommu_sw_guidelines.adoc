@@ -373,10 +373,9 @@ following actions:
    and contains "Page Request" messages that need processing.
 .. Process pending "Page Request" messages that need processing and remove them
    from the `PQ` by advancing the `pqh` by the number of records processed.
-... If a `PQ` overflow condition caused the IOMMU to automatically respond to
-   a "Page Request" with the "Last Request in PRG" flag set to 1, then software
-   may observe an incomplete page-request group. Software should ignore the
-   group and not service such groups.
+... If a `PQ` overflow condition occured, then software may observe an incomplete
+    page-request group. Software should ignore the group and not service such
+    groups.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
 .. Clear `ipsr.pmip` by writing 1 to the bit.
 .. Process the performance monitoring counter overflows.
