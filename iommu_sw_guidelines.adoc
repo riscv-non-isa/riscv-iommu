@@ -370,10 +370,20 @@ following actions:
    and contains "Page Request" messages that need processing.
 .. Process pending "Page Request" messages that need processing and remove them
    from the `PQ` by advancing the `pqh` by the number of records processed.
-... If a `PQ` overflow condition caused the IOMMU to automatically respond to
-   a "Page Request" with the "Last Request in PRG" flag set to 1, then software
-   may observe an incomplete page-request group. Software should ignore the
-   group and not service such groups.
+... When a `PQ` overflow condition occurs, software may observe incomplete
+    page-request groups due to the "Page Request" messages being dropped. The
+    IOMMU might have automatically responded (see <<ATS_PRI>>) to a dropped
+    "Page Request" in such groups if the "Last Request in PRG" flag was set to 1
+    in the message. Software should ignore and not service the such incomplete
+    groups.
+... The automatic response to the "Page Request" with "Last request in PRG" set
+    to 1 on a `PQ` overflow is expected to cause the device to retry the ATS
+    translation request. However, since the IOMMU generated response was without
+    actually resolving the condition that caused the "Page Request" to be
+    originally sent by the device, this will likely lead to the device sending
+    the "Page Request" messages again. These retried messages may now be stored
+    in the `PQ` if the overflow condition has been corrected by creating space
+    in the `PQ`.
 . If `ipsr.pmip` bit is set then an interrupt is pending from the HPM.
 .. Clear `ipsr.pmip` by writing 1 to the bit.
 .. Process the performance monitoring counter overflows.
