@@ -661,8 +661,8 @@ The `TTYP` field reports inbound transaction type.
 |7      | Translated write/AMO transaction
 |8      | PCIe ATS Translation Request
 |9      | PCIe Message Request
-|10 - 15| Reserved
-|16 - 31| Designated for custom use
+|10 - 31| Reserved
+|31 - 63| Designated for custom use
 |===
 
 If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If
