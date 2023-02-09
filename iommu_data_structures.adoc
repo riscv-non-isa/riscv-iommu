@@ -971,12 +971,11 @@ The process to translate an `IOVA` is as follows:
   the address of a virtual interrupt file then the process continues at step 19.
   If a fault is detected by the MSI address translation process then stop and
   report the fault else the process continues at step 20.
-. If second-stage address translation is enabled then use the
-  second-stage address translation process specified in Section "Two-Stage
-  Address Translation" of the RISC-V Privileged specification cite:[PRIV] to
-  translate the GPA `A` to determine the SPA accessed by the transaction. If a
-  fault is detected by the address translation process then stop and report the
-  fault.
+. Use the second-stage address translation process specified in Section
+  "Two-Stage Address Translation" of the RISC-V Privileged specification
+  cite:[PRIV] to translate the GPA `A` to determine the SPA accessed by the
+  transaction. If a fault is detected by the address translation process then
+  stop and report the fault.
 . Translation process is complete
 
 When checking the `U` bit in a second-stage PTE, the transaction is treated as
