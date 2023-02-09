@@ -1301,28 +1301,19 @@ filtering by IDs.
                                         process_id matches `PID_PSCID`.
 | 0       |  1          | 0           | Counter increments if `device_id`
                                         matches `DID_GSCID`.
-| 0       |  1          | 1           | If the transaction does not have a
-                                        valid `process_id`, counter increments
-                                        if `device_id` matches `DID_GSCID`.
-                                        If the transaction has a valid
+| 0       |  1          | 1           | If the transaction has a valid
                                         `process_id`, counter increments if
                                         `device_id` matches `DID_GSCID` and
                                         `process_id` matches `PID_PSCID`.
 | 1       |  0          | 1           | If the transaction has a valid
-                                        `process_id`, counter increments if
+                                        `PSCID`, counter increments if
                                         the `PSCID` of that process matches
                                         `PID_PSCID`.
-| 1       |  1          | 0           | Counter increments if `GSCID` of the
-                                        device matches `DID_GSCID`.
-| 1       |  1          | 1           | If the transaction does not have a
-                                        valid `process_id`, counter increments
-                                        if `GSCID` of the device matches
-                                        `DID_GSCID`.
-                                        If the transaction has a valid
-                                        `process_id`, counter increments if
-                                        `GSCID` of the device matches
-                                        `DID_GSCID` and `PSCID` of the process
-                                         matches `PID_PSCID`.
+| 1       |  1          | 0           | Counter increments if `GSCID` is valid
+                                        and matches `DID_GSCID`.
+| 1       |  1          | 1           | Counter increments if `GSCID` is valid
+                                        and matches `DID_GSCID` and if `PSCID`
+                                        is valid and matches `PID_PSCID`.
 |===
 
 When filtering by `device_id` or `GSCID` is selected and the event supports
