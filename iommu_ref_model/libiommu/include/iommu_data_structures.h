@@ -224,10 +224,10 @@ typedef union {
 // MSI page table pointer
 // Encoding of `msiptp` `MODE` field
 // |Value | Name     | Description
-// | 0    | `Bare`   | No translation or protection. MSI recognition using
+// | 0    | `Off`    | Recognition of accesses to a virtual interrupt file using
 //                     MSI address mask and pattern is not performed.
 // | 1    | `Flat`   | Flat MSI page table
-#define MSIPTP_Bare 0
+#define MSIPTP_Off  0
 #define MSIPTP_Flat 1
 typedef union {
     struct {

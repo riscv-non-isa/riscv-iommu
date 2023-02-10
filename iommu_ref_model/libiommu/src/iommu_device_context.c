@@ -307,7 +307,7 @@ do_device_context_configuration_checks(
     //16. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
     //    and not `Flat`
     if ( (g_reg_file.capabilities.msi_flat == 1) && 
-         ((DC->msiptp.MODE != MSIPTP_Bare) && (DC->msiptp.MODE != MSIPTP_Flat)) ) {
+         ((DC->msiptp.MODE != MSIPTP_Off) && (DC->msiptp.MODE != MSIPTP_Flat)) ) {
         return 1;
     }
     //17. `DC.iohgatp.MODE` is not `Bare` and the root page table determined by

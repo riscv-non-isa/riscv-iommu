@@ -414,7 +414,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
         }
     }
     DC.msiptp.MODE = msiptp_mode;
-    if ( msiptp_mode != MSIPTP_Bare ) {
+    if ( msiptp_mode != MSIPTP_Off ) {
        DC.msiptp.PPN = get_free_ppn(msiptp_pages);
        write_memory(zero, DC.msiptp.PPN * PAGESIZE, 4096);
        DC.msi_addr_mask.mask = msi_addr_mask;

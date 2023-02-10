@@ -30,7 +30,7 @@ msi_address_translation(
     *iotval2 = 0;
     *is_msi = 0;
     
-    if ( DC->msiptp.MODE == MSIPTP_Bare )
+    if ( DC->msiptp.MODE == MSIPTP_Off )
         return 0;
 
     // 1. Let `A` be the GPA

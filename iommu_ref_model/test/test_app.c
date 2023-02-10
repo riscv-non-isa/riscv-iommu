@@ -485,7 +485,7 @@ main(void) {
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
-    DC.msiptp.MODE = MSIPTP_Bare;
+    DC.msiptp.MODE = MSIPTP_Off;
     DC.tc.T2GPA = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
@@ -1619,7 +1619,7 @@ main(void) {
                          IOHGATP_Sv48x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory(DC_addr, 64, (char *)&DC);
-    DC.msiptp.MODE = MSIPTP_Bare;
+    DC.msiptp.MODE = MSIPTP_Off;
     write_memory((char *)&DC, DC_addr, 64);
 
     // Invalid non-leaf PDTE
