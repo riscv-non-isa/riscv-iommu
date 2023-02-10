@@ -257,7 +257,7 @@ step_5:
     //    – If the values match, set pte.a to 1 and, if the original memory access is a store,
     //      also set pte.d to 1. 
     //    – If the comparison fails, return to step 2
-    if ( (gpte->A == 1) && ( (gpte->D == 1) || (is_write == 0) ) ) goto step_8;
+    if ( (gpte->A == 1) && ( (gpte->D == 1) || (is_write == 0) || (gpte->W == 0) ) ) goto step_8;
 
     // A and/or D bit update needed
     if ( GADE == 0 ) return GST_PAGE_FAULT;

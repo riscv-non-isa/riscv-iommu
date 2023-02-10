@@ -71,7 +71,7 @@ s_vs_stage_address_translation(
         LEVELS = 3;
         PTESIZE = 8;
         mask = (1UL << (64 - 39)) - 1;
-        masked_upper_bits = (iova >> 39) & mask;
+        masked_upper_bits = (iova >> 38) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv48 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
@@ -81,7 +81,7 @@ s_vs_stage_address_translation(
         LEVELS = 4;
         PTESIZE = 8;
         mask = (1UL << (64 - 48)) - 1;
-        masked_upper_bits = (iova >> 48) & mask;
+        masked_upper_bits = (iova >> 47) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv57 && SXL == 0 ) {
         vpn[0] = get_bits(20, 12, iova);
@@ -92,7 +92,7 @@ s_vs_stage_address_translation(
         LEVELS = 5;
         PTESIZE = 8;
         mask = (1UL << (64 - 57)) - 1;
-        masked_upper_bits = (iova >> 57) & mask;
+        masked_upper_bits = (iova >> 56) & mask;
     }
     // Instruction fetch addresses and load and store effective addresses, 
     // which are 64 bits, must have bits 63:<VASIZE> all equal to bit 
@@ -288,7 +288,7 @@ step_5:
     //    – If the values match, set pte.a to 1 and, if the original memory access is a store, 
     //      also set pte.d to 1.
     //    – If the comparison fails, return to step 2
-    if ( (pte->A == 1) && ((pte->D == 1) || (is_write == 0)) ) goto step_8;
+    if ( (pte->A == 1) && ( (pte->D == 1) || (is_write == 0) || (pte->W == 0) ) ) goto step_8;
 
     // A and/or D bit update needed
     if ( SADE == 0 ) goto page_fault;
