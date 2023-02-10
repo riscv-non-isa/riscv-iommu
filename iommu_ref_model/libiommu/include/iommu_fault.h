@@ -18,8 +18,8 @@
 // |7      | Translated write/AMO transaction
 // |8      | PCIe ATS Translation Request
 // |9      | Message Request 
-// |10 - 15| Reserved
-// |16 - 31| Reserved for custom use
+// |10 - 31| Reserved
+// |31 - 63| Reserved for custom use
 #define TTYPE_NONE                                0
 #define UNTRANSLATED_READ_FOR_EXECUTE_TRANSACTION 1
 #define UNTRANSLATED_READ_TRANSACTION             2

@@ -120,7 +120,7 @@ iommu_translate_iova(
         vs_pte.PBMT = PMA;
         g_pte.X = g_pte.W = g_pte.R = 1;
         is_msi = 0;
-        goto step_21;
+        goto step_20;
     }
     // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
     //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
@@ -199,7 +199,7 @@ iommu_translate_iova(
         vs_pte.PBMT = PMA;
         g_pte.X = g_pte.W = g_pte.R = 1;
         is_msi = 0;
-        goto step_21;
+        goto step_20;
     }
 
     // 9. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA. 
@@ -286,6 +286,11 @@ iommu_translate_iova(
     goto step_17;
 
 step_17:
+    // 17. Use the process specified in Section "Two-Stage Address Translation" of the
+    //     RISC-V Privileged specification cite:[PRIV] to determine the GPA accessed by
+    //     the transaction. If a fault is detected by the first stage address translation
+    //     process then stop and report the fault. If the translation process is completed
+    //     successfully then let `A` be the translated GPA.
     PSCV  = (iosatp.MODE == IOSATP_Bare) ? 0 : 1;
     GV    = (iohgatp.MODE == IOHGATP_Bare) ? 0 : 1;
     GSCID = iohgatp.GSCID;
@@ -298,43 +303,33 @@ step_17:
         goto stop_and_report_fault;
 
     // Hit in IOATC - complete translation.
-    if ( ioatc_status == IOATC_HIT ) goto step_21;
+    if ( ioatc_status == IOATC_HIT ) goto step_20;
 
     // Count misses in TLB
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, IOATC_TLB_MISS);
 
-    // 17. If a G-stage page table is not active in the device-context then use the
-    //     single stage address translation process specified in Section 4.3.2 of the
-    //     RISC-V privileged specification. If a fault is detecting by the single stage
-    //     address translation process then stop and report the fault else go to
-    //     step 21.
-    // 18. If a G-stage page table is active in the device-context then use the
-    //     two-stage address translation process specified in Section 8.5 of the RISC-V
-    //     privileged specification to perform VS-stage address translation to
-    //     determine the GPA accessed by the transaction. If a fault is detecting by the
-    //     two stage address translation process then stop and report the fault.
-    if ( s_vs_stage_address_translation(req->tr.iova, TTYP, DID, is_read, is_write, is_exec,
+    if ( two_stage_address_translation(req->tr.iova, TTYP, DID, is_read, is_write, is_exec,
                                         PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
                                         GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
                                         &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
         goto stop_and_report_fault;
     
-    // 19. If MSI address translations using MSI page tables is enabled
-    //     (`DC.msiptp.MODE != Bare`) then the MSI address translation process specified
-    //     in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be the
-    //     address of a virtual interrupt file then the process continues at step 20. If
-    //     a fault is detected by the MSI address translation process then stop and
-    //     report the fault else the process continues at step 21.
+    // 18. If MSI address translations using MSI page tables is enabled
+    //     (i.e., `DC.msiptp.MODE != Off`) then the MSI address translation process
+    //     specified in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be
+    //     the address of a virtual interrupt file then the process continues at step 19.
+    //     If a fault is detected by the MSI address translation process then stop and
+    //     report the fault else the process continues at step 20.
     if ( msi_address_translation(gpa, &DC, &is_msi, &is_mrif, &mrif_nid, &dest_mrif_addr,
                                  &cause, &iotval2, &pa, &gst_page_sz, &g_pte) )
         goto stop_and_report_fault;
-    if ( is_msi == 1 ) goto skip_g_stage;
+    if ( is_msi == 1 ) goto skip_gpa_trans;
 
-    // 20. If a G-stage page table is active in the device-context then use the
-    //     G-stage address translation process specified in Section 8.5 of the RISC-V
-    //     privileged specification to translate the GPA `A` to determine the SPA
-    //     accessed by the transaction. If a fault is detecting by the two stage address
-    //     translation process then stop and report the fault.
+    // 19. Use the second-stage address translation process specified in Section
+    //     "Two-Stage Address Translation" of the RISC-V Privileged specification
+    //     cite:[PRIV] to translate the GPA `A` to determine the SPA accessed by the
+    //     transaction. If a fault is detected by the address translation process then
+    //     stop and report the fault.
     check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
     if ( (gst_fault = g_stage_address_translation(gpa, check_access_perms, DID, 
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
@@ -343,7 +338,7 @@ step_17:
         goto access_fault;
     }
 
-skip_g_stage:
+skip_gpa_trans:
     // The page-based memory types (PBMT), if Svpbmt is supported, obtained 
     // from the IOMMU address translation page tables. When two-stage address
     // translation is performed the IOMMU provides the page-based memory type
@@ -379,8 +374,8 @@ skip_g_stage:
         pa = gpa;
     }
 
-step_21:
-    // 21. Translation process is complete
+step_20:
+    // 20. Translation process is complete
     rsp_msg->status               = SUCCESS;
     // The PPN and size is returned in same format as for ATS translation response
     // see below comments on for format details.
@@ -551,7 +546,7 @@ stop_and_report_fault:
         vs_pte.raw = g_pte.raw = 0;
         is_msi = 0;
         page_sz = PAGESIZE;
-        goto step_21;
+        goto step_20;
     }
     *((char *)0) = 0; // unexpected cause
     return;
