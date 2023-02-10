@@ -116,7 +116,7 @@ step_2:
     // as writes. This avoids the IOMMU needing to go back in time to set D bit
     // in G-stage page tables if A or D bit needs to be set in VS stage.
     // If SADE is 1, then its a implicit write else its a implicit read
-    if ( ( gst_fault = g_stage_address_translation(a, 1, DID, 1, SADE, 0,
+    if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, SADE, 0,
                             PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SXL,
                             &a, &gst_page_sz, &gpte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;

@@ -331,7 +331,7 @@ step_17:
     //     transaction. If a fault is detected by the address translation process then
     //     stop and report the fault.
     check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
-    if ( (gst_fault = g_stage_address_translation(gpa, check_access_perms, DID, 
+    if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID, 
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
                           iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;

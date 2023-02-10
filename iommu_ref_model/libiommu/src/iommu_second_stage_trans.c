@@ -5,7 +5,7 @@
 
 #include "iommu.h"
 uint8_t
-g_stage_address_translation(
+second_stage_address_translation(
     uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
     uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,

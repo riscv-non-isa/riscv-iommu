@@ -77,7 +77,7 @@ step_2:
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
     //    is used in subsequent steps.
-    if ( ( gst_fault = g_stage_address_translation(a, 1, device_id, 1, 0, 0, 1, process_id,
+    if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, 1, 0, 0, 1, process_id,
                            0, 0, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
                            DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SXL, &a,
                            &gst_page_sz, &g_pte) ) ) {
