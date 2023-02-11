@@ -13,7 +13,6 @@ generate_interrupt(
     msi_vec_ctrl_t msi_vec_ctrl;
     uint8_t  vec, status;
 
-
     // Interrupt pending status register (ipsr)
     // This 32-bits register (RW1C) reports the pending interrupts 
     // which require software service. Each interrupt-pending bit 

@@ -670,7 +670,7 @@ write_register(
                         req.tr.at = ADDR_TYPE_UNTRANSLATED;
                         req.tr.iova = g_reg_file.tr_req_iova.raw;
                         req.tr.length = 1;
-                        req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.RWn == 1) ? READ : WRITE;
+                        req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.NW == 1) ? READ : WRITE;
 
                         iommu_translate_iova(&req, &rsp);
 

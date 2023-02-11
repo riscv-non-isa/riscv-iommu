@@ -1083,7 +1083,7 @@ main(void) {
 
     tr_req_ctrl.DID = 0x012345;
     tr_req_ctrl.PV = 0;
-    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
     tr_req_iova.raw = req.tr.iova;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
@@ -1104,7 +1104,7 @@ main(void) {
 
     tr_req_ctrl.DID = 0x012345;
     tr_req_ctrl.PV = 0;
-    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
     tr_req_iova.raw = req.tr.iova;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
@@ -1363,7 +1363,7 @@ main(void) {
 
     tr_req_ctrl.DID = 0x012349;
     tr_req_ctrl.PV = 0;
-    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
     tr_req_iova.raw = req.tr.iova;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
@@ -1401,7 +1401,7 @@ main(void) {
 
     tr_req_ctrl.DID = 0x012349;
     tr_req_ctrl.PV = 0;
-    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
     tr_req_iova.raw = req.tr.iova;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);

@@ -497,7 +497,7 @@ typedef union {
                                // access for this translation.
         uint64_t Exe:1;        // When set to 1 the request needs execute access 
                                // for this translation.
-        uint64_t RWn:1;        // When set to 1 the request only needs read-only 
+        uint64_t NW:1;         // When set to 1 the request only needs read-only 
                                // access for this translation.
         uint64_t reserved0:8;  // Designated for standard use
         uint64_t PID:20;       // When PV is 1 this field provides the process_id for 
