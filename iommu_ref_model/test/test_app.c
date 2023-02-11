@@ -696,7 +696,7 @@ main(void) {
     pw_go_requested = 0;
     write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
 
-    // Set WIS - not supported in this config
+    // Set WSI - not supported in this config
     iofence(IOFENCE_C, 1, 0, 1, 1, (iofence_PPN * PAGESIZE), 0xDEADBEEF);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
     fail_if( ( cqcsr.cmd_ill != 1 ) );
@@ -710,7 +710,7 @@ main(void) {
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqh.raw = read_register(CQH_OFFSET, 4);
     read_memory(((cqb.ppn * PAGESIZE) | (cqh.index * 16)), 16, (char *)&cmd);
-    cmd.iofence.wis = 0;
+    cmd.iofence.wsi = 0;
     write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqh.index * 16)), 16);
     process_commands();
     fail_if( ( (read_register(CQH_OFFSET, 4)) != read_register(CQT_OFFSET, 4) ) );
@@ -845,10 +845,10 @@ main(void) {
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
 
     fctl.raw = read_register(FCTRL_OFFSET, 4);
-    fctl.wis = 1;
+    fctl.wsi = 1;
     write_register(FCTRL_OFFSET, 4, fctl.raw);
     fctl.raw = read_register(FCTRL_OFFSET, 4);
-    fail_if( (fctl.wis == 0) );
+    fail_if( (fctl.wsi == 0) );
 
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
@@ -890,7 +890,7 @@ main(void) {
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
 
-    fctl.wis = 0;
+    fctl.wsi = 0;
     write_register(FCTRL_OFFSET, 4, fctl.raw);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
@@ -3041,19 +3041,19 @@ main(void) {
             case FCTRL_OFFSET:
                 fctl.raw = read_register(i, 4);
                 fctl.be = 1;
-                fctl.wis = 1;
+                fctl.wsi = 1;
                 write_register(i, 4, fctl.raw);
                 fctl.raw = read_register(i, 4);
                 fail_if( ( fctl.be != 0 ) );
-                fail_if( ( fctl.wis != 0 ) );
+                fail_if( ( fctl.wsi != 0 ) );
                 g_reg_file.capabilities.end = BOTH_END;
                 fctl.raw = read_register(i, 4);
                 temp = fctl.raw;
                 fail_if( ( fctl.be != 0 ) );
-                fail_if( ( fctl.wis != 0 ) );
+                fail_if( ( fctl.wsi != 0 ) );
                 // IOMMU is on - this register should not be writeable 
                 fctl.be = 1;
-                fctl.wis = 1;
+                fctl.wsi = 1;
                 write_register(i, 4, fctl.raw);
                 fail_if( ( temp != read_register(i, 4) ) );
                 fail_if( ( enable_iommu(Off) < 0 ) );
@@ -3076,15 +3076,15 @@ main(void) {
                 write_register(i, 4, fctl.raw);
                 fctl.raw = read_register(i, 4);
                 fail_if( ( fctl.be != 1 ) ); 
-                fail_if( ( fctl.wis != 0 ) ); 
+                fail_if( ( fctl.wsi != 0 ) ); 
                 g_reg_file.capabilities.igs = IGS_BOTH;
-                fctl.wis = 1;
+                fctl.wsi = 1;
                 write_register(i, 4, fctl.raw);
                 fctl.raw = read_register(i, 4);
-                fail_if( ( fctl.wis != 1 ) ); 
+                fail_if( ( fctl.wsi != 1 ) ); 
 
                 fctl.be = 0;
-                fctl.wis = 0;
+                fctl.wsi = 0;
                 write_register(i, 4, fctl.raw);
                 pqcsr.pqen = 1;
                 write_register(PQCSR_OFFSET, 4, pqcsr.raw);
@@ -3258,7 +3258,7 @@ main(void) {
             case MSI_ADDR_6_OFFSET:
             case MSI_ADDR_7_OFFSET:
                 temp = read_register(i, 8);
-                g_reg_file.capabilities.igs = WIS;
+                g_reg_file.capabilities.igs = WSI;
                 write_register(i, 8, temp + 8);
                 fail_if( ( temp != read_register(i, 8) ) );
                 g_reg_file.capabilities.igs = 0;
@@ -3275,7 +3275,7 @@ main(void) {
             case MSI_ADDR_14_OFFSET:
             case MSI_ADDR_15_OFFSET:
                 temp = read_register(i, 8);
-                g_reg_file.capabilities.igs = WIS;
+                g_reg_file.capabilities.igs = WSI;
                 write_register(i, 8, temp + 8);
                 fail_if( ( temp != read_register(i, 8) ) );
                 g_reg_file.capabilities.igs = 0;
@@ -3301,7 +3301,7 @@ main(void) {
             case MSI_VEC_CTRL_7_OFFSET:
                 write_register(i, 4, 0);
                 temp = read_register(i, 4);
-                g_reg_file.capabilities.igs = WIS;
+                g_reg_file.capabilities.igs = WSI;
                 write_register(i, 4, temp + 1);
                 fail_if( ( temp != read_register(i, 4) ) );
                 g_reg_file.capabilities.igs = 0;
@@ -3327,7 +3327,7 @@ main(void) {
             case MSI_VEC_CTRL_15_OFFSET:
                 write_register(i, 4, 0);
                 temp = read_register(i, 4);
-                g_reg_file.capabilities.igs = WIS;
+                g_reg_file.capabilities.igs = WSI;
                 write_register(i, 4, temp + 1);
                 fail_if( ( temp != read_register(i, 4) ) );
                 g_reg_file.capabilities.igs = 0;

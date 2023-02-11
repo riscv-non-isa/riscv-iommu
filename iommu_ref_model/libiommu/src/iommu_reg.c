@@ -170,7 +170,7 @@ write_register(
             if ( (g_reg_file.capabilities.end == BOTH_END) )
                 g_reg_file.fctl.be = fctl_temp.be;
             if ( (g_reg_file.capabilities.igs == IGS_BOTH) )
-                g_reg_file.fctl.wis = fctl_temp.wis;
+                g_reg_file.fctl.wsi = fctl_temp.wsi;
             break;
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write
@@ -490,8 +490,11 @@ write_register(
             // IOMMU will not signal another interrupt from that source till
             // software clears that interrupt-pending bit by writing 1 to clear it.
             // Update the RW1C bits - clear if written to 1
-
-            // Clear cip and pend interrupt If there are unacknowledge 
+            // If a bit in `ipsr` is 1 then a write of 1 to the bit transitions
+            // the bit from 1->0. If the conditions to set that bit are still present
+            // (See <<IPSR_FIELDS>>) or if they occur after the bit is cleared then that
+            // bit transitions again from 0->1.
+            // Clear cip and pend interrupt again if there are unacknowledge 
             // interrupts from CQ and if CQ interrupts are enabled
             if ( ipsr_temp.cip == 1 )
                 g_reg_file.ipsr.cip = 0;
@@ -504,7 +507,7 @@ write_register(
                     generate_interrupt(COMMAND_QUEUE);
                 }
             }
-            // Clear fip and pend interrupt If there are unacknowledge 
+            // Clear fip and pend interrupt again If there are unacknowledge 
             // interrupts from FQ and if FQ interrupts are enabled
             if ( ipsr_temp.fip == 1 )
                 g_reg_file.ipsr.fip = 0;
@@ -516,7 +519,7 @@ write_register(
                 }
             }
 
-            // Clear pip and pend interrupt If there are unacknowledge 
+            // Clear pip and pend interrupt again If there are unacknowledge 
             // interrupts from PQ and if PQ interrupts are enabled
             if ( ipsr_temp.pip == 1 )
                 g_reg_file.ipsr.pip = 0;
@@ -733,8 +736,8 @@ write_register(
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
             // are read-only 0 if the IOMMU does not support MSI 
-            // (i.e., if capabilities.IGS == WIS).
-            if ( g_reg_file.capabilities.igs == WIS )
+            // (i.e., if capabilities.IGS == WSI).
+            if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
             if ( x >= (1UL << g_num_vec_bits) ) 
@@ -765,8 +768,8 @@ write_register(
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
             // are read-only 0 if the IOMMU does not support MSI 
-            // (i.e., if capabilities.IGS == WIS).
-            if ( g_reg_file.capabilities.igs == WIS )
+            // (i.e., if capabilities.IGS == WSI).
+            if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
             if ( x >= (1UL << g_num_vec_bits) ) 
@@ -796,8 +799,8 @@ write_register(
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
             // are read-only 0 if the IOMMU does not support MSI 
-            // (i.e., if capabilities.IGS == WIS).
-            if ( g_reg_file.capabilities.igs == WIS )
+            // (i.e., if capabilities.IGS == WSI).
+            if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
             if ( x >= (1UL << g_num_vec_bits) ) 
@@ -817,16 +820,16 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     // Only PA upto 56 bits supported in RISC-V
     if ( capabilities.pas > 56 )
         return -1;
-    // Only one of MSI, WIS, or BOTH supported
+    // Only one of MSI, WSI, or BOTH supported
     if ( capabilities.igs != MSI && 
-         capabilities.igs != WIS && 
+         capabilities.igs != WSI && 
          capabilities.igs != IGS_BOTH )
         return -1;
-    // If IGS_BOTH is not supported then WIS must be 0
+    // If IGS_BOTH is not supported then WSI must be 0
     // if MSI is only supported mode else it must be 1
     if ( capabilities.igs != IGS_BOTH && 
-         ((capabilities.igs == MSI && fctl.wis != 0) ||
-          (capabilities.igs == WIS && fctl.wis == 0)) )
+         ((capabilities.igs == MSI && fctl.wsi != 0) ||
+          (capabilities.igs == WSI && fctl.wsi == 0)) )
         return -1;
     // Only 15-bit event ID supported
     // Mask must be 0 when hpm not supported

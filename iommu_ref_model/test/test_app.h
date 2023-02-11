@@ -11,7 +11,7 @@ extern int8_t enable_disable_pq(uint32_t nppn, uint8_t enable_disable);
 extern int8_t enable_iommu(uint8_t iommu_mode);
 extern void iodir(uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID);
 extern void iotinval( uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address);
-extern void iofence(uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_bit, uint64_t addr, uint32_t data);
+extern void iofence(uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_bit, uint64_t addr, uint32_t data);
 extern void ats_command( uint8_t f3, uint8_t DSV, uint8_t PV, uint32_t PID, uint8_t DSEG, uint16_t RID, uint64_t payload);
 extern void generic_any(command_t cmd);
 extern void send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,

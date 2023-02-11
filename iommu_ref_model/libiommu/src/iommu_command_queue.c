@@ -6,7 +6,7 @@
 uint8_t g_command_queue_stall_for_itag = 0;
 uint8_t g_ats_inv_req_timeout = 0;
 uint8_t g_iofence_wait_pending_inv = 0;
-uint8_t g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, g_iofence_pending_WIS_BIT; 
+uint8_t g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, g_iofence_pending_WSI_BIT; 
 uint64_t g_iofence_pending_ADDR; 
 uint32_t g_iofence_pending_DATA;
 
@@ -164,16 +164,16 @@ process_commands(
         case IOFENCE:
             if ( command.iofence.reserved != 0 || command.iofence.reserved1 != 0 ) 
                 goto command_illegal;
-            // The wired-interrupt-signaling (WIS) bit when set to 1 
+            // The wired-signaled-interrupt (WSI) bit when set to 1 
             // causes a wired-interrupt from the command
             // queue to be generated on completion of IOFENCE.C. This
             // bit is reserved if the IOMMU supports MSI.
-            if ( g_reg_file.fctl.wis == 0 && command.iofence.wis == 1) 
+            if ( g_reg_file.fctl.wsi == 0 && command.iofence.wsi == 1) 
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case IOFENCE_C:
                     if ( do_iofence_c(command.iofence.pr, command.iofence.pw, 
-                             command.iofence.av, command.iofence.wis, 
+                             command.iofence.av, command.iofence.wsi, 
                              (command.iofence.addr_63_2 << 2UL), command.iofence.data) ) {
                         // If IOFENCE encountered a memory fault or timeout
                         // then do not advance the CQH
@@ -455,7 +455,7 @@ do_ats_msg(
 }
 uint8_t
 do_iofence_c(
-    uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_BIT, uint64_t ADDR, uint32_t DATA) {
+    uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_BIT, uint64_t ADDR, uint32_t DATA) {
 
     uint8_t status;
     // The IOMMU fetches commands from the CQ in order but the IOMMU may execute the fetched
@@ -470,7 +470,7 @@ do_iofence_c(
         g_iofence_pending_PR = PR;
         g_iofence_pending_PW = PW;
         g_iofence_pending_AV = AV;
-        g_iofence_pending_WIS_BIT = WIS_BIT; 
+        g_iofence_pending_WSI_BIT = WSI_BIT; 
         g_iofence_pending_ADDR = ADDR; 
         g_iofence_pending_DATA = DATA;
         return 1;
@@ -494,9 +494,9 @@ do_iofence_c(
     if ( PR == 1 || PW == 1 )
         iommu_to_hb_do_global_observability_sync(PR, PW);
 
-    // The wired-interrupt-signaling (WIS) bit when set to 1 causes a wired-interrupt from the command
+    // The wired-signaled-interrupt (WSI) bit when set to 1 causes a wired-interrupt from the command
     // queue to be generated on completion of IOFENCE.C. This bit is reserved if the IOMMU supports MSI
-    if ( g_reg_file.cqcsr.fence_w_ip == 0 && WIS_BIT == 1 ) {
+    if ( g_reg_file.cqcsr.fence_w_ip == 0 && WSI_BIT == 1 ) {
         g_reg_file.cqcsr.fence_w_ip = 1;
         generate_interrupt(COMMAND_QUEUE);
     }
@@ -519,7 +519,7 @@ do_iofence_c(
 void
 do_pending_iofence() {
     if ( do_iofence_c(g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, 
-                 g_iofence_pending_WIS_BIT, g_iofence_pending_ADDR, g_iofence_pending_DATA) == 0 ) {
+                 g_iofence_pending_WSI_BIT, g_iofence_pending_ADDR, g_iofence_pending_DATA) == 0 ) {
         // If not still pending then advance the CQH
         g_reg_file.cqh.index =  
             (g_reg_file.cqh.index + 1) & ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);

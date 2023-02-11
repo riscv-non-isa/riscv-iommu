@@ -59,7 +59,7 @@ typedef union {
                                    // !Value  !Name      ! Description
                                    // !0      ! `MSI`    ! IOMMU supports only MSI
                                    //                      generation.
-                                   // !1      ! `WIS`    ! IOMMU supports only wire
+                                   // !1      ! `WSI`    ! IOMMU supports only wire
                                    //                      interrupt generation.
                                    // !2      ! `BOTH`   ! IOMMU supports both MSI
                                    //                      and wire interrupt generation.
@@ -90,7 +90,7 @@ typedef union {
                                    // accesses to in-memory queues are performed as
                                    // little-endian accesses and when 1 as
                                    // big-endian accesses.
-        uint32_t wis     : 1;      // When 1, IOMMU interrupts are signaled as
+        uint32_t wsi     : 1;      // When 1, IOMMU interrupts are signaled as
                                    // wired-interrupts.
         uint32_t gxl     : 1;      // Controls the address-translation schemes
                                    // that may be used for guest physical addresses
@@ -764,7 +764,7 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
 
 // capabilities fields
 #define MSI      0
-#define WIS      1
+#define WSI      1
 #define IGS_BOTH 2
 #define ONE_END   0
 #define BOTH_END  1

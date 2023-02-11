@@ -41,7 +41,7 @@ typedef union {
         uint64_t opcode:7;
         uint64_t func3:3;
         uint64_t av:1;
-        uint64_t wis:1;
+        uint64_t wsi:1;
         uint64_t pr:1;
         uint64_t pw:1;
         uint64_t reserved:18;

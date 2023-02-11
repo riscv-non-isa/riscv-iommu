@@ -531,7 +531,7 @@ iodir(
 }
 void
 iofence(
-    uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_bit, uint64_t addr, uint32_t data) {
+    uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_bit, uint64_t addr, uint32_t data) {
     command_t cmd;
     cqb_t cqb;
     cqt_t cqt;
@@ -546,7 +546,7 @@ iofence(
     cmd.iofence.pr = PR;
     cmd.iofence.pw = PW;
     cmd.iofence.av = AV;
-    cmd.iofence.wis = WIS_bit;
+    cmd.iofence.wsi = WSI_bit;
     cmd.iofence.addr_63_2 = addr >> 2;
     cmd.iofence.data = data;
     cqb.raw = read_register(CQB_OFFSET, 8);
