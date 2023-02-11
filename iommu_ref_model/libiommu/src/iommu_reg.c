@@ -645,7 +645,7 @@ write_register(
             // `capabilities.DBG == 1`.
             if ( g_reg_file.capabilities.dbg == 1 ) { 
                 if ( g_reg_file.tr_req_ctrl.go_busy == 0 ) {
-                    g_reg_file.tr_req_iova.raw = data8;
+                    g_reg_file.tr_req_iova.raw = data8 & ~0xFFF;
                 }
             }
             break;

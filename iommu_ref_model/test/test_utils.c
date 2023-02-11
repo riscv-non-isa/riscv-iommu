@@ -254,7 +254,7 @@ check_msg_faults(
     if ( fault_rec.CAUSE != cause || fault_rec.DID != exp_DID ||
          fault_rec.iotval != exp_iotval ||
          fault_rec.iotval2 != 0 ||
-         fault_rec.TTYP != MESSAGE_REQUEST ||
+         fault_rec.TTYP != PCIE_MESSAGE_REQUEST ||
          fault_rec.reserved != 0 ) {
         printf("Bad fault record\n");
         return -1;

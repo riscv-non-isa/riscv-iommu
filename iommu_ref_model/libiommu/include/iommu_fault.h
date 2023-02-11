@@ -28,7 +28,7 @@
 #define TRANSLATED_READ_TRANSACTION               6
 #define TRANSLATED_WRITE_AMO_TRANSACTION          7
 #define PCIE_ATS_TRANSLATION_REQUEST              8
-#define MESSAGE_REQUEST                           9
+#define PCIE_MESSAGE_REQUEST                      9
 
 
 // Fault-queue record

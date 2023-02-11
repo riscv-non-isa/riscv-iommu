@@ -476,7 +476,7 @@ typedef union {
 // capabilities.DBG == 1.
 typedef union {
     struct {
-        uint64_t pgoff:12;     // The IOVA page-offset
+        uint64_t reserved:12;  // Reserved
         uint64_t iova_vpn:52;  // The IOVA virtual page number
     };
     uint64_t raw;

@@ -1099,6 +1099,7 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) );
 
     tr_req_ctrl.DID = 0x012345;
+    req.tr.iova &= ~0xFFF;
     tr_req_ctrl.PV = 0;
     tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
@@ -1131,6 +1132,7 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
 
     data_corruption_addr = -1;
+    req.tr.iova = gpa;
 
 
 

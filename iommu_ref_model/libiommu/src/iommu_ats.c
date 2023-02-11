@@ -113,7 +113,7 @@ handle_page_request(
     // the requestor. 
     device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
     if ( locate_device_context(&DC, device_id, pr->PV, pr->PID, &cause) ) {
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, MESSAGE_REQUEST, 0, 
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0, 
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = RESPONSE_FAILURE;
         goto send_prgr;
@@ -122,7 +122,7 @@ handle_page_request(
         // 7. if any of the following conditions hold then stop and report
         //    "Transaction type disallowed" (cause = 260).
         //   * Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
-        report_fault(260, PAGE_REQ_MSG_CODE, 0, MESSAGE_REQUEST, 0, 
+        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0, 
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = INVALID_REQUEST;
         goto send_prgr;
