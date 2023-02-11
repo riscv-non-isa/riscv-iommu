@@ -69,7 +69,7 @@ typedef union {
                                    // !3      ! 0        ! Reserved for standard use
         uint64_t hpm     : 1;      // IOMMU implements a hardware performance monitor.
         uint64_t dbg     : 1;      // IOMMU supports the translation-request interface.
-        uint64_t pas     : 6;      // Physical Address Size (value between 32 and 56)
+        uint64_t pas     : 6;      // Physical Address Size supported by the IOMMU
         uint64_t pd8     : 1;      // One level PDT with 8-bit process_id supported.
         uint64_t pd17    : 1;      // Two level PDT with 17-bit process_id supported.
         uint64_t pd20    : 1;      // Three level PDT with 20-bit process_id supported.

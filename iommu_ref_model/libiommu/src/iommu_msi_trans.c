@@ -18,7 +18,7 @@ extract(uint64_t data, uint64_t mask) {
 }
 uint8_t
 msi_address_translation(
-    uint64_t gpa, device_context_t *DC, 
+    uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
     uint64_t *page_sz, gpte_t *g_pte ) {
@@ -103,7 +103,7 @@ msi_address_translation(
         return 1;
     }
 
-    //12. If `msipte.M == 3` the PTE is translate R/W mode PTE and the translation
+    //13. If `msipte.M == 3` the PTE is translate R/W mode PTE and the translation
     //    process is as follows:
     //    a. If any bits or encoding that are reserved for future standard use are 
     //       set within msipte, stop and report "MSI PTE misconfigured" (cause = 263).
@@ -123,10 +123,10 @@ msi_address_translation(
         g_pte->PBMT = PMA;
         *page_sz = PAGESIZE;
         *is_mrif = 0;
-        return 0;
+        goto step_15;
     }
 
-    //13. If `msipte.M == 0` the PTE is in MRIF mode and the translation process
+    //14. If `msipte.M == 1` the PTE is in MRIF mode and the translation process
     //    is as follows:
     //    a. If `capabilities.MSI_MRIF == 0`, stop and report "MSI PTE misconfigured"
     //       (cause = 263).
@@ -162,5 +162,17 @@ msi_address_translation(
     g_pte->N = 0;
     g_pte->PBMT = PMA;
     *page_sz = PAGESIZE;
+
+step_15:
+    //15. The access permissions associated with the translation determined through
+    //    this process are equivalent to that of a regular RISC-V second-stage PTE with
+    //    R=W=U=1 and X=0. Similar to a second-stage PTE, when checking the U bit, the
+    //    transaction is treated as not requesting supervisor privilege.
+    //16. If the transaction is a Untranslated or Translated read-for-execute then stop
+    //    and report "Instruction guest page fault" (cause = 20).
+    if ( is_exec ) {
+        *cause = 20;
+        return 1;
+    }
     return 0;
 }

@@ -109,7 +109,7 @@ second_stage_address_translation(
 
 extern uint8_t
 msi_address_translation(
-    uint64_t gpa, device_context_t *DC, 
+    uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
     uint64_t *page_sz, gpte_t *g_pte );

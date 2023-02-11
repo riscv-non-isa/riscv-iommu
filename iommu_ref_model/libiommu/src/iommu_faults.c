@@ -76,6 +76,8 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // |272   | Internal datapath error             | Yes
     // |273   | IOMMU MSI write access fault        | Yes
     // |274   | S/VS/G-stage PT data corruption     | No
+    // The `CAUSE` encodings 274 through 2047 are reserved for future standard use and
+    // the encodings 2048 through 4095 are designated for custom use.
     if ( (dtf == 1) && (cause != 256) &&  (cause != 257) && 
          (cause != 258) && (cause != 259) && (cause != 268) && 
          (cause != 272) && (cause != 273) ) {

@@ -213,7 +213,8 @@ typedef union {
         //                     256 entries. The bits 19:17 of `process_id` must be 0.
         // | 3    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
         //                     256 entries.The bits 19:8 of `process_id` must be 0.
-        // | 3-15 | --       | Reserved
+        // | 4-13 | --       | Reserved
+        // |14-15 | --       | Custome
 
         uint64_t MODE:4; 
     } pdtp;
@@ -228,6 +229,9 @@ typedef union {
 // | 0    | `Off`    | Recognition of accesses to a virtual interrupt file using
 //                     MSI address mask and pattern is not performed.
 // | 1    | `Flat`   | Flat MSI page table
+// | 2-13 | --       | Reserved
+// |14-15 | --       | Custom
+
 #define MSIPTP_Off  0
 #define MSIPTP_Flat 1
 typedef union {
