@@ -1380,6 +1380,7 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) );
     fail_if( ( temp == read_register(FQT_OFFSET, 4) ) );
 
+    req.tr.iova = req.tr.iova & ~0xFFF;
     tr_req_ctrl.DID = 0x012349;
     tr_req_ctrl.PV = 0;
     tr_req_ctrl.NW = 1;
@@ -1430,6 +1431,7 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
 
     data_corruption_addr = -1;
+    req.tr.iova = gva;
 
 
     END_TEST();
@@ -3251,11 +3253,11 @@ main(void) {
             case TR_REQ_CTRL_OFFSET:
                 temp = read_register(i, 8);
                 g_reg_file.capabilities.dbg = 0;
-                write_register(i, 8, temp + 2);
+                write_register(i, 8, temp + 8192);
                 fail_if( ( temp != read_register(i, 8) ) );
                 g_reg_file.capabilities.dbg = 1;
-                write_register(i, 8, temp + 2);
-                fail_if( ( (temp + 2) != read_register(i, 8) ) );
+                write_register(i, 8, temp + 8192);
+                fail_if( ( (temp + 8192) != read_register(i, 8) ) );
                 offset += 8;
                 break;
             case TR_RESPONSE_OFFSET:
