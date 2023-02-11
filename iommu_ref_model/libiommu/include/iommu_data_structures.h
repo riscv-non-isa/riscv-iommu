@@ -101,8 +101,9 @@ typedef union {
         //   to the original access type occurs if the incoming GPA has bits set beyond bit 33.
         uint64_t SXL:1;
 
-        uint64_t reserved:20;
-        uint64_t custom:32;
+        uint64_t reserved0:12;
+        uint64_t custom:8;
+        uint64_t reserved1:32;
     };
     uint64_t raw;
 } tc_t;

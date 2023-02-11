@@ -413,12 +413,29 @@ main(void) {
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.reserved = 0;
-    DC.tc.reserved = 1;
+
+    DC.tc.reserved0 = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
-    DC.tc.reserved = 0;
+    DC.tc.reserved0 = 0;
+
+    DC.tc.reserved1 = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    DC.tc.reserved1 = 0;
+
+    DC.tc.reserved0 = 1;
+    DC.tc.reserved1 = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    DC.tc.reserved0 = 0;
+    DC.tc.reserved1 = 0;
 
     DC.ta.reserved0 = 1;
     write_memory((char *)&DC, DC_addr, 64);

@@ -188,7 +188,8 @@ do_device_context_configuration_checks(
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msiptp.reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_mask.reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_pattern.reserved != 0)) ||
-         (DC->tc.reserved != 0) ||
+         (DC->tc.reserved0 != 0) ||
+         (DC->tc.reserved1 != 0) ||
          (DC->fsc.pdtp.reserved != 0 && DC->tc.PDTV == 1) ||
          (DC->fsc.iosatp.reserved != 0 && DC->tc.PDTV == 0) ||
          (DC->ta.reserved0 != 0) ||
