@@ -60,8 +60,9 @@ typedef union {
 #define ACCESS_FAULT    0x01
 #define DATA_CORRUPTION 0x02
 
-#define GST_PAGE_FAULT    0x21
-#define GST_ACCESS_FAULT  0x22
+#define GST_PAGE_FAULT       0x21
+#define GST_ACCESS_FAULT     0x22
+#define GST_DATA_CORRUPTION  0x23
 
 
 extern void report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, uint8_t dtf,

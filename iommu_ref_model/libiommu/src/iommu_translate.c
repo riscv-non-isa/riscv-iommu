@@ -335,7 +335,8 @@ step_17:
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
                           iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
-        goto access_fault;
+        if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
+        goto data_corruption;
     }
 
 skip_gpa_trans:
@@ -470,6 +471,10 @@ return_unsupported_request:
 return_completer_abort:
     rsp_msg->status = COMPLETER_ABORT;
     return;
+
+data_corruption:    
+    cause = 274;                 // First/second-stage PT data corruption
+    goto stop_and_report_fault;
 
 access_fault:    
     // Stop and raise a access-fault exception corresponding 

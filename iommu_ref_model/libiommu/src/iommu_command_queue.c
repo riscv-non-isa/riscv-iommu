@@ -21,6 +21,7 @@ void
 process_commands(
     void) {
     uint8_t status, itag;
+    uint8_t DDI[3];
     uint64_t a;
     command_t command;
 
@@ -83,6 +84,9 @@ process_commands(
     // opcode and within each group the func3 field specifies the function invoked 
     // by that command. The opcode defines the format of the operand fields. One 
     // or more of those fields may be used by the specific function invoked.
+    // A command is determined to be illegal if it uses a reserved encoding or if a
+    // reserved bit is set to 1. A command is unsupported if it is defined but not
+    // implemented as determined by the IOMMU capabilities register. 
     switch ( command.any.opcode ) {
         case IOTINVAL:
             if ( command.iotinval.rsvd != 0 || command.iotinval.rsvd1 != 0 || 
@@ -109,11 +113,49 @@ process_commands(
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case INVAL_DDT:
+                    // The PID operand is reserved for the
+                    // IODIR.INVAL_DDT command.
                     if ( command.iodir.pid != 0 ) goto command_illegal;
+                    if ( g_reg_file.capabilities.msi_flat == 0 ) {
+                        DDI[0] = get_bits(6,  0, command.iodir.did);
+                        DDI[1] = get_bits(15, 7, command.iodir.did);
+                        DDI[2] = get_bits(23, 16, command.iodir.did);
+                    } else {
+                        DDI[0] = get_bits(5,  0, command.iodir.did);
+                        DDI[1] = get_bits(14, 6, command.iodir.did);
+                        DDI[2] = get_bits(23, 15, command.iodir.did);
+                    }
+                    if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL &&
+                         command.iodir.dv && 
+                         (DDI[2] != 0) ) {
+                        goto command_illegal;
+                    } 
+                    if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && 
+                         command.iodir.dv && 
+                         (DDI[2] != 0 || DDI[1] != 0) ) {
+                        goto command_illegal;
+                    } 
+                    // When DV operand is 1, the value of the DID operand must not
+                    // be wider than that supported by the ddtp.iommu_mode.
                     do_inval_ddt(command.iodir.dv, command.iodir.did);
                     break;
                 case INVAL_PDT:
+                    // The DV operand must be 1 for IODIR.INVAL_PDT else
+                    // the command is illegal. When DV operand is 1, the value of
+                    // the DID operand must not be wider than that supported by
+                    // the ddtp.iommu_mode.
                     if ( command.iodir.dv != 1 ) goto command_illegal;
+                    // The PID operand of IODIR.INVAL_PDT must not be wider than
+                    // the width supported by the IOMMU (see Section 5.3)
+                    if ( g_reg_file.capabilities.pd20 == 0 && 
+                         command.iodir.pid > ((1UL << 17) - 1) ) {
+                        goto command_illegal;
+                    }
+                    if ( g_reg_file.capabilities.pd20 == 0 && 
+                         g_reg_file.capabilities.pd17 == 0 && 
+                         command.iodir.pid > ((1UL << 8) - 1) ) {
+                        goto command_illegal;
+                    }
                     do_inval_pdt(command.iodir.did, command.iodir.pid);
                     break;
                 default: goto command_illegal;

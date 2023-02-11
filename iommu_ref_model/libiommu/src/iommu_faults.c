@@ -69,15 +69,16 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // |265   | PDT entry load access fault         | No
     // |266   | PDT entry not valid                 | No
     // |267   | PDT entry misconfigured             | No
-    // |268   | DDT data corruption                 | No
+    // |268   | DDT data corruption                 | Yes
     // |269   | PDT data corruption                 | No
     // |270   | MSI PT data corruption              | No
     // |271   | MSI MRIF data corruption            | No
-    // |272   | Internal datapath error             | No
+    // |272   | Internal datapath error             | Yes
     // |273   | IOMMU MSI write access fault        | Yes
+    // |274   | S/VS/G-stage PT data corruption     | No
     if ( (dtf == 1) && (cause != 256) &&  (cause != 257) && 
-         (cause != 258) && (cause != 259) && (cause != 273) && 
-         (cause != 268) ) {
+         (cause != 258) && (cause != 259) && (cause != 268) && 
+         (cause != 272) && (cause != 273) ) {
         return;
     }
 

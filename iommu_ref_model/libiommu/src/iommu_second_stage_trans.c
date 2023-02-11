@@ -113,7 +113,8 @@ step_2:
     if ( a & ~pa_mask ) return GST_ACCESS_FAULT;
     gpte->raw = 0;
     status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw);
-    if ( status != 0 ) return GST_ACCESS_FAULT;
+    if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
+    if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
     // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or 
     //    encodings that are reserved for future standard use are set within pte,
@@ -267,7 +268,8 @@ step_5:
     amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_gpte.raw);
 
-    if ( status != 0 ) return GST_ACCESS_FAULT;
+    if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
+    if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
     gpte_changed = (amo_gpte.raw == gpte->raw) ? 0 : 1;
 
@@ -282,7 +284,8 @@ step_5:
 
     status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
 
-    if ( status != 0 ) return GST_ACCESS_FAULT;
+    if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
+    if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
     if ( gpte_changed == 1) goto step_2;
 

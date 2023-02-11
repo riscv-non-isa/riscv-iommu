@@ -1094,6 +1094,29 @@ main(void) {
 
     access_viol_addr = -1;
 
+    data_corruption_addr = gpte_addr;
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+
+    tr_req_ctrl.DID = 0x012345;
+    tr_req_ctrl.PV = 0;
+    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.go_busy = 1;
+    tr_req_iova.raw = req.tr.iova;
+    write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
+    write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
+    tr_response.raw = read_register(TR_RESPONSE_OFFSET, 8);
+    fail_if( ( tr_response.fault == 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+
+    data_corruption_addr = -1;
+
+
+
     END_TEST();
 
     START_TEST("IOTINVAL.GVMA");
@@ -1313,16 +1336,14 @@ main(void) {
     pte.PBMT = 0;
     write_memory((char *)&pte, pte_addr, 8);
 
-
-
     access_viol_addr = pte_addr;
+
     req.tr.read_writeAMO = WRITE;
     iommu_translate_iova(&req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 7, 0) < 0 ) );
     req.tr.read_writeAMO = READ;
     iommu_translate_iova(&req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) );
-
 
     // Check DTF
     temp = read_register(FQT_OFFSET, 4);
@@ -1340,7 +1361,6 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) );
     fail_if( ( temp == read_register(FQT_OFFSET, 4) ) );
 
-
     tr_req_ctrl.DID = 0x012349;
     tr_req_ctrl.PV = 0;
     tr_req_ctrl.RWn = 1;
@@ -1353,6 +1373,45 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 5, 0) < 0 ) );
 
     access_viol_addr = -1;
+
+    data_corruption_addr = pte_addr;
+
+    req.tr.read_writeAMO = WRITE;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+
+    // Check DTF
+    temp = read_register(FQT_OFFSET, 4);
+    DC.tc.DTF = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012349, 0);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( temp != read_register(FQT_OFFSET, 4) ) );
+    DC.tc.DTF = 0;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x012349, 0);
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+    fail_if( ( temp == read_register(FQT_OFFSET, 4) ) );
+
+    tr_req_ctrl.DID = 0x012349;
+    tr_req_ctrl.PV = 0;
+    tr_req_ctrl.RWn = 1;
+    tr_req_ctrl.go_busy = 1;
+    tr_req_iova.raw = req.tr.iova;
+    write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
+    write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
+    tr_response.raw = read_register(TR_RESPONSE_OFFSET, 8);
+    fail_if( ( tr_response.fault == 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+
+    data_corruption_addr = -1;
+
 
     END_TEST();
 

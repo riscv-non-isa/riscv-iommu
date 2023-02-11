@@ -120,7 +120,8 @@ step_2:
                             PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SXL,
                             &a, &gst_page_sz, &gpte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
-        goto access_fault;
+        if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
+        goto data_corruption;
     }
 
     //    If the address is beyond the maximum physical address width of the machine
@@ -131,7 +132,8 @@ step_2:
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     pte->raw = 0;
     status = read_memory(a, PTESIZE, (char *)&pte->raw);
-    if ( status != 0 ) goto access_fault;
+    if ( status & ACCESS_FAULT ) goto access_fault;
+    if ( status & DATA_CORRUPTION) goto data_corruption;
 
     // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or 
     //    encodings that are reserved for future standard use are set within pte,
@@ -298,7 +300,8 @@ step_5:
     amo_pte.raw = 0;
     status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw);
 
-    if ( status != 0 ) goto access_fault;
+    if ( status & ACCESS_FAULT ) goto access_fault;
+    if ( status & DATA_CORRUPTION) goto data_corruption;
 
     pte_changed = (amo_pte.raw == pte->raw) ? 0 : 1;
 
@@ -313,7 +316,8 @@ step_5:
 
     status = write_memory((char *)&amo_pte.raw, a, PTESIZE);
 
-    if ( status != 0 ) goto access_fault;
+    if ( status & ACCESS_FAULT ) goto access_fault;
+    if ( status & DATA_CORRUPTION) goto data_corruption;
 
     if ( pte_changed == 1) goto step_2;
 
@@ -354,6 +358,10 @@ access_fault:
     if ( is_exec ) *cause = 1;       // Instruction access fault
     else if ( is_read ) *cause = 5;  // Read access fault
     else *cause = 7;                 // Write/AMO access fault
+    return 1;
+
+data_corruption:    
+    *cause = 274;                    // First/Second-stage PT data corruption
     return 1;
 
 guest_page_fault:
