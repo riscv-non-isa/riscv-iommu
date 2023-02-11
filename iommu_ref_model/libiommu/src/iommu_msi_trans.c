@@ -169,9 +169,9 @@ step_15:
     //    R=W=U=1 and X=0. Similar to a second-stage PTE, when checking the U bit, the
     //    transaction is treated as not requesting supervisor privilege.
     //16. If the transaction is a Untranslated or Translated read-for-execute then stop
-    //    and report "Instruction guest page fault" (cause = 20).
+    //    and report "Instruction acccess fault" (cause = 1).
     if ( is_exec ) {
-        *cause = 20;
+        *cause = 1;
         return 1;
     }
     return 0;

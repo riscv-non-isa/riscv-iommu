@@ -21,7 +21,6 @@ void
 process_commands(
     void) {
     uint8_t status, itag;
-    uint8_t DDI[3];
     uint64_t a;
     command_t command;
 
@@ -116,27 +115,12 @@ process_commands(
                     // The PID operand is reserved for the
                     // IODIR.INVAL_DDT command.
                     if ( command.iodir.pid != 0 ) goto command_illegal;
-                    if ( g_reg_file.capabilities.msi_flat == 0 ) {
-                        DDI[0] = get_bits(6,  0, command.iodir.did);
-                        DDI[1] = get_bits(15, 7, command.iodir.did);
-                        DDI[2] = get_bits(23, 16, command.iodir.did);
-                    } else {
-                        DDI[0] = get_bits(5,  0, command.iodir.did);
-                        DDI[1] = get_bits(14, 6, command.iodir.did);
-                        DDI[2] = get_bits(23, 15, command.iodir.did);
-                    }
-                    if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL &&
-                         command.iodir.dv && 
-                         (DDI[2] != 0) ) {
-                        goto command_illegal;
-                    } 
-                    if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && 
-                         command.iodir.dv && 
-                         (DDI[2] != 0 || DDI[1] != 0) ) {
-                        goto command_illegal;
-                    } 
                     // When DV operand is 1, the value of the DID operand must not
                     // be wider than that supported by the ddtp.iommu_mode.
+                    if ( command.iodir.dv && 
+                         (command.iodir.did & ~g_max_devid_mask) ) {
+                        goto command_illegal;
+                    }
                     do_inval_ddt(command.iodir.dv, command.iodir.did);
                     break;
                 case INVAL_PDT:

@@ -85,10 +85,16 @@ step_2:
             *cause = 21;            // Read guest page fault
             *iotval2 = (a & ~0x3);
             *iotval2 |= 1;
-        } else {
-            *cause = 265;           // PDT entry load access fault
+            return 1;
         }
-        return 1;
+        if ( gst_fault == GST_ACCESS_FAULT ) {
+            *cause = 265;           // PDT entry load access fault
+            return 1;
+        }
+        if ( gst_fault == GST_DATA_CORRUPTION ) {
+            *cause = 274;           // PDT entry load data corruption fault
+            return 1;
+        }
     }
 
     // 3. If `i == 0` go to step 9.

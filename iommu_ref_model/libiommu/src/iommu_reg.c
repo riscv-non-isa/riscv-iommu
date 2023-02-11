@@ -16,6 +16,8 @@ uint8_t g_eventID_mask;
 uint8_t g_num_vec_bits;
 uint8_t g_gxl_writeable;
 uint8_t g_fctl_be_writeable;
+uint8_t g_max_iommu_mode;
+uint32_t g_max_devid_mask;
 
 uint8_t 
 is_access_valid(
@@ -192,11 +194,12 @@ write_register(
                 return;
             // If a illegal value written to ddtp.iommu_mode then 
             // retain the current legal value
-            if ( (ddtp_temp.iommu_mode == Off) ||
-                 (ddtp_temp.iommu_mode == DDT_Bare) ||
-                 (ddtp_temp.iommu_mode == DDT_1LVL) ||
-                 (ddtp_temp.iommu_mode == DDT_2LVL) ||
-                 (ddtp_temp.iommu_mode == DDT_3LVL) )
+            if ( ((ddtp_temp.iommu_mode == Off) ||
+                  (ddtp_temp.iommu_mode == DDT_Bare) ||
+                  (ddtp_temp.iommu_mode == DDT_1LVL) ||
+                  (ddtp_temp.iommu_mode == DDT_2LVL) ||
+                  (ddtp_temp.iommu_mode == DDT_3LVL)) &&
+                  (ddtp_temp.iommu_mode <= g_max_iommu_mode) )
                 g_reg_file.ddtp.iommu_mode = ddtp_temp.iommu_mode;
             g_reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
             break;
@@ -813,6 +816,7 @@ write_register(
 int 
 reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
             uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
+            uint8_t max_iommu_mode, uint32_t max_devid_mask,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
             capabilities_t capabilities, fctl_t fctl) {
     int i;
@@ -860,7 +864,9 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_hpmctr_bits = hpmctr_bits;
     g_gxl_writeable = gxl_writeable;
     g_fctl_be_writeable = fctl_be_writeable;
-
+    g_max_iommu_mode = max_iommu_mode;
+    g_max_devid_mask = max_devid_mask;
+    
     // Initialize registers that have resets to 0
     // The reset default value is 0 for the following registers. 
     // Section 4.2 - Reset value is implementation-defined for all
