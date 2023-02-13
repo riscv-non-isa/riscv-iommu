@@ -1139,7 +1139,7 @@ file and translating the address using the MSI page table is as follows:
   process are equivalent to that of a regular RISC-V second-stage PTE with
   `R`=`W`=`U`=1 and `X`=0. Similar to a second-stage PTE, when checking the `U`
   bit, the transaction is treated as not requesting supervisor privilege.
-. If the transaction is a Untranslated or Translated read-for-execute then stop
+. If the transaction is an Untranslated or Translated read-for-execute then stop
   and report "Instruction access fault" (cause = 1).
 . MSI address translation process is complete.
 
