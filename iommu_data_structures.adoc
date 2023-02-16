@@ -410,6 +410,17 @@ When `SXL` is 1, the following rules apply:
   1.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
+
+.IO hypervisor guest address translation and protection (`iohgatp`) field
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 44, name: 'PPN'},
+  {bits: 16, name: 'GSCID'},
+  {bits: 4,  name: 'MODE'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
 The `iohgatp` field holds the PPN of the root second-stage page table and a
 virtual machine identified by a guest soft-context ID (`GSCID`), to facilitate
 address-translation fences on a per-virtual-machine basis. If multiple devices
@@ -464,16 +475,6 @@ the two `DC` are not identical then it is unpredictable whether the IOMMU uses
 the PTEs from the first page table or the second page table. These are the only
 expected behaviors.
 ====
-
-.IO hypervisor guest address translation and protection (`iohgatp`) field
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 44, name: 'PPN'},
-  {bits: 16, name: 'GSCID'},
-  {bits: 4,  name: 'MODE'},
-], config:{lanes: 2, hspace: 1024, fontsize: 16}}
-....
 
 ===== Translation attributes (`ta`)
 
@@ -615,21 +616,6 @@ The `MODE` field is used to select the MSI address translation scheme.
 [[MSI_ID]]
 ===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
 
-The MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`) fields
-are used to identify the 4-KiB pages of virtual interrupt files in the guest
-physical address space of the relevant VM. An incoming memory access made by a
-device is recognized as an access to a virtual interrupt file if the destination
-guest physical page matches the supplied address pattern in all bit positions
-that are zeros in the supplied address mask. In detail, a memory access to guest
-physical address `A` is recognized as an access to a virtual interrupt file's
-memory-mapped page if:
-
-`(A >> 12) & ~msi_addr_mask = (msi_addr_pattern & ~msi_addr_mask)`
-
-where >> 12 represents shifting right by 12 bits, an ampersand (&) represents
-bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of
-the address mask.
-
 .MSI address mask (`msi_addr_mask`) field
 [wavedrom, , ]
 ....
@@ -646,6 +632,21 @@ the address mask.
   {bits: 12, name: 'reserved'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
+
+The MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`) fields
+are used to identify the 4-KiB pages of virtual interrupt files in the guest
+physical address space of the relevant VM. An incoming memory access made by a
+device is recognized as an access to a virtual interrupt file if the destination
+guest physical page matches the supplied address pattern in all bit positions
+that are zeros in the supplied address mask. In detail, a memory access to guest
+physical address `A` is recognized as an access to a virtual interrupt file's
+memory-mapped page if:
+
+`(A >> 12) & ~msi_addr_mask = (msi_addr_pattern & ~msi_addr_mask)`
+
+where >> 12 represents shifting right by 12 bits, an ampersand (&) represents
+bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of
+the address mask.
 
 [[DC_MISCONFIG]]
 ==== Device-context configuration checks
