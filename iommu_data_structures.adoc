@@ -513,8 +513,8 @@ The first-stage page table formats are as defined by the Privileged specificatio
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
 The `iosatp.MODE` identifies the paged virtual-memory schemes and is encoded
-as defined in <<IOSATP_MODE_ENC>>. The `PPN` field holds the PPN of the root
-page of a first-stage page table.
+as defined in <<IOSATP_MODE_ENC>>. The `iosatp.PPN` field holds the PPN of the
+root page of a first-stage page table.
 
 When second-stage address translation is not `Bare`, the `iosatp.PPN` is a guest
 PPN. The GPA of the root page is then converted by guest physical address
