@@ -497,7 +497,8 @@ When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
 If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides the
 controls for first-stage address translation and protection.
 
-.IO Supervisor address translation and prot. (`iosatp`) field (when `PDTV` is 0)
+[[IOSATP_FORMAT]]
+.IO Supervisor address translation and prot. (`iosatp`) field
 [wavedrom, , ]
 ....
 {reg: [
@@ -816,27 +817,18 @@ When `ENS` is 1, supervisor privilege transactions that read with execute
 intent to pages mapped with `U` bit in PTE set to 1 are disallowed, regardless
 of the value of `SUM`.
 
-===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provide the
-controls for first-stage address translation and protection.
-
-.IO Supervisor address translation and protection (`iosatp`) field (when `PDTV` is 0)
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 44, name: 'PPN'},
-  {bits: 16, name: 'reserved'},
-  {bits: 4,  name: 'MODE'},
-], config:{lanes: 2, hspace: 1024, fontsize: 16}}
-....
-
-A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a first-stage
-page table and the `MODE` used to determine the first-stage address translation
-scheme. The `MODE` field encoding are as defined for the `MODE` field in the
-`satp` CSR.
-
 The software assigned process soft-context ID (`PSCID`) is used as the address
-space ID for the process identified by the first-stage page table.
+space ID for the process identified by the first-stage page table when
+first-stage address translation is not Bare.
+
+===== First-Stage context (`fsc`)
+The `fsc` field in `PC` holds the `iosatp` (<<IOSATP_FORMAT>>) that provide the
+controls for first-stage address translation and protection. 
+
+The `MODE` is used to determine the first-stage paged virtual-memory scheme and
+its encodings are as defined in <<IOSATP_MODE_ENC>>. The `DC.tc.SXL` field
+controls the supported paged virtual-memory schemes. When `MODE` is not `Bare`,
+the `PPN` field holds the PPN of the root page of a first-stage page table.
 
 When second-stage address translation is not Bare, the `PPN` field holds a guest
 PPN of the root of a first-stage page table. Addresses of the first-stage page
@@ -847,7 +839,7 @@ to a subset of its memory and specify permissions for the device accesses.
 
 [NOTE]
 ====
-The `PSCID` field of `PC` identified an address space. If an identical
+The `PSCID` field of `PC` identifies an address space. If an identical
 `PSCID` is configured in two `PC` when the page-table referenced by the two `PC`
 are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
