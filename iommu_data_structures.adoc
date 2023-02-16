@@ -516,9 +516,10 @@ The `iosatp.MODE` identifies the paged virtual-memory schemes and is encoded
 as defined in <<IOSATP_MODE_ENC>>. The `PPN` field holds the PPN of the root
 page of a first-stage page table.
 
-When second-stage address translation is not `Bare`, the PPN is a guest PPN. The
-GPA of the root page is then converted by guest physical address translation
-process, as controlled by the `iohgatp`, into a supervisor physical address.
+When second-stage address translation is not `Bare`, the `iosatp.PPN` is a guest
+PPN. The GPA of the root page is then converted by guest physical address
+translation process, as controlled by the `iohgatp`, into a supervisor physical
+address.
 
 [[IOSATP_MODE_ENC]]
 .Encodings of `iosatp.MODE` field
