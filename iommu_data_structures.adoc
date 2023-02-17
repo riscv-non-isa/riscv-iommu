@@ -365,10 +365,9 @@ identified conditions that may lead to a flurry of errors such as due to an
 abnormal termination of a virtual machine.
 ====
 
-The `fsc` field of `DC` holds the context for first-stage translation. If the
-`PDTV` bit is 1, the field holds the PPN of the root page of PDT.  If the
-`PDTV` bit is 0, the `fsc` field holds the PPN of the root page of a first-stage
-page table (`iosatp`).
+The `DC.fsc` field holds the context for first-stage translation. If the
+`PDTV` bit is 1, the field holds the process-directory table pointer (`pdtp`)
+If the `PDTV` bit is 0, the `DC.fsc` field holds (`iosatp`).
 
 The `PDTV` bit is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
@@ -490,12 +489,12 @@ expected behaviors.
 The `PSCID` field of `ta` provides the process soft-context ID that identifies
 the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
-address-space ID if `PDTV` is 0 and the `iosatp` `MODE` field is not `Bare`.
-When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
+address-space ID if `DC.tc.PDTV` is 0 and the `iosatp.MODE` field is not `Bare`.
+When `DC.tc.PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides the
-controls for first-stage address translation and protection.
+If `DC.tc.PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides
+the controls for first-stage address translation and protection.
 
 [[IOSATP_FORMAT]]
 .IO Supervisor address translation and prot. (`iosatp`) field
@@ -543,7 +542,7 @@ address.
 | 9-15 | --       | Reserved for standard use.
 |===
 
-When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
+When `DC.tc.PDTV` is 1, the `fsc` field holds the process-directory table pointer
 (`pdtp`). When the device supports multiple process contexts, selected by the
 `process_id`, the PDT is used to determine the first-stage page table and
 associated `PSCID` for virtual address translation and protection.
@@ -551,7 +550,7 @@ associated `PSCID` for virtual address translation and protection.
 The `pdtp` field holds the PPN of the root PDT and the `MODE` field that
 determines the number of levels of the PDT.
 
-.Process-directory table pointer (`pdtp`) field (when `PDTV` is 1)
+.Process-directory table pointer (`pdtp`) field
 [wavedrom, , ]
 ....
 {reg: [
@@ -657,7 +656,7 @@ the address mask.
 [[DC_MISCONFIG]]
 ==== Device-context configuration checks
 
-A `DC` with `V=1` is considered as misconfigured if any of the following
+A `DC` with `DC.tc.V=1` is considered as misconfigured if any of the following
 conditions are true. If misconfigured then, stop and report "DDT entry
 misconfigured" (cause = 259).
 
@@ -839,13 +838,13 @@ the `PPN` field holds the PPN of the root page of a first-stage page table.
 When second-stage address translation is not Bare, the `PPN` field holds a guest
 PPN of the root of a first-stage page table. Addresses of the first-stage page
 table entries are then converted by guest physical address translation process,
-as controlled by the `iohgatp`, into a supervisor physical address. A guest OS
+as controlled by the `DC.iohgatp`, into a supervisor physical address. A guest OS
 may thus directly edit the first-stage page table to limit access by the device
 to a subset of its memory and specify permissions for the device accesses.
 
 [NOTE]
 ====
-The `PSCID` field of `PC` identifies an address space. If an identical
+The `PC.ta.PSCID` field of `PC` identifies an address space. If an identical
 `PSCID` is configured in two `PC` when the page-table referenced by the two `PC`
 are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
