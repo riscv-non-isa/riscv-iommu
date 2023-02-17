@@ -365,10 +365,9 @@ identified conditions that may lead to a flurry of errors such as due to an
 abnormal termination of a virtual machine.
 ====
 
-The `fsc` field of `DC` holds the context for first-stage translation. If the
-`PDTV` bit is 1, the field holds the PPN of the root page of PDT.  If the
-`PDTV` bit is 0, the `fsc` field holds the PPN of the root page of a first-stage
-page table (`iosatp`).
+The `DC.fsc` field holds the context for first-stage translation. If the
+`PDTV` bit is 1, the field holds the process-directory table pointer (`pdtp`)
+If the `PDTV` bit is 0, the `DC.fsc` field holds (`iosatp`).
 
 The `PDTV` bit is expected to be set to 1 when `DC` is associated with a device
 that supports multiple process contexts and thus generates a valid `process_id`
@@ -491,14 +490,15 @@ expected behaviors.
 The `PSCID` field of `ta` provides the process soft-context ID that identifies
 the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
-address-space ID if `PDTV` is 0 and the `iosatp` `MODE` field is not `Bare`.
-When `PDTV` is 1, the `PSCID` field in `ta` is ignored.
+address-space ID if `DC.tc.PDTV` is 0 and the `iosatp.MODE` field is not `Bare`.
+When `DC.tc.PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides the
-controls for first-stage address translation and protection.
+If `DC.tc.PDTV` is 0, the `DC.fsc` field holds the `iosatp` that provides
+the controls for first-stage address translation and protection.
 
-.IO Supervisor address translation and prot. (`iosatp`) field (when `PDTV` is 0)
+[[IOSATP_FORMAT]]
+.IO Supervisor address translation and prot. (`iosatp`) field
 [wavedrom, , ]
 ....
 {reg: [
@@ -513,7 +513,13 @@ The first-stage page table formats are as defined by the Privileged specificatio
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
 The `iosatp.MODE` identifies the paged virtual-memory schemes and is encoded
-as follows:
+as defined in <<IOSATP_MODE_ENC>>. The `iosatp.PPN` field holds the PPN of the
+root page of a first-stage page table.
+
+When second-stage address translation is not `Bare`, the `iosatp.PPN` is a guest
+PPN. The GPA of the root page is then converted by guest physical address
+translation process, as controlled by the `iohgatp`, into a supervisor physical
+address.
 
 [[IOSATP_MODE_ENC]]
 .Encodings of `iosatp.MODE` field
@@ -537,15 +543,15 @@ as follows:
 | 9-15 | --       | Reserved for standard use.
 |===
 
-When `PDTV` is 1, the `fsc` field holds the process-directory table pointer
-(`pdtp`). When the device supports multiple process contexts, selected by the
-`process_id`, the PDT is used to determine the first-stage page table and
+When `DC.tc.PDTV` is 1, the `DC.fsc` field holds the process-directory table
+pointer (`pdtp`). When the device supports multiple process contexts, selected
+by the `process_id`, the PDT is used to determine the first-stage page table and
 associated `PSCID` for virtual address translation and protection.
 
 The `pdtp` field holds the PPN of the root PDT and the `MODE` field that
 determines the number of levels of the PDT.
 
-.Process-directory table pointer (`pdtp`) field (when `PDTV` is 1)
+.Process-directory table pointer (`pdtp`) field
 [wavedrom, , ]
 ....
 {reg: [
@@ -555,7 +561,7 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When second-stage address translation is not Bare, the `PPN` field holds a
+When second-stage address translation is not Bare, the `pdtp.PPN` field holds a
 guest PPN. The GPA of the root PDT is then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. Translating addresses of PDT using a second-stage page table, allows the
@@ -651,7 +657,7 @@ the address mask.
 [[DC_MISCONFIG]]
 ==== Device-context configuration checks
 
-A `DC` with `V=1` is considered as misconfigured if any of the following
+A `DC` with `DC.tc.V=1` is considered as misconfigured if any of the following
 conditions are true. If misconfigured then, stop and report "DDT entry
 misconfigured" (cause = 259).
 
@@ -817,38 +823,29 @@ When `ENS` is 1, supervisor privilege transactions that read with execute
 intent to pages mapped with `U` bit in PTE set to 1 are disallowed, regardless
 of the value of `SUM`.
 
-===== First-Stage context (`fsc`)
-If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provide the
-controls for first-stage address translation and protection.
-
-.IO Supervisor address translation and protection (`iosatp`) field (when `PDTV` is 0)
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 44, name: 'PPN'},
-  {bits: 16, name: 'reserved'},
-  {bits: 4,  name: 'MODE'},
-], config:{lanes: 2, hspace: 1024, fontsize: 16}}
-....
-
-A valid (`V==1`) leaf PDT entry holds the PPN of the root page of a first-stage
-page table and the `MODE` used to determine the first-stage address translation
-scheme. The `MODE` field encoding are as defined for the `MODE` field in the
-`satp` CSR.
-
 The software assigned process soft-context ID (`PSCID`) is used as the address
-space ID for the process identified by the first-stage page table.
+space ID for the process identified by the first-stage page table when
+first-stage address translation is not Bare.
+
+===== First-Stage context (`fsc`)
+The `fsc` field in `PC` holds the `iosatp` (<<IOSATP_FORMAT>>) that provide the
+controls for first-stage address translation and protection. 
+
+The `MODE` is used to determine the first-stage paged virtual-memory scheme and
+its encodings are as defined in <<IOSATP_MODE_ENC>>. The `DC.tc.SXL` field
+controls the supported paged virtual-memory schemes. When `MODE` is not `Bare`,
+the `PPN` field holds the PPN of the root page of a first-stage page table.
 
 When second-stage address translation is not Bare, the `PPN` field holds a guest
 PPN of the root of a first-stage page table. Addresses of the first-stage page
 table entries are then converted by guest physical address translation process,
-as controlled by the `iohgatp`, into a supervisor physical address. A guest OS
+as controlled by the `DC.iohgatp`, into a supervisor physical address. A guest OS
 may thus directly edit the first-stage page table to limit access by the device
 to a subset of its memory and specify permissions for the device accesses.
 
 [NOTE]
 ====
-The `PSCID` field of `PC` identified an address space. If an identical
+The `PC.ta.PSCID` field of `PC` identifies an address space. If an identical
 `PSCID` is configured in two `PC` when the page-table referenced by the two `PC`
 are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
