@@ -828,24 +828,26 @@ space ID for the process identified by the first-stage page table when
 first-stage address translation is not Bare.
 
 ===== First-Stage context (`fsc`)
-The `fsc` field in `PC` holds the `iosatp` (<<IOSATP_FORMAT>>) that provide the
+The `PC.fsc` field holds the `iosatp` (<<IOSATP_FORMAT>>) that provide the
 controls for first-stage address translation and protection. 
 
-The `MODE` is used to determine the first-stage paged virtual-memory scheme and
-its encodings are as defined in <<IOSATP_MODE_ENC>>. The `DC.tc.SXL` field
-controls the supported paged virtual-memory schemes. When `MODE` is not `Bare`,
-the `PPN` field holds the PPN of the root page of a first-stage page table.
+The `iosatp.MODE` is used to determine the first-stage paged virtual-memory
+scheme and its encodings are as defined in <<IOSATP_MODE_ENC>>. The `DC.tc.SXL`
+field controls the supported paged virtual-memory schemes. When `iosatp.MODE` is
+not `Bare`, the `iosatp.PPN` field holds the PPN of the root page of a
+first-stage page table.
 
-When second-stage address translation is not Bare, the `PPN` field holds a guest
-PPN of the root of a first-stage page table. Addresses of the first-stage page
-table entries are then converted by guest physical address translation process,
-as controlled by the `DC.iohgatp`, into a supervisor physical address. A guest OS
-may thus directly edit the first-stage page table to limit access by the device
-to a subset of its memory and specify permissions for the device accesses.
+When second-stage address translation is not Bare, the `iosatp.PPN` field holds
+a guest PPN of the root of a first-stage page table. Addresses of the first-stage
+page table entries are then converted by guest physical address translation
+process, as controlled by the `DC.iohgatp`, into a supervisor physical address.
+A guest OS may thus directly edit the first-stage page table to limit access by
+the device to a subset of its memory and specify permissions for the device
+accesses.
 
 [NOTE]
 ====
-The `PC.ta.PSCID` field of `PC` identifies an address space. If an identical
+The `PC.ta.PSCID` identifies an address space. If an identical
 `PSCID` is configured in two `PC` when the page-table referenced by the two `PC`
 are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
@@ -855,7 +857,7 @@ behaviors.
 [[PC_MISCONFIG]]
 ==== Process-context configuration checks
 
-A `PC` with `V=1` is considered as misconfigured if any of the following
+A `PC` with `PC.ta.V=1` is considered as misconfigured if any of the following
 conditions are true. If misconfigured then stop and report "PDT entry
 misconfigured" (cause = 267).
 
