@@ -493,7 +493,7 @@ address-space ID if `DC.tc.PDTV` is 0 and the `iosatp.MODE` field is not `Bare`.
 When `DC.tc.PDTV` is 1, the `PSCID` field in `ta` is ignored.
 
 ===== First-Stage context (`fsc`)
-If `DC.tc.PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` that provides
+If `DC.tc.PDTV` is 0, the `DC.fsc` field holds the `iosatp` that provides
 the controls for first-stage address translation and protection.
 
 [[IOSATP_FORMAT]]
@@ -542,9 +542,9 @@ address.
 | 9-15 | --       | Reserved for standard use.
 |===
 
-When `DC.tc.PDTV` is 1, the `fsc` field holds the process-directory table pointer
-(`pdtp`). When the device supports multiple process contexts, selected by the
-`process_id`, the PDT is used to determine the first-stage page table and
+When `DC.tc.PDTV` is 1, the `DC.fsc` field holds the process-directory table
+pointer (`pdtp`). When the device supports multiple process contexts, selected
+by the `process_id`, the PDT is used to determine the first-stage page table and
 associated `PSCID` for virtual address translation and protection.
 
 The `pdtp` field holds the PPN of the root PDT and the `MODE` field that
