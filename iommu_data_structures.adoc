@@ -366,7 +366,7 @@ abnormal termination of a virtual machine.
 ====
 
 The `DC.fsc` field holds the context for first-stage translation. If the
-`PDTV` bit is 1, the field holds the process-directory table pointer (`pdtp`)
+`PDTV` bit is 1, the field holds the process-directory table pointer (`pdtp`).
 If the `PDTV` bit is 0, the `DC.fsc` field holds (`iosatp`).
 
 The `PDTV` bit is expected to be set to 1 when `DC` is associated with a device
@@ -590,12 +590,6 @@ first-stage page table with a `process_id`.
 
 ===== MSI page table pointer (`msiptp`)
 
-The `msiptp` field holds the PPN of the root MSI page table used to direct an
-MSI to a guest interrupt file in an IMSIC. The MSI page table formats are
-defined by the Advanced Interrupt Architecture specification.
-
-The `MODE` field is used to select the MSI address translation scheme.
-
 .MSI page table pointer (`msiptp`) field
 [wavedrom, , ]
 ....
@@ -606,7 +600,13 @@ The `MODE` field is used to select the MSI address translation scheme.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-.Encoding of `msiptp` `MODE` field
+The `msiptp.PPN` field holds the PPN of the root MSI page table used to direct
+an MSI to a guest interrupt file in an IMSIC. The MSI page table formats are
+defined by the Advanced Interrupt Architecture specification.
+
+The `msiptp.MODE` field is used to select the MSI address translation scheme.
+
+.Encoding of `msiptp.MODE` field
 [width=75%]
 [%header, cols="3,3,20"]
 |===
