@@ -459,7 +459,7 @@ step_20:
         rsp_msg->trsp.Global = vs_pte.G;
         rsp_msg->trsp.U      = (is_msi & is_mrif);
         rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
-        rsp_msg->trsp.W      = (vs_pte.W & g_pte.W);
+        rsp_msg->trsp.W      = (vs_pte.W & g_pte.W & vs_pte.D & g_pte.D);
         rsp_msg->trsp.Exe    = (vs_pte.X & g_pte.X & vs_pte.R & g_pte.R);
     }
     return;

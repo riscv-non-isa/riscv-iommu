@@ -1212,7 +1212,7 @@ main(void) {
             fail_if( ( rsp.trsp.S == 0 && i != 0 ) ); 
             fail_if( ( rsp.trsp.U != 0 ) );
             fail_if( ( rsp.trsp.R != 1 ) );
-            fail_if( ( rsp.trsp.W != 1 ) );
+            fail_if( ( rsp.trsp.W != 0 ) );
             fail_if( ( rsp.trsp.Exe != 1 ) );
             fail_if( ( rsp.trsp.PBMT != PMA ) );
             fail_if( ( rsp.trsp.is_msi != 0 ) );
@@ -1468,7 +1468,7 @@ main(void) {
             fail_if( ( rsp.trsp.S == 0 && i != 0 ) ); 
             fail_if( ( rsp.trsp.U != 0 ) );
             fail_if( ( rsp.trsp.R != 1 ) );
-            fail_if( ( rsp.trsp.W != 1 ) );
+            fail_if( ( rsp.trsp.W != 0 ) );
             fail_if( ( rsp.trsp.Exe != 1 ) );
             fail_if( ( rsp.trsp.PBMT != PMA ) );
             fail_if( ( rsp.trsp.is_msi != 0 ) );
