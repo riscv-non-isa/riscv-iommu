@@ -235,7 +235,7 @@ is illegal.
 [%header, cols="2,2,20"]
 |===
 | `GV` | `AV`   | Operation
-| 0    | n/a    | Invalidates information cached from any level of the
+| 0    | ignored| Invalidates information cached from any level of the
                   second-stage page table, for all VM address spaces.
 | 1    | 0      | Invalidates information cached from any level of the
                   second-stage page tables, but only for VM address spaces
@@ -642,7 +642,12 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 |===
 
 The `CAUSE` encodings 275 through 2047 are reserved for future standard use and
-the encodings 2048 through 4095 are designated for custom use.
+the encodings 2048 through 4095 are designated for custom use. Encodings between
+0 and 275 that are not specified in <<FAULT_CAUSE>> are reserved for future
+standard use.
+
+If a fault condition prevents locating a valid device context then the `DTF`
+value assumed for reporting such faults is 0.
 
 The `TTYP` field reports inbound transaction type.
 
@@ -774,7 +779,7 @@ interrupts from page-request-queue are enabled i.e. `pqcsr.pie` is 1.
   {bits: 20, name: 'PID'},
   {bits:  1, name: 'PV'},
   {bits:  1, name: 'PRIV'},
-  {bits:  1, name: 'X'},
+  {bits:  1, name: 'EXEC'},
   {bits:  5, name: 'reserved'},
   {bits: 24, name: 'DID'},
   {bits: 64, name: 'PAYLOAD'},
@@ -784,7 +789,7 @@ interrupts from page-request-queue are enabled i.e. `pqcsr.pie` is 1.
 The `DID` field holds the requester ID from the message. The `PID` field is
 valid if `PV` is 1 and reports the PASID from message. `PRIV` is set to 0 if the
 message did not have a PASID, otherwise it holds the “Privilege Mode Requested”
-bit from the TLP. The `X` bit is set to 0 if the message did not have a PASID,
+bit from the TLP. The `EXEC` bit is set to 0 if the message did not have a PASID,
 otherwise it reports the “Execute Requested” bit from the TLP. All other fields
 are set to 0. The payload of the “Page Request” message (bytes 0x08 through 0x0F
 of the message) is held in the `PAYLOAD` field. If `R` and `W` are both 0 and
