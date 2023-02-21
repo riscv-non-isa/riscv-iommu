@@ -22,7 +22,7 @@ extern int8_t check_rsp_and_faults(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rs
              uint16_t cause, uint64_t exp_iotval2);
 extern int8_t check_msg_faults(uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, 
              uint8_t  exp_PRIV, uint32_t exp_DID, uint64_t exp_iotval);
-extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t X,
+extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t EXEC,
              uint16_t reserved0, uint8_t reserved1, uint64_t PAYLOAD);
 extern uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 extern uint64_t add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa, 
