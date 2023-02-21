@@ -308,7 +308,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
 |2     |`GXL`      |WARL      | Controls the address-translation schemes that
                                 may be used for guest physical addresses as
                                 defined in <<IOHGATP_MODE_ENC>>.
-|15:3  |`reserved` |WPRI      | Reserved for standard use.
+|15:3  |reserved   |WPRI      | Reserved for standard use.
 |31:16 |_custom_   |WPRI      | _Designated for custom use._
 |===
 
@@ -369,10 +369,10 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                                                                +
                                 An IOMMU that can complete these operations
                                 synchronously may hard-wire this bit to 0.
-|9:5   |`reserved` |WPRI      | Reserved for standard use
+|9:5   |reserved   |WPRI      | Reserved for standard use
 |53:10 |`PPN`      |WARL      | Holds the `PPN` of the root page of the
                                 device-directory-table.
-|63:54 |`reserved` |WPRI      | Reserved for standard use
+|63:54 |reserved   |WPRI      | Reserved for standard use
 |===
 
 The device-context is 64-bytes in size if `capabilities.MSI_FLAT` is 1 else it is
@@ -448,7 +448,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                 than 256 entries then the command-queue
                                 base address must be naturally aligned to
                                 `2^LOG2SZ^ x 16`.
-|9:5   |`reserved` |WPRI      | Reserved for standard use
+|9:5   |reserved   |WPRI      | Reserved for standard use
 |53:10 |`PPN`      |WARL      | Holds the `PPN` of the root page of the
                                 in-memory command-queue used by software to
                                 queue commands to the IOMMU. If the base
@@ -457,7 +457,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                 to an IOMMU as `UNSPECIFIED` and any address
                                 an IOMMU may compute and use for accessing an
                                 entry in the queue is also `UNSPECIFIED`.
-|63:54 |`reserved` |WPRI      | Reserved for standard use
+|63:54 |reserved   |WPRI      | Reserved for standard use
 |===
 
 [NOTE]
@@ -549,7 +549,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                to 4-KiB. If the fault-queue has more than 128
                                entries then the fault-queue base address must
                                be naturally aligned to `2^LOG2SZ^ x 32`.
-| 9:5  |`reserved`|WPRI       | Reserved for standard use
+| 9:5  |reserved  |WPRI       | Reserved for standard use
 |53:10 |`PPN`     |WARL      | Holds the `PPN` of the root page of the
                                in-memory fault-queue used by IOMMU to queue
                                fault record. If the base address as determined
@@ -558,7 +558,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                and any address an IOMMU may compute and use for
                                accessing an entry in the queue is also
                                `UNSPECIFIED`.
-|63:54 |`reserved`|WPRI       | Reserved for standard use
+|63:54 |reserved  |WPRI       | Reserved for standard use
 |===
 
 [NOTE]
@@ -654,7 +654,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                If the page-request-queue has more than 256
                                entries then the page-request-queue base address
                                must be naturally aligned to `2^LOG2SZ^ x 16`.
-| 9:5  |`reserved`|WPRI      | Reserved for standard use
+| 9:5  |reserved  |WPRI      | Reserved for standard use
 |53:10 |`PPN`     |WARL      | Holds the `PPN` of the root page of the
                                in-memory page-request-queue used by IOMMU to
                                queue "Page Request" messages. If the base
@@ -663,7 +663,7 @@ assume a valid but otherwise `UNSPECIFIED` value.
                                IOMMU as `UNSPECIFIED` and any address an IOMMU
                                may compute and use for accessing an entry in the
                                queue is also `UNSPECIFIED`.
-|63:54 |`reserved`|WPRI      | Reserved for standard use
+|63:54 |reserved  |WPRI      | Reserved for standard use
 |===
 
 [NOTE]
@@ -773,7 +773,7 @@ status of the command-queue.
 |1    |`cie`   |RW        | Command-queue-interrupt-enable bit enables
                             generation of interrupts from command-queue when
                             set to 1.
-|7:2  |`reserved`|WPRI    | Reserved for standard use
+|7:2  |reserved|WPRI    | Reserved for standard use
 |8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
                             the command-queue-memory-fault bit is set to 1 and
                             the command-queue stalls until this bit is cleared.
@@ -799,7 +799,7 @@ status of the command-queue.
                             This bit is reserved if the IOMMU does not support
                             wire-signaled-interrupts or wire-signaled-interrupts
                             are not enabled (i.e., `fctl.WSI == 0`).
-|15:12|`reserved`|WPRI    | Reserved for standard use
+|15:12|reserved  |WPRI    | Reserved for standard use
 |16   |`cqon`   |RO       | The command-queue is active if `cqon` is 1.
 |17   |`busy`   |RO       | A write to `cqcsr` may require the IOMMU to perform
                             many operations that may not occur synchronously
@@ -817,7 +817,7 @@ status of the command-queue.
                                                                                +
                             An IOMMU that can complete these operations
                             synchronously may hard-wire this bit to 0.
-|27:18 |`reserved`|WPRI  | Reserved for standard use
+|27:18 |reserved  |WPRI  | Reserved for standard use
 |31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
@@ -896,7 +896,7 @@ status of the fault-queue.
                            written to the fault-queue.
 |1     |`fie` |RW        | Fault queue interrupt enable bit enables generation
                            of interrupts from fault-queue when set to 1.
-|7:2   |`reserved`|WPRI  | Reserved for standard use
+|7:2   |reserved  |WPRI  | Reserved for standard use
 |8     |`fqmf`|RW1C      | The `fqmf` bit is set to 1 if the IOMMU encounters
                            an access fault when storing a fault record to the
                            fault queue. The fault-record that was attempted to
@@ -927,7 +927,7 @@ status of the fault-queue.
                                                                                +
                            An IOMMU that can complete controls synchronously
                            may hard-wire this bit to 0.
-|27:18 |`reserved`|WPRI  | Reserved for standard use
+|27:18 |reserved  |WPRI  | Reserved for standard use
 |31:28 |_custom_  |WPRI  | _Designated for custom use._
 |===
 
@@ -988,7 +988,7 @@ status of the page-request-queue.
 |1     |`pie`     |RW       | The page-request-queue-interrupt-enable
                               bit when set to 1, enables generation of
                               interrupts from page-request-queue.
-|7:2   |`reserved`|WPRI     | Reserved for standard use
+|7:2   |reserved  |WPRI     | Reserved for standard use
 |8     |`pqmf`    |RW1C     | The `pqmf` bit is set to 1 if the IOMMU
                               encounters an access fault when storing a
                               "Page Request" message to the page-request-queue. +
@@ -1019,7 +1019,7 @@ status of the page-request-queue.
                               and all subsequent “Page Request” messages
                               received while these bits are 1 as specified in
                               <<ATS_PRI>>.
-|15:10 |`reserved`|WPRI     | Reserved for standard use
+|15:10 |reserved  |WPRI     | Reserved for standard use
 |16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1. +
 |17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to
                               perform many operations that may not occur
@@ -1036,7 +1036,7 @@ status of the page-request-queue.
                                                                                +
                               An IOMMU that can complete controls synchronously
                               may hard-wire this bit to 0
-|27:18 |`reserved`|WPRI     | Reserved for standard use
+|27:18 |reserved  |WPRI     | Reserved for standard use
 |31:28 |_custom_  |WPRI     | _Designated for custom use._
 |===
 
@@ -1106,9 +1106,9 @@ interrupt-pending bit.
                               * `pqcsr.pqmf` is 1.
                               * A new message is produced in the PQ.
 
-|7:4    |`reserved`  |WPRI  | Reserved for standard use
+|7:4    |reserved    |WPRI  | Reserved for standard use
 |15:8   |_custom_    |WPRI  | _Designated for custom use._
-|31:16  |`reserved`  |WPRI  | Reserved for standard use
+|31:16  |reserved    |WPRI  | Reserved for standard use
 |===
 
 If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
@@ -1224,7 +1224,7 @@ These registers are 64-bit WARL counter registers.
 
 
 [[EVT]]
-=== Performance-monitoring event selector (`iohpmevt1-31`)
+=== Performance-monitoring event selectors (`iohpmevt1-31`)
 These performance-monitoring event registers are 64-bit RW registers. When a
 transaction processed by the IOMMU causes an event that is programmed to count
 in a counter then the counter is incremented. In addition to matching events,
@@ -1418,7 +1418,7 @@ translation-request interface for debug. This register is present when
 ....
 {reg: [
   {bits: 12, name: 'reserved'},
-  {bits: 52, name: 'iova_vpn'},
+  {bits: 52, name: 'vpn'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -1426,8 +1426,8 @@ translation-request interface for debug. This register is present when
 [%header, cols="^1,1,^1,6"]
 |===
 |Bits   |Field      |Attribute | Description
-| 11:0  |`reserved` |WPRI      | Reserved for standard use
-| 63:12 |`iova_vpn` |WARL      | The IOVA virtual page number
+| 11:0  |reserved   |WPRI      | Reserved for standard use
+| 63:12 |`vpn`      |WARL      | The IOVA virtual page number
 |===
 
 
@@ -1535,7 +1535,7 @@ This register is present when `capabilities.DBG == 1`.
                                  `UNSPECIFIED` if the `fault` field is 1.
 |53:10  |`PPN`      |RO       a| If the `fault` bit is 0, then this field
                                  provides the PPN determined as a result of
-                                 translating the `iova_vpn` in `tr_req_iova`. +
+                                 translating the `vpn` in `tr_req_iova`. +
  +
                                  If the `fault` bit is 1, then the value of
                                  this field is `UNSPECIFIED`. +
@@ -1575,7 +1575,7 @@ This register is present when `capabilities.DBG == 1`.
 An IOMMU implementation is not required to report a superpage translation
 or support reporting all possible superpage sizes. An implementation is
 allowed to report a 4 KiB translation corresponding to the requested
-`iova_vpn` or report a translation size that is smaller than the superpage
+`vpn` or report a translation size that is smaller than the superpage
 size configured in the page tables.
 ====
 
@@ -1632,7 +1632,7 @@ supported then only bit 0 for each cause could be writable.
 | 15:12 |`piv`    |WARL      | The page-request-queue-interrupt-vector (`piv`)
                                is the vector number assigned to the
                                page-request-queue-interrupt.
-| 31:16 |`reserved`|WPRI     | Reserved for standard use
+| 31:16 |reserved  |WPRI     | Reserved for standard use
 | 63:32 |_custom_  |WPRI     | _Designated for custom use_
 |===
 
@@ -1667,7 +1667,7 @@ and `iotval` set to the value of `msi_addr_x`.
 {reg: [
   {bits: 2, name: '0'},
   {bits: 54, name: 'ADDR'},
-  {bits: 8, name: 'WPRI'},
+  {bits: 8, name: 'reserved'},
 ], config:{lanes: 2, hspace:1024}}
 ....
 
@@ -1677,7 +1677,7 @@ and `iotval` set to the value of `msi_addr_x`.
 |Bits   |Field |Attribute |Description
 |1:0    | 0    |RO     |Fixed to 0
 |55:2   |`ADDR`|WARL   |Holds the 4-byte aligned MSI address.
-|63:56  |`WPRI`|WPRI   | Reserved for standard use.
+|63:56  |reserved|WPRI   | Reserved for standard use.
 |===
 
 
@@ -1702,7 +1702,7 @@ and `iotval` set to the value of `msi_addr_x`.
 ....
 {reg: [
   {bits: 1, name: 'M'},
-  {bits: 31, name: 'WPRI'},
+  {bits: 31, name: 'reserved'},
 ], config:{lanes: 1, hspace:1024}}
 ....
 [width=100%]
@@ -1715,5 +1715,5 @@ and `iotval` set to the value of `msi_addr_x`.
                             Pending messages for that vector are later
                             generated if the corresponding mask bit is
                             cleared to 0.
-|31:1   |`WPRI`|WPRI      | Reserved for standard use.
+|31:1   |reserved|WPRI    | Reserved for standard use.
 |===

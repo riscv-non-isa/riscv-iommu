@@ -220,7 +220,7 @@ handle_page_request(
     prec.PID      = pr->PID;
     prec.PV       = pr->PV;
     prec.PRIV     = (pr->PV == 0) ? 0 : pr->PRIV;
-    prec.X        = (pr->PV == 0) ? 0 : pr->EXEC_REQ;
+    prec.EXEC     = (pr->PV == 0) ? 0 : pr->EXEC_REQ;
     prec.PAYLOAD  = pr->PAYLOAD;
     prec.reserved0= 0;
     prec.reserved1= 0;

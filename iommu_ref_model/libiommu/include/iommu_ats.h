@@ -10,7 +10,7 @@ typedef union {
         uint64_t PID:20;
         uint64_t PV:1;
         uint64_t PRIV:1;
-        uint64_t X:1;
+        uint64_t EXEC:1;
         uint64_t reserved1:5;
         uint64_t DID:24;
         uint64_t PAYLOAD;
