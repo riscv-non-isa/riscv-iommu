@@ -1530,22 +1530,29 @@ main(void) {
         if ( j == 2 ) {
             DC.fsc.iosatp.MODE = IOSATP_Sv57;
             gva = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
-            gva = gva * 8 | 1ULL << 57;
+            gva = gva * 8;
+            i = 57;
         } else if ( j == 1 ) {
             DC.fsc.iosatp.MODE = IOSATP_Sv48;
             gva = 512UL * 512UL * 512UL * PAGESIZE;
-            gva = gva * 4 | 1ULL << 48;
+            gva = gva * 4;
+            i = 48;
         } else {
             DC.fsc.iosatp.MODE = IOSATP_Sv39;
-            gva = 512UL * 512UL * PAGESIZE | 1ULL << 39;
+            gva = 512UL * 512UL * PAGESIZE;
+            i = 39;
         }
         write_memory((char *)&DC, DC_addr, 64);
         iodir(INVAL_DDT, 1, 0x012349, 0);
-        req.tr.iova = gva;
-        iommu_translate_iova(&req, &rsp);
-        fail_if( ( rsp.status != SUCCESS ) ); 
-        fail_if( ( rsp.trsp.R != 0 ) );
-        fail_if( ( rsp.trsp.W != 0 ) );
+        
+        while ( i < 64 ) { 
+            req.tr.iova = gva | 1ULL << i;
+            iommu_translate_iova(&req, &rsp);
+            fail_if( ( rsp.status != SUCCESS ) ); 
+            fail_if( ( rsp.trsp.R != 0 ) );
+            fail_if( ( rsp.trsp.W != 0 ) );
+            i++;
+        }
     }
 
     END_TEST();
