@@ -1525,6 +1525,28 @@ main(void) {
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
 
+    // Non-canonical addresses
+    for ( j = 0; j < 3; j++ ) {
+        if ( j == 2 ) {
+            DC.fsc.iosatp.MODE = IOSATP_Sv57;
+            gva = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+            gva = gva * 8 | 1ULL << 57;
+        } else if ( j == 1 ) {
+            DC.fsc.iosatp.MODE = IOSATP_Sv48;
+            gva = 512UL * 512UL * 512UL * PAGESIZE;
+            gva = gva * 4 | 1ULL << 48;
+        } else {
+            DC.fsc.iosatp.MODE = IOSATP_Sv39;
+            gva = 512UL * 512UL * PAGESIZE | 1ULL << 39;
+        }
+        write_memory((char *)&DC, DC_addr, 64);
+        iodir(INVAL_DDT, 1, 0x012349, 0);
+        req.tr.iova = gva;
+        iommu_translate_iova(&req, &rsp);
+        fail_if( ( rsp.status != SUCCESS ) ); 
+        fail_if( ( rsp.trsp.R != 0 ) );
+        fail_if( ( rsp.trsp.W != 0 ) );
+    }
 
     END_TEST();
 

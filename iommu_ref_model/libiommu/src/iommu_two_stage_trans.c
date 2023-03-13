@@ -70,7 +70,7 @@ two_stage_address_translation(
         vpn[2] = get_bits(38, 30, iova);
         LEVELS = 3;
         PTESIZE = 8;
-        mask = (1UL << (64 - 39)) - 1;
+        mask = (1UL << (64 - 38)) - 1;
         masked_upper_bits = (iova >> 38) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv48 && SXL == 0 ) {
@@ -80,7 +80,7 @@ two_stage_address_translation(
         vpn[3] = get_bits(47, 39, iova);
         LEVELS = 4;
         PTESIZE = 8;
-        mask = (1UL << (64 - 48)) - 1;
+        mask = (1UL << (64 - 47)) - 1;
         masked_upper_bits = (iova >> 47) & mask;
     }
     if ( iosatp.MODE == IOSATP_Sv57 && SXL == 0 ) {
@@ -91,7 +91,7 @@ two_stage_address_translation(
         vpn[4] = get_bits(56, 48, iova);
         LEVELS = 5;
         PTESIZE = 8;
-        mask = (1UL << (64 - 57)) - 1;
+        mask = (1UL << (64 - 56)) - 1;
         masked_upper_bits = (iova >> 56) & mask;
     }
     // Instruction fetch addresses and load and store effective addresses, 
