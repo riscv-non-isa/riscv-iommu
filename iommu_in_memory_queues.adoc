@@ -115,7 +115,7 @@ The commands are interpreted as two 64-bit doublewords. The byte order of each
 of the doublewords in memory, little-endian or big-endian, is the endianness as
 determined by `fctl.BE` (<<FCTRL>>).
 
-The following commands are defined:
+The following command opcodes are defined:
 
 .IOMMU command opcodes
 [width=100%]
@@ -129,6 +129,9 @@ The following commands are defined:
 | Reserved | 5-63     | Reserved for future standard use.
 | Custom   | 64-127   | Designated for custom use.
 |===
+
+All undefined functions of command opcodes 0 through 63 are reserved for
+future standard use.
 
 A command is determined to be illegal if it uses a reserved encoding or if a
 reserved bit is set to 1. A command is unsupported if it is defined but not
