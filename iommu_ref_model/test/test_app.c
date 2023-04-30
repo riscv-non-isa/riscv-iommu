@@ -67,7 +67,7 @@ main(void) {
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
-    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0, cap, fctl) < 0 ) );
+    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0, 1, cap, fctl) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));
@@ -1197,6 +1197,7 @@ main(void) {
         }
         write_memory((char *)&DC, DC_addr, 64);
         iodir(INVAL_DDT, 1, 0x012345, 0);
+        iotinval(GVMA, 1, 0, 0, DC.iohgatp.GSCID, 0, 0);
         for ( i = 0; i < 5; i++ ) {
             if ( (i == 4) && DC.iohgatp.MODE != IOHGATP_Sv57x4 ) continue;
             if ( (i == 3) && DC.iohgatp.MODE != IOHGATP_Sv48x4 && 
@@ -1241,6 +1242,7 @@ main(void) {
         DC.iohgatp.MODE = IOHGATP_Bare;
         write_memory((char *)&DC, DC_addr, 64);
         iodir(INVAL_DDT, 1, 0x012345, 0);
+        iotinval(VMA, 0, 0, 0, 0, 0, 0);
         gpa = 512UL * 512UL * PAGESIZE;
         req.tr.iova = gpa;
         iommu_translate_iova(&req, &rsp);
@@ -1497,6 +1499,7 @@ main(void) {
         DC.fsc.iosatp.MODE = IOSATP_Bare;
         write_memory((char *)&DC, DC_addr, 64);
         iodir(INVAL_DDT, 1, 0x012349, 0);
+        iotinval(VMA, 0, 0, 0, 0, 0, 0);
         gva = 512UL * 512UL * PAGESIZE;
         req.tr.iova = gva;
         iommu_translate_iova(&req, &rsp);
@@ -2561,6 +2564,7 @@ main(void) {
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0x10000,
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
+    DC.tc.DPE = 0;
 
 #if 0
 
@@ -2620,6 +2624,90 @@ main(void) {
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
 #endif
+
+    DC.tc.PDTV = 1;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+
+    // Add process context
+    memset(&PC, 0, 16);
+    PC.fsc.iosatp.MODE = IOSATP_Sv48;
+    PC.fsc.iosatp.PPN = get_free_gppn(1, DC.iohgatp);
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    add_g_stage_pte(DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), gpte, 0);
+    PC.ta.V = 1;
+    PC.ta.PSCID = 7000;
+    PC.ta.ENS = 1;
+    PC.ta.SUM = 1;
+    PC_addr = add_process_context(&DC, &PC, 0x7000);
+    read_memory(PC_addr, 16, (char *)&PC);
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 0;
+    pte.X = 0;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    pte.PPN = get_free_gppn(1, DC.iohgatp);
+
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 1;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    gpa = pte.PPN * PAGESIZE;
+    spa = gpte.PPN * PAGESIZE;
+    gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
+    gva = 0x900000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+
+    send_translation_request(0x112233, 1, 0x7000, 1, 0,
+                             0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, 0x900000,
+                             1, READ, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+    fail_if( ( rsp.status != SUCCESS ) ); 
+    fail_if( ( rsp.trsp.U != 0 ) );
+    fail_if( ( rsp.trsp.R != 1 ) );
+    fail_if( ( rsp.trsp.W != 0 ) );
+    fail_if( ( rsp.trsp.Exe != 0 ) );
+    fail_if( ( rsp.trsp.PBMT != PMA ) );
+    fail_if( ( rsp.trsp.is_msi != 0 ) );
+    fail_if( ( rsp.trsp.S != 0 ) );
+
+    send_translation_request(0x112233, 1, 0x7000, 0, 0,
+                             0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, 0x900000,
+                             1, READ, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+    fail_if( ( rsp.status != SUCCESS ) ); 
+    fail_if( ( rsp.trsp.U != 0 ) );
+    fail_if( ( rsp.trsp.R != 1 ) );
+    fail_if( ( rsp.trsp.W != 0 ) );
+    fail_if( ( rsp.trsp.Exe != 0 ) );
+    fail_if( ( rsp.trsp.PBMT != PMA ) );
+    fail_if( ( rsp.trsp.is_msi != 0 ) );
+    fail_if( ( rsp.trsp.S != 0 ) );
+
+
+
     END_TEST();
 
     START_TEST("ATS page request group response");
