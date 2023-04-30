@@ -144,7 +144,7 @@ cache_ioatc_iotlb(
 // Lookup a translation in the IOATC
 uint8_t
 lookup_ioatc_iotlb(
-    uint64_t iova,
+    uint64_t iova, uint8_t check_access_perms,
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
@@ -169,9 +169,11 @@ lookup_ioatc_iotlb(
     tlb[i].lru = tlb_lru_time++;
 
     // Check S/VS stage permissions
-    if ( is_exec  && (tlb[hit].VS_X == 0) ) goto page_fault;
-    if ( is_read  && (tlb[hit].VS_R == 0) ) goto page_fault;
-    if ( is_write && (tlb[hit].VS_W == 0) ) goto page_fault;
+    if ( check_access_perms == 1 ) {
+        if ( is_exec  && (tlb[hit].VS_X == 0) ) goto page_fault;
+        if ( is_read  && (tlb[hit].VS_R == 0) ) goto page_fault;
+        if ( is_write && (tlb[hit].VS_W == 0) ) goto page_fault;
+    }
     if ( (priv == U_MODE) && (tlb[hit].U == 0) ) goto page_fault;
     if ( is_exec && (priv == S_MODE) && (tlb[hit].U == 1) ) goto page_fault;
     if ( (priv == S_MODE) && !is_exec && SUM == 0 && tlb[hit].U == 1 ) goto page_fault;
