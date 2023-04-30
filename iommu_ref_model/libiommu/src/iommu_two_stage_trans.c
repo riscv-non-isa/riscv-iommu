@@ -7,7 +7,7 @@
 
 uint8_t
 two_stage_address_translation(
-    uint64_t iova, uint8_t TTYP, uint32_t DID, uint8_t is_read,
+    uint64_t iova, uint8_t check_access_perms, uint32_t DID, uint8_t is_read,
     uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
@@ -204,7 +204,7 @@ step_5:
     //   read permission to be granted if the execute permission is granted.
     //   No faults are caused here - the denied permissions will be reported back in
     //   the ATS completion
-    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
+    if ( check_access_perms == 1 ) {
         if ( is_exec  && (pte->X == 0) ) goto page_fault;
         if ( is_read  && (pte->R == 0) ) goto page_fault;
         if ( is_write && (pte->W == 0) ) goto page_fault;
