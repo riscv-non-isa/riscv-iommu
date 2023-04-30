@@ -17,6 +17,7 @@ uint8_t g_num_vec_bits;
 uint8_t g_gxl_writeable;
 uint8_t g_fctl_be_writeable;
 uint8_t g_max_iommu_mode;
+uint8_t g_fill_ats_trans_in_ioatc;
 uint32_t g_max_devid_mask;
 
 uint8_t 
@@ -818,7 +819,8 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
             uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
             uint8_t max_iommu_mode, uint32_t max_devid_mask,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
-            capabilities_t capabilities, fctl_t fctl) {
+            uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities,
+            fctl_t fctl) {
     int i;
 #ifdef DEBUG
     // Only PA upto 56 bits supported in RISC-V
@@ -840,7 +842,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     if ( g_eventID_mask != 0 && capabilities.hpm == 0 )
         return -1; 
     // vectors is a number between 1 and 15
-    if ( num_vec_bits > 4 )
+     ( num_vec_bits > 4 )
         return -1;
     // Number of HPM counters must be between 0 and 31
     // If perfmon is not supported then should be 0
@@ -866,6 +868,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_fctl_be_writeable = fctl_be_writeable;
     g_max_iommu_mode = max_iommu_mode;
     g_max_devid_mask = max_devid_mask;
+    g_fill_ats_trans_in_ioatc = fill_ats_trans_in_ioatc;
     
     // Initialize registers that have resets to 0
     // The reset default value is 0 for the following registers. 
