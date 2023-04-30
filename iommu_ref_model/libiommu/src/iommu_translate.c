@@ -297,9 +297,10 @@ step_17:
     PV    = req->pid_valid;
     DID   = req->device_id;
     PID   = req->process_id;
-
-    if ( (ioatc_status = lookup_ioatc_iotlb(req->tr.iova, priv, is_read, is_write, is_exec, SUM, PSCV, 
-                        PSCID, GV, GSCID, &cause, &pa, &page_sz, &vs_pte, &g_pte)) == IOATC_FAULT )
+    check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
+    if ( (ioatc_status = lookup_ioatc_iotlb(req->tr.iova, check_access_perms, priv, is_read, is_write,
+                  is_exec, SUM, PSCV, PSCID, GV, GSCID, &cause, &pa, &page_sz, 
+                  &vs_pte, &g_pte)) == IOATC_FAULT )
         goto stop_and_report_fault;
 
     // Hit in IOATC - complete translation.
@@ -307,8 +308,7 @@ step_17:
 
     // Count misses in TLB
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, IOATC_TLB_MISS);
-
-    if ( two_stage_address_translation(req->tr.iova, TTYP, DID, is_read, is_write, is_exec,
+    if ( two_stage_address_translation(req->tr.iova, check_access_perms, DID, is_read, is_write, is_exec,
                                         PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
                                         GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
                                         &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
@@ -330,7 +330,6 @@ step_17:
     //     cite:[PRIV] to translate the GPA `A` to determine the SPA accessed by the
     //     transaction. If a fault is detected by the address translation process then
     //     stop and report the fault.
-    check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
     if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID, 
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
                           iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
@@ -360,19 +359,23 @@ skip_gpa_trans:
     napot_ppn = (((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_iova = (((req->tr.iova & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_gpa = (((gpa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
-    if ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
-        // ATS translation requests are cached in Device TLB. For Untranslated
-        // Requests cache the translations for future re-use
+    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED ) {
+        // For Untranslated Requests cache the translations for future re-use
         cache_ioatc_iotlb(napot_iova, GV, PSCV, iohgatp.GSCID, PSCID,
                           &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
     } 
-    if ( TTYP == PCIE_ATS_TRANSLATION_REQUEST && DC.tc.T2GPA == 1 ) {
+    if ( (TTYP == PCIE_ATS_TRANSLATION_REQUEST) &&
+         ((DC.tc.T2GPA == 1) || (g_fill_ats_trans_in_ioatc == 1)) ) {
         // If in T2GPA mode, cache the final GPA->SPA translation as 
         // the translated requests may hit on this 
-        cache_ioatc_iotlb(napot_gpa, GV, 0, iohgatp.GSCID, 0,
+        // If T2GPA is 0, then cache the IOVA->SPA translation if
+        // IOMMU has been configured to do so i.e. g_fill_ats_trans_in_ioatc is 1
+        cache_ioatc_iotlb((DC.tc.T2GPA == 1) ? napot_gpa : napot_iova,
+                                     GV, (DC.tc.T2GPA == 1) ? 0 : PSCV,
+                          iohgatp.GSCID, (DC.tc.T2GPA == 1) ? 0 : PSCID,
                           &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
         // Return the GPA as translation response if T2GPA is 1
-        pa = gpa;
+        pa = (DC.tc.T2GPA == 1) ? gpa : pa;
     }
 
 step_20:
