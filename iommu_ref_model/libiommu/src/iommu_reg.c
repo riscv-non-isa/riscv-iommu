@@ -842,7 +842,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     if ( g_eventID_mask != 0 && capabilities.hpm == 0 )
         return -1; 
     // vectors is a number between 1 and 15
-     ( num_vec_bits > 4 )
+    if ( num_vec_bits > 4 )
         return -1;
     // Number of HPM counters must be between 0 and 31
     // If perfmon is not supported then should be 0
