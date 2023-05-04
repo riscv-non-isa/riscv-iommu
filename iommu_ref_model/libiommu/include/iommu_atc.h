@@ -66,7 +66,7 @@ cache_ioatc_iotlb(
 
 extern uint8_t
 lookup_ioatc_iotlb(
-    uint64_t iova,
+    uint64_t iova, uint8_t check_access_perms,
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
