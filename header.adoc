@@ -2,7 +2,7 @@
 :description: RISC-V IOMMU Architecture Specification
 :company: RISC-V.org
 :revdate: 05/2023
-:revnumber: 1.0-rc2
+:revnumber: 1.0-rc3
 :revremark: This document is in Frozen. Change is extremely unlikely. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
