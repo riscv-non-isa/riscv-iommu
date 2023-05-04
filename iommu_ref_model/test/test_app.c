@@ -67,7 +67,10 @@ main(void) {
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
-    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0, 1, cap, fctl) < 0 ) );
+
+    fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0, 
+                           (FILL_IOATC_ATS_T2GPA | FILL_IOATC_ATS_ALWAYS),
+                           cap, fctl) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));

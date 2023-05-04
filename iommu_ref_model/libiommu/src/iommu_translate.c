@@ -365,11 +365,12 @@ skip_gpa_trans:
                           &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
     } 
     if ( (TTYP == PCIE_ATS_TRANSLATION_REQUEST) &&
-         ((DC.tc.T2GPA == 1) || (g_fill_ats_trans_in_ioatc == 1)) ) {
+         ((DC.tc.T2GPA == 1 && ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_T2GPA) != 0) ) || 
+          ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_ALWAYS) != 0)) ) {
         // If in T2GPA mode, cache the final GPA->SPA translation as 
         // the translated requests may hit on this 
         // If T2GPA is 0, then cache the IOVA->SPA translation if
-        // IOMMU has been configured to do so i.e. g_fill_ats_trans_in_ioatc is 1
+        // IOMMU has been configured to do so
         cache_ioatc_iotlb((DC.tc.T2GPA == 1) ? napot_gpa : napot_iova,
                                      GV, (DC.tc.T2GPA == 1) ? 0 : PSCV,
                           iohgatp.GSCID, (DC.tc.T2GPA == 1) ? 0 : PSCID,
