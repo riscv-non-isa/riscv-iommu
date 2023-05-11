@@ -48,7 +48,7 @@ typedef union {
         uint64_t PID:20;
         uint64_t PV:1;
         uint64_t PRIV:1;
-        uint64_t TTYP:5;
+        uint64_t TTYP:6;
         uint64_t DID:24;
         uint32_t custom;
         uint32_t reserved;
