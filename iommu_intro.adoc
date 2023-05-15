@@ -67,8 +67,8 @@ a SPA. There is no address translation or protection performed by the IOMMU.
 If the virtual memory scheme selected for first-stage is `Bare` but the scheme
 for the second-stage is not `Bare` then the IOVA is a GPA. The first-stage is
 effectively disabled. The second-stage translates the GPA to SPA and enforces the configured
-memory protections. Such a configuration would be typically be employed when the
-device control is passed-through to a virtual machine but the Guest OS in the VM
+memory protections. Such a configuration would be typically employed when the
+device control is passed through to a virtual machine but the Guest OS in the VM
 does not use first-stage address translation to further constrain memory accesses
 from such devices. Comparing to a RISC-V hart, this configuration is analogous
 to two-stage address translation being in effect on a RISC-V hart with the
@@ -76,13 +76,13 @@ G-stage active and the VS-stage set to Bare.
 
 If the virtual memory scheme selected for first-stage is not `Bare` but the
 scheme for the second-stage is `Bare` then IOVA is a VA. The second-stage is
-effectively disabled. The first-stage translate the VA to a SPA and enforces the configured
+effectively disabled. The first-stage translates the VA to a SPA and enforces the configured
 memory protections. This configuration would be typically employed when the
 IOMMU is used by a native OS or when the control of the device is retained by
 the hypervisor itself. Comparing to a RISC-V hart, this configuration is
 analogous to single-stage address translation being in effect on a RISC-V hart.
 
-If the virtual memory scheme selected for neither stages is `Bare` then the IOVA
+If the virtual memory scheme selected for neither stage is `Bare` then the IOVA
 is a VA. Two-stage address translation is in effect. The first-stage translates
 the VA to a GPA and the second-stage translates the GPA to a SPA. Each stage
 enforces the configured memory protections. Such a configuration would be
@@ -108,7 +108,7 @@ soft-context identifier (`GSCID`) to indicate that a collection of devices are
 assigned to the same VM and thus access a common virtual address space.
 Software may configure the process context with a software defined context
 identifier called process soft-context identifier (`PSCID`) to identify a
-collection of process identifier that share a common virtual address space.
+collection of processes that share a common virtual address space.
 The IOMMU may use the `GSCID` and `PSCID` to tag entries in the IOATC to avoid
 duplication and simplify invalidation operations.
 
@@ -173,7 +173,7 @@ in the device context.
 | GSCID           | Guest soft-context identifier: An identification number used
                     by software to uniquely identify a collection of devices
                     assigned to a virtual machine. An IOMMU may tag IOATC
-                    entries with the GSCID. Device contexts programmed with
+                    entries with the GSCID. Device contexts programmed with the
                     same GSCID must also be programmed with identical
                     second-stage page tables.
 | Guest           | Software in a virtual machine.
@@ -643,11 +643,11 @@ features:
 
 * Memory-based device context to locate parameters and address translation
   structures. The device context is located using the hardware-provided
-  unique `device_id`. The supported `device_id` width may be up to 24-bit.
+  unique `device_id`. The supported `device_id` width may be up to 24 bits.
 
 * Memory-based process context to locate parameters and address translation
   structures using hardware-provided unique `process_id`. The supported
-  `process_id` may be up to 20-bit.
+  `process_id` may be up to 20 bits.
 
 * 16-bit GSCIDs and 20-bit PSCIDs.
 
