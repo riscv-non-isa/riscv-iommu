@@ -1019,7 +1019,7 @@ is as follows:
 . If `ddte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If if any bits or encoding that are reserved for future standard use are
+. If any bits or encoding that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
   (cause = 259).
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 2.
@@ -1156,7 +1156,7 @@ file and translating the address using the MSI page table is as follows:
 
 [NOTE]
 ====
-In MRIF mode, the Advanced Interrupt Specification defines the operation to
+In MRIF mode, the Advanced Interrupt Architecture Specification defines the operation to
 store the incoming MSIs into the destination MRIF and to generate the notice
 MSI. These operations may be performed by the IOMMU itself or the IOMMU may
 provide the destination MRIF address, the notice MSI address, and the notice MSI
