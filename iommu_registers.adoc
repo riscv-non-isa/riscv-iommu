@@ -133,10 +133,11 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'Sv39x4'},
   {bits: 1, name: 'Sv48x4'},
   {bits: 1, name: 'Sv57x4'},
-  {bits: 2, name: 'reserved'},
+  {bits: 1, name: 'reserved'},
+  {bits: 1, name: 'AMO_MRIF'},
   {bits: 1, name: 'MSI_FLAT'},
   {bits: 1, name: 'MSI_MRIF'},
-  {bits: 1, name: 'AMO'},
+  {bits: 1, name: 'AMO_HWAD'},
   {bits: 1, name: 'ATS'},
   {bits: 1, name: 'T2GPA'},
   {bits: 1, name: 'END'},
@@ -179,12 +180,13 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
                                 second-stage address translation is supported.
 |19    |`Sv57x4`   |RO        | Page-based 59-bit virtual addressing for
                                 second-stage address translation is supported.
-|21:20 | reserved  |RO        | Reserved for standard use.
+|20    | reserved  |RO        | Reserved for standard use.
+|21    |`AMO_MRIF` |RO        | Atomic updates to MRIF is supported.
 |22    |`MSI_FLAT` |RO        | MSI address translation using Pass-through
                                 mode MSI PTE is supported.
 |23    |`MSI_MRIF` |RO        | MSI address translation using MRIF mode MSI PTE
                                 is supported.
-|24    |`AMO`      |RO        | Atomic updates to MRIF and PTE accessed (A)
+|24    |`AMO_HWAD` |RO        | Atomic updates to PTE accessed (A)
                                 and dirty (D) bit is supported.
 |25    |`ATS`      |RO        | PCIe Address Translation Services (ATS) and
                                 page-request interface (PRI) cite:[PCI] is supported.
@@ -247,7 +249,7 @@ an IMSIC or to a memory-resident-interrupt-file and clear the `MSI_FLAT` and
 
 [NOTE]
 ====
-The `AMO` bit does not indicate support for device-initiated atomic memory
+The `AMO_HWAD`/`AMO_MRIF` bits do not indicate support for device-initiated atomic memory
 operations. Support for device-initiated atomic memory operations must be
 discovered through other means.
 ====
