@@ -1032,7 +1032,7 @@ is as follows:
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If the `DC` is misconfigured as determined by rules outlined in
   <<DC_MISCONFIG>> then stop and report "DDT entry misconfigured" (cause = 259).
-. The device-context has been successfully located and may be cached.
+. The device-context has been successfully located.
 
 [[GET_PC]]
 ==== Process to locate the Process-context
