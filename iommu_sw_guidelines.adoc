@@ -132,7 +132,11 @@ release bits on atomic instructions also orders the data structure updates
 associated with those stores as observed by IOMMU.
 
 A `IOFENCE.C` command may be used by software to ensure that all previous
-commands fetched from the `CQ` have been completed and committed.
+commands fetched from the `CQ` have been completed and committed. The `PR`
+and/or `PW` bits may be set to 1 in the `IOFENCE.C` command to request that all
+previous read and/or write requests, that have already been processed by the
+IOMMU, be committed to a global ordering point as part of the `IOFENCE.C`
+command.
 
 [[DC_CHANGE]]
 ==== Changing device directory table entry
@@ -193,7 +197,10 @@ invalidations must be performed:
 
 Between a change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
-or the new PTE value.
+or the new PTE value. An `IOFENCE.C` command with `PW=1` may be used to to
+ensure that all previous writes, including MSI writes, that have been previously
+processed by the IOMMU are committed to a global ordering point such that they
+can be observed by all RISC-V harts and IOMMUs in the system.
 
 ==== Changing second-stage page table entry
 If software changes a leaf second-stage page-table entry of a VM where the change

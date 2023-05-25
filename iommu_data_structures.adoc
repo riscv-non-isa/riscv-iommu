@@ -1019,7 +1019,7 @@ is as follows:
 . If `ddte` access detects a data corruption (a.k.a. poisoned data), then
   stop and report "DDT data corruption" (cause = 268).
 . If `ddte.V == 0`, stop and report "DDT entry not valid" (cause = 258).
-. If if any bits or encoding that are reserved for future standard use are
+. If any bits or encoding that are reserved for future standard use are
   set within `ddte`, stop and report "DDT entry misconfigured"
   (cause = 259).
 . Let `i = i - 1` and let `a = ddte.PPN x 2^12^`. Go to step 2.
@@ -1032,7 +1032,7 @@ is as follows:
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If the `DC` is misconfigured as determined by rules outlined in
   <<DC_MISCONFIG>> then stop and report "DDT entry misconfigured" (cause = 259).
-. The device-context has been successfully located and may be cached.
+. The device-context has been successfully located.
 
 [[GET_PC]]
 ==== Process to locate the Process-context
@@ -1156,7 +1156,7 @@ file and translating the address using the MSI page table is as follows:
 
 [NOTE]
 ====
-In MRIF mode, the Advanced Interrupt Specification defines the operation to
+In MRIF mode, the Advanced Interrupt Architecture Specification defines the operation to
 store the incoming MSIs into the destination MRIF and to generate the notice
 MSI. These operations may be performed by the IOMMU itself or the IOMMU may
 provide the destination MRIF address, the notice MSI address, and the notice MSI
@@ -1446,8 +1446,8 @@ atomic. When RV32 is implemented the size of a single-copy atomic memory access
 is up to 32-bits. When RV64 is implemented the size of a single-copy atomic
 memory access is up to 64-bits. The size of a single-copy atomic memory access
 implemented by the IOMMU is `UNSPECIFIED` but is required to be at least 32-bits
-if all of the harts in the system implement RV32 and is required to be 64-bits
-if any of the harts in the system implement RV64.
+if all of the harts in the system implement RV32 and is required to be at least
+64-bits if any of the harts in the system implement RV64.
 
 The IOMMU data structure entries have a `V` bit that when set to 1 indicates
 that the entry is valid.
