@@ -379,8 +379,9 @@ default value of `process_id` for translating requests without a valid
 `process_id`. When `PDTV` is 0, the `DPE` bit is reserved for future standard
 extension.
 
-The IOMMU supports the 1 setting of `GADE` and `SADE` bits if `capabilities.AMO`
-is 1. When `capabilities.AMO` is 0, these bits are reserved.
+The IOMMU supports the 1 setting of `GADE` and `SADE` bits if
+`capabilities.AMO_HWAD` is 1. When `capabilities.AMO_HWAD` is 0, these bits are
+reserved.
 
 If `GADE` is 1, the IOMMU updates A and D bits in second-stage PTEs atomically.
 If `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
@@ -696,7 +697,7 @@ misconfigured" (cause = 259).
    and not `Flat`
 . `DC.iohgatp.MODE` is not `Bare` and the root page table determined by
   `DC.iohgatp.PPN` is not aligned to a 16-KiB boundary.
-. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
+. `capabilities.AMO_HWAD` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
 . `capabilities.END` is 0 and `fctl.BE != DC.tc.SBE`
 . `DC.tc.SXL` value is not a legal value. If `fctl.GXL` is 1, then
   `DC.tc.SXL` must be 1. If `fctl.GXL` is 0 and is writable, then
@@ -1166,7 +1167,7 @@ operations may be performed by the I/O bridge.
 
 === IOMMU updating of PTE accessed (A) and dirty (D) updates
 
-When `capabilities.AMO` is 1, the IOMMU supports updating the A and D bits in
+When `capabilities.AMO_HWAD` is 1, the IOMMU supports updating the A and D bits in
 PTEs atomically. When updating of A and D bits in second-stage PTEs is enabled
 (`DC.tc.GADE=1`) and/or updating of A and D bits in first-stage PTEs is enabled
 (`DC.tc.SADE=1`) the following rules apply:
