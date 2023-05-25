@@ -16,7 +16,7 @@ in MRIF mode, then the process stops and reports a "Transaction type disallowed"
 (cause = 260) fault.
 
 When the process to translate an IOVA is invoked for this purpose, the IOMMU
-may not cache first-stage PTEs, second-stage PTEs, DDT entries, PDT entries, or
+may or may not cache first-stage PTEs, second-stage PTEs, DDT entries, PDT entries, or
 MSI PTEs accessed for the translation process in the IOATC. The IOMMU is allowed
 to use any PTEs or directory structure entries that may already be cached in the
 IOATC. The IOMMU may update the Accessed (A) and/or Dirty (D) bits in the PTEs
