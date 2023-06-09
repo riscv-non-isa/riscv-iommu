@@ -63,7 +63,7 @@ main(void) {
     // Reset the IOMMU
     cap.version = 0x10;
     cap.Sv39 = cap.Sv48 = cap.Sv57 = cap.Sv39x4 = cap.Sv48x4 = cap.Sv57x4 = 1;
-    cap.amo = cap.ats = cap.t2gpa = cap.hpm = cap.msi_flat = cap.msi_mrif = 1;
+    cap.amo_hwad = cap.ats = cap.t2gpa = cap.hpm = cap.msi_flat = cap.msi_mrif = cap.amo_mrif = 1;
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
@@ -553,7 +553,7 @@ main(void) {
     DC.iohgatp.PPN &= ~0x3;
     write_memory((char *)&DC, DC_addr, 64);
 
-    g_reg_file.capabilities.amo = 0;
+    g_reg_file.capabilities.amo_hwad = 0;
     DC.tc.SADE = 1;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
@@ -574,7 +574,7 @@ main(void) {
     DC.tc.SADE = 0;
     DC.tc.GADE = 0;
     write_memory((char *)&DC, DC_addr, 64);
-    g_reg_file.capabilities.amo = 1;
+    g_reg_file.capabilities.amo_hwad = 1;
 
     g_reg_file.capabilities.ats = 0;
     DC.tc.EN_ATS = 1;
