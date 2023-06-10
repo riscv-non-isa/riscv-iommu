@@ -585,9 +585,9 @@ and has several interfaces (see <<fig:iommu-interfaces>>):
 
 The interfaces related to recording an incoming MSI in a memory-resident
 interrupt file (MRIF) (See RISC-V Advanced Interrupt Architecture cite:[AIA])
-are implementation-specific. The partitioning of the responsibility between
-the IOMMU and the IO bridge for recording of the incoming MSI in an MRIF and the
-generation of the associated _notice_ MSI are implementation-specific.
+are implementation-specific. The partitioning of responsibility between
+the IOMMU and the IO bridge for recording the incoming MSI in an MRIF and
+generating the associated _notice_ MSI are implementation-specific.
 
 [[fig:iommu-interfaces]]
 .IOMMU interfaces.
