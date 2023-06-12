@@ -41,12 +41,13 @@ typedef union {
                                    // translation is supported
         uint64_t Sv57x4  : 1;      // Page-based 59-bit virtual addressing for G-stage
                                    // translation is supported
-        uint64_t rsvd1   : 2;      // Reserved for standard use.
+        uint64_t rsvd1   : 1;      // Reserved for standard use.
+        uint64_t amo_mrif: 1;      // Atomic updates to MRIF is supported.
         uint64_t msi_flat: 1;      // MSI address translation using Write-through
                                    // mode MSI PTE is supported.
         uint64_t msi_mrif: 1;      // MSI address translation using MRIF mode MSI PTE
                                    // is supported.
-        uint64_t amo     : 1;      // Atomic updates to MRIF and PTE accessed (A)
+        uint64_t amo_hwad: 1;      // Atomic updates to PTE accessed (A)
                                    // and dirty (D) bit is supported.
         uint64_t ats     : 1;      // PCIe Address Translation Services (ATS) and
                                    // page-request interface (PRI) is supported.

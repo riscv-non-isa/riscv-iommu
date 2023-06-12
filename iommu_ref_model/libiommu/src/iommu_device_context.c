@@ -317,7 +317,7 @@ do_device_context_configuration_checks(
         return 1;
     }
     //18. `capabilities.AMO` is 0 and `DC.tc.SADE` or `DC.tc.GADE` is 1
-    if ( g_reg_file.capabilities.amo == 0 && (DC->tc.SADE == 1 || DC->tc.GADE == 1) ) {
+    if ( g_reg_file.capabilities.amo_hwad == 0 && (DC->tc.SADE == 1 || DC->tc.GADE == 1) ) {
         return 1;
     }
     //19. `capabilities.END` is 0 and `fctl.be != DC.tc.SBE`
