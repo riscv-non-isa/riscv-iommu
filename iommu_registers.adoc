@@ -5,18 +5,21 @@ registers of each IOMMU are located within a naturally aligned 4-KiB region
 (a page) of physical address space.
 
 The IOMMU behavior for register accesses where the address is not aligned to
-the size of the access, or if the access spans multiple registers, of if the
-size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`. The atomicity
-of access to an 8 byte register is `UNSPECIFIED`. The implementation may
-observe the 8 byte access as two 4 byte accesses. A 4 byte access to an IOMMU
-register must be single-copy atomic.
+the size of the access, or if the access spans multiple registers, or if the
+size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`. A 4 byte access
+to an IOMMU register must be single-copy atomic. Whether an 8 byte access to an
+IOMMU register is single-copy atomic is `UNSPECIFIED`, and such an access may
+appear, internally to the IOMMU, as if two separate 4 byte accesses were
+performed.
 
 [NOTE]
 ====
-If an implementation may observe a 8 byte register access as two 4 byte
-accesses then such implementations must preserve the semantics of the 8 byte
-access and must cause any side effects only after both accesses have been
-observed.
+The 8 byte IOMMU registers are defined in such a way that software can perform
+two individual 4 byte accesses, or hardware can perform two independent 4 byte
+transactions resulting from an 8 byte access, to the high and low halves of the
+register as long as the register semantics, with regards to side-effects, are
+respected between the two software accesses, or two hardware transactions,
+respectively.
 ====
 
 The IOMMU registers have little-endian byte order (even for systems where
