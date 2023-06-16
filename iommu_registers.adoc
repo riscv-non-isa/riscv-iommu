@@ -5,7 +5,7 @@ registers of each IOMMU are located within a naturally aligned 4-KiB region
 (a page) of physical address space.
 
 The IOMMU behavior for register accesses where the address is not aligned to
-the size of the access, or if the access spans multiple registers, of if the
+the size of the access, or if the access spans multiple registers, or if the
 size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`. A 4 byte access
 to an IOMMU register must be single-copy atomic. Whether an 8 byte access to an
 IOMMU register is single-copy atomic is `UNSPECIFIED`, and such an access may
