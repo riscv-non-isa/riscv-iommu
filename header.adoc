@@ -2,8 +2,8 @@
 :description: RISC-V IOMMU Architecture Specification
 :company: RISC-V.org
 :revdate: 06/2023
-:revnumber: 1.0-rc6
-:revremark: This document is in Frozen. Change is extremely unlikely. See http://riscv.org/spec-state for details.
+:revnumber: 1.0
+:revremark: This document is in Ratified. See http://riscv.org/spec-state for details.
 :url-riscv: http://riscv.org
 :doctype: book
 :preface-title: Preamble
@@ -39,12 +39,10 @@ IOMMU Task Group
 
 // Preamble
 [WARNING]
-.This document is in the link:http://riscv.org/spec-state[Frozen state]
+.This document is in the link:http://riscv.org/spec-state[Ratified]
 ====
-Change is extremely unlikely. A high threshold will be used, and a change will
-only occur because of some truly critical issue being identified during the
-public review cycle. Any other desired or needed changes can be the subject of a
-follow-on new extension.
+No changes are allowed. Any desired or needed changes can be the subject of a
+follow-on new extension. Ratified extensions are never revised
 ====
 
 [preface]
