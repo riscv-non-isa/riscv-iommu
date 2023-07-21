@@ -551,7 +551,8 @@ write_register(
             // This register is read-only 0 if capabilities.HPM is 0
             if ( g_reg_file.capabilities.hpm == 1 ) {
                 g_reg_file.iohpmcycles.counter = 
-                    iohpmcycles_temp.counter & ((1UL << g_hpmctr_bits) - 1);
+                    iohpmcycles_temp.counter &
+                    ((g_hpmctr_bits > 63) ? ((1UL << 63) - 1) : ((1UL << g_hpmctr_bits) - 1));
                 g_reg_file.iohpmcycles.of = iohpmcycles_temp.of;
             }
             break;
@@ -592,7 +593,8 @@ write_register(
                 // Writes discarded to non implemented HPM counters
                 if ( ctr_num <= (g_num_hpm - 1) )  {
                     // These registers are 64-bit WARL counter registers
-                    g_reg_file.iohpmctr[ctr_num - 1].counter = data8 & ((1UL << g_hpmctr_bits) - 1);
+                    g_reg_file.iohpmctr[ctr_num - 1].counter = data8 &
+                        ((g_hpmctr_bits == 64) ? -1LL : ((1LL << g_hpmctr_bits) - 1));
                 }
             }
             break;
@@ -849,8 +851,8 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     if ( num_hpm > 31 ||
          (num_hpm != 0 && capabilities.hpm == 0) )
         return -1;
-    // HPM counters must be between 1 and 63 bits
-    if ( (hpmctr_bits < 1 || hpmctr_bits > 63)  && 
+    // HPM counters must be between 1 and 64 bits
+    if ( (hpmctr_bits < 1 || hpmctr_bits > 64)  &&
          (capabilities.hpm == 1) )
         return -1;
     if ( hpmctr_bits != 0 && capabilities.hpm == 0 ) 

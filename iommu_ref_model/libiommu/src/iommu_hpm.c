@@ -82,8 +82,9 @@ count_events(
         }
         // Counter is not inhibited and all filters pass
         count = g_reg_file.iohpmctr[i].counter + 1;
-        g_reg_file.iohpmctr[i].counter = (count & ((1UL << g_hpmctr_bits) - 1));
-        if ( count & (1UL << g_hpmctr_bits) ) {
+        count = count & ((g_hpmctr_bits == 64) ? -1LL : ((1LL << g_hpmctr_bits) - 1));
+        if ( g_reg_file.iohpmctr[i].counter > count ) {
+            g_reg_file.iohpmctr[i].counter = count;
             // The OF bit is set when the corresponding iohpmctr* overflows, 
             // and remains set until cleared by software. Since iohpmctr* 
             // values are unsigned values, overflow is defined as unsigned 
@@ -100,6 +101,8 @@ count_events(
                 g_reg_file.iohpmevt[i].of = 1;
                 generate_interrupt(HPM);
             }
+        } else {
+            g_reg_file.iohpmctr[i].counter = count;
         }
     }
     return;
