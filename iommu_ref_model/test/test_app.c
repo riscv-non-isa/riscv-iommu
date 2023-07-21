@@ -1874,6 +1874,56 @@ main(void) {
     write_register(IOHPMEVT1_OFFSET, 8, event.raw);
     fail_if( ( (read_register(IOCNTOVF_OFFSET, 4) & 0xFFFFFFFF) != 0x3C ) );
 
+    // Make counter 64 bit wide
+    g_hpmctr_bits = 64;
+    event.raw = read_register(IOHPMEVT1_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT1_OFFSET, 8, event.raw);
+    event.raw = read_register(IOHPMEVT2_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT2_OFFSET, 8, event.raw);
+    event.raw = read_register(IOHPMEVT3_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT3_OFFSET, 8, event.raw);
+    event.raw = read_register(IOHPMEVT4_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT4_OFFSET, 8, event.raw);
+    event.raw = read_register(IOHPMEVT5_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT5_OFFSET, 8, event.raw);
+    write_register(IOHPMCTR1_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
+    write_register(IOHPMCTR2_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
+    write_register(IOHPMCTR3_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
+    write_register(IOHPMCTR4_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
+    write_register(IOHPMCTR5_OFFSET, 8, 0xFFFFFFFFFFFFFFFF);
+
+    for ( at = 0; at < 3; at++ ) {
+        send_translation_request(0x012349, 0, 10, 0,
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
+        send_translation_request(0x012349, 1, 10, 0,
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
+        send_translation_request(0x072349, 1, 10, 0,
+             0, 0, 0, at, 0xdeadbeef, 1, READ, &req, &rsp);
+    }
+    fail_if( ( read_register(IOHPMCTR1_OFFSET, 8) != 1 ) );
+    fail_if( ( read_register(IOHPMCTR2_OFFSET, 8) != 1 ) );
+    fail_if( ( read_register(IOHPMCTR3_OFFSET, 8) != 0 ) );
+    fail_if( ( read_register(IOHPMCTR4_OFFSET, 8) != 1 ) );
+    fail_if( ( read_register(IOHPMCTR5_OFFSET, 8) != 2 ) );
+    fail_if( ( (read_register(IOCNTOVF_OFFSET, 4) & 0xFFFFFFFF) != 0x3E ) );
+    event.raw = read_register(IOHPMEVT1_OFFSET, 8);
+    event.of = 0;
+    write_register(IOHPMEVT1_OFFSET, 8, event.raw);
+    fail_if( ( (read_register(IOCNTOVF_OFFSET, 4) & 0xFFFFFFFF) != 0x3C ) );
+
+    // Put the counter width back to 40
+    write_register(IOHPMCTR1_OFFSET, 8, 0x0);
+    write_register(IOHPMCTR2_OFFSET, 8, 0x0);
+    write_register(IOHPMCTR3_OFFSET, 8, 0x0);
+    write_register(IOHPMCTR4_OFFSET, 8, 0x0);
+    write_register(IOHPMCTR5_OFFSET, 8, 0x0);
+    g_hpmctr_bits = 40;
+
     pte.raw = 0;
     pte.V = 1;
     pte.R = 1;
