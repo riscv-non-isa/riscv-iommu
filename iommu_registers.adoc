@@ -392,18 +392,19 @@ subset of directory-table levels and device-context widths. At a minimum one
 of the modes must be supported.
 
 When the `iommu_mode` field value is changed to `Off` the IOMMU guarantees that
-in-flight transactions from devices connected to the IOMMU will be processed
-with the configurations applicable to the old value of the `iommu_mode` field
-and that all transactions and previous requests from devices that have already
-been processed by the IOMMU be committed to a global ordering point such that
-they can be observed by all RISC-V harts, devices, and IOMMUs in the platform.
+in-flight transactions, when the write was observed by the IOMMU, from devices
+connected to the IOMMU will be processed with the configurations applicable to
+the old value of the `iommu_mode` field and ensures that all transactions and
+previous requests from devices that have already been processed by the IOMMU be
+committed to a global ordering point such that they can be observed by all
+RISC-V harts, devices, and IOMMUs in the platform.
 
 The IOMMU behavior of writing `iommu_mode` to `1LVL`, `2LVL`, or `3LVL`, when
 the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
 To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off`
 state.
 
-When an IOMMU is transitioned to `Bare` of `Off` state, the IOMMU may retain
+When an IOMMU is transitioned to `Bare` or `Off` state, the IOMMU may retain
 information cached from in-memory data structures such as page tables, DDT,
 PDT, etc. Software must use suitable invalidation commands to invalidate cached
 entries.
@@ -779,11 +780,12 @@ status of the command-queue.
                             generation of interrupts from command-queue when
                             set to 1.
 |7:2  |reserved|WPRI    | Reserved for standard use
-|8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
-                            the command-queue-memory-fault bit is set to 1 and
-                            the command-queue stalls until this bit is cleared.
-                            To re-enable command processing, software should
-                            clear this bit by writing 1.
+|8    |`cqmf`  |RW1C      | If command-queue access to fetch a command or a
+                            memory access made by a command leads to a memory
+                            fault, then the command-queue-memory-fault bit is set
+                            to 1, and the command-queue stalls until this bit is
+                            cleared. To re-enable command processing, software
+                            should clear this bit by writing 1.
 |9    |`cmd_to`|RW1C      | If the execution of a command leads to a
                             timeout (e.g. a command to invalidate device ATC
                             may timeout waiting for a completion), then the
@@ -1117,7 +1119,7 @@ interrupt-pending bit.
 |===
 
 If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
-If the conditions to set that bit are still present (See <<IPSR_FIELDS>>) or if
+If the conditions to set that bit are still present (See <<IPSR_FIELD>>) or if
 they occur after the bit is cleared then that bit transitions again from 0->1.
 
 [[OVF]]

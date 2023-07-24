@@ -84,25 +84,25 @@ traverse the DDT radix-tree are as follows:
 
 .Base format `device_id` partitioning
 
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 7, name: 'DDI[0]'},
-  {bits: 9, name: 'DDI[1]'},
-  {bits: 8, name: 'DDI[2]'},
-], config:{lanes: 1, hspace:1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 7, name: 'DDI[0]'},
+//  {bits: 9, name: 'DDI[1]'},
+//  {bits: 8, name: 'DDI[2]'},
+//], config:{lanes: 1, hspace:1024, fontsize: 16}}
+//....
 
 .Extended format `device_id` partitioning
 
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 6, name: 'DDI[0]'},
-  {bits: 9, name: 'DDI[1]'},
-  {bits: 9, name: 'DDI[2]'},
-], config:{lanes: 1, hspace:1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 6, name: 'DDI[0]'},
+//  {bits: 9, name: 'DDI[1]'},
+//  {bits: 9, name: 'DDI[2]'},
+//], config:{lanes: 1, hspace:1024, fontsize: 16}}
+//....
 
 The PDT may be configured to be a 1, 2, or 3 level radix-tree depending on the
 maximum width of the `process_id` supported by that device.  The partitioning
@@ -111,14 +111,14 @@ the PDT radix-tree are as follows:
 
 .`process_id` partitioning for PDT radix-tree traversal
 
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 8, name: 'PDI[0]'},
-  {bits: 9, name: 'PDI[1]'},
-  {bits: 3, name: 'PDI[2]'},
-], config:{lanes: 1, hspace:1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 8, name: 'PDI[0]'},
+//  {bits: 9, name: 'PDI[1]'},
+//  {bits: 3, name: 'PDI[2]'},
+//], config:{lanes: 1, hspace:1024, fontsize: 16}}
+//....
 [NOTE]
 ====
 The `process_id` partitioning is designed to require a maximum of 4 KiB, a
@@ -203,15 +203,15 @@ A valid (`V==1`) non-leaf DDT entry provides the PPN of the next level DDT.
 
 .Non-leaf device-directory-table entry
 
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 1,  name: 'V',        attr: '1'},
-  {bits: 9, name: 'reserved', attr: '9'},
-  {bits: 44, name: 'PPN',      attr: '44'},
-  {bits: 10,  name: 'reserved', attr: '10'},
-], config:{lanes: 2, hspace:1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 1,  name: 'V',        attr: '1'},
+//  {bits: 9, name: 'reserved', attr: '9'},
+//  {bits: 44, name: 'PPN',      attr: '44'},
+//  {bits: 10,  name: 'reserved', attr: '10'},
+//], config:{lanes: 2, hspace:1024, fontsize: 16}}
+//....
 
 ==== Leaf DDT entry
 The leaf DDT page is indexed by `DDI[0]` and holds the device-context (`DC`).
@@ -219,30 +219,30 @@ The leaf DDT page is indexed by `DDI[0]` and holds the device-context (`DC`).
 In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 
 .Base-format device-context
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 64,  name: 'Translation-control (tc)'},
-  {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
-  {bits: 64,  name: 'Translation-attributes (ta)'},
-  {bits: 64,  name: 'First-stage-context (fsc)'},
-], config:{lanes: 4, hspace: 1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 64,  name: 'Translation-control (tc)'},
+//  {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
+//  {bits: 64,  name: 'Translation-attributes (ta)'},
+//  {bits: 64,  name: 'First-stage-context (fsc)'},
+//], config:{lanes: 4, hspace: 1024, fontsize: 16}}
+//....
 
 .Extended-format device-context
-[wavedrom, , ]
-....
-{reg: [
-  {bits: 64,  name: 'Translation-control (tc)'},
-  {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
-  {bits: 64,  name: 'Translation-attributes (ta)'},
-  {bits: 64,  name: 'First-stage-context (fsc)'},
-  {bits: 64,  name: 'MSI-page-table pointer (msiptp)'},
-  {bits: 64,  name: 'MSI-address-mask (msi_addr_mask)'},
-  {bits: 64,  name: 'MSI-address-pattern (msi_addr_pattern)'},
-  {bits: 64,  name: 'reserved'},
-], config:{lanes: 8, hspace: 1024, fontsize: 16}}
-....
+//[wavedrom, , ]
+//....
+//{reg: [
+//  {bits: 64,  name: 'Translation-control (tc)'},
+//  {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
+//  {bits: 64,  name: 'Translation-attributes (ta)'},
+//  {bits: 64,  name: 'First-stage-context (fsc)'},
+// {bits: 64,  name: 'MSI-page-table pointer (msiptp)'},
+//  {bits: 64,  name: 'MSI-address-mask (msi_addr_mask)'},
+//  {bits: 64,  name: 'MSI-address-pattern (msi_addr_pattern)'},
+//  {bits: 64,  name: 'reserved'},
+//], config:{lanes: 8, hspace: 1024, fontsize: 16}}
+//....
 
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format.  The byte order of each of the
