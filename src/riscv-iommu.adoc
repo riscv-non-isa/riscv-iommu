@@ -21,8 +21,9 @@ include::../docs-resources/global-config.adoc[]
 :lang: en
 :listing-caption: Listing
 :sectnums:
+:sectnumlevels: 5
 :toc: left
-:toclevels: 4
+:toclevels: 5
 :source-highlighter: pygments
 ifdef::backend-pdf[]
 :source-highlighter: coderay
@@ -34,17 +35,17 @@ endif::[]
 :xrefstyle: short
 
 // Preamble - Begin
-[preface]
-== List of figures
-list-of::image[hide_empty_section=true, enhanced_rendering=true]
+//[preface]
+//== List of figures
+//list-of::image[hide_empty_section=true, enhanced_rendering=true]
 
-[preface]
-== List of tables
-list-of::table[hide_empty_section=true, enhanced_rendering=true]
+//[preface]
+//== List of tables
+//list-of::table[hide_empty_section=true, enhanced_rendering=true]
 
-[preface]
-== List of listings
-list-of::listing[hide_empty_section=true, enhanced_rendering=true]
+//[preface]
+//== List of listings
+//list-of::listing[hide_empty_section=true, enhanced_rendering=true]
 
 [WARNING]
 .This document is link:http://riscv.org/spec-state[Ratified].
@@ -67,6 +68,7 @@ include::contributors.adoc[]
 // Preamble - End
 
 :imagesdir: images
+include::iommu_preface.adoc[]
 include::iommu_intro.adoc[]
 include::iommu_data_structures.adoc[]
 include::iommu_in_memory_queues.adoc[]
@@ -74,4 +76,5 @@ include::iommu_debug.adoc[]
 include::iommu_registers.adoc[]
 include::iommu_sw_guidelines.adoc[]
 include::iommu_hw_guidelines.adoc[]
+include::iommu_extensions.adoc[]
 include::bibliography.adoc[]
