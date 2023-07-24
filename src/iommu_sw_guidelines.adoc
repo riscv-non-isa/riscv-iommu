@@ -144,7 +144,6 @@ If software changes a leaf-level DDT entry (i.e, a device context (`DC`), of
 device with `device_id = D`) then the following invalidations must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
-* If `DC.tc.PDTV==1` then `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
 
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
@@ -170,7 +169,7 @@ If software changes a leaf-level PDT entry (i.e, a process context (`PC`), for
 `device_id=D` and `process_id=P`) then the following invalidations must be
 performed:
 
-* `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
+* `IODIR.INVAL_PDT` with `DV=1`, `DID=D` and `PID=P`
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,
    and `PSCID=PC.PSCID`
@@ -245,6 +244,8 @@ Between a change to the first-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
 old PTE value or the new PTE value.
 
+<<<
+
 ==== Accessed (A)/Dirty (D) bit updates and page promotions
 
 When IOMMU supports hardware-managed A and D bit updates, if software clears
@@ -302,16 +303,16 @@ the DevATC may be satisfied by the IOMMU from the IOATC, to ensure correct
 operation software must first invalidate the IOATC before sending
 invalidations to the DevATC.
 
+<<<
+
 ==== Caching invalid entries
 
 This specification does not allow the caching of first/second-stage PTEs whose
 `V` (valid) bit is clear, non-leaf DDT entries whose `V` (valid) bit is clear,
 Device-context whose `V` (valid) bit is clear, non-leaf PDT entries whose `V`
 (valid) bit is clear, Process-context whose `V` (valid) bit is clear, or MSI
-PTEs whose `V` bit is clear.
-
-Software need not perform invalidations when changing the `V` bit in these
-entries from 0 to 1.
+PTEs whose `V` bit is clear. Software need not perform invalidations when
+changing the `V` bit in these entries from 0 to 1.
 
 === Reconfiguring PMAs
 

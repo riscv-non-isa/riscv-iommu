@@ -140,6 +140,8 @@ is not prohibited by this specification.
 The DDT is a 1, 2, or 3-level radix-tree indexed using the device directory
 index (DDI) bits of the `device_id` to locate a `DC`.
 
+<<<
+
 The following diagrams illustrate the DDT radix-tree. The PPN of the root
 device-directory-table is held in a memory-mapped register called the
 device-directory-table pointer (`ddtp`).
@@ -150,7 +152,7 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-image::ddt-ext.svg[width=800,height=400]
+image::ddt-ext.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -174,7 +176,7 @@ image::ddt-ext.svg[width=800,height=400]
 //....
 
 .Three, two and single-level device directory with base format `DC`
-image::ddt-base.svg[width=800,height=400]
+image::ddt-base.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -212,6 +214,8 @@ A valid (`V==1`) non-leaf DDT entry provides the PPN of the next level DDT.
   {bits: 10,  name: 'reserved', attr: '10'},
 ], config:{lanes: 2, hspace:1024, fontsize: 16}}
 ....
+
+<<<
 
 ==== Leaf DDT entry
 The leaf DDT page is indexed by `DDI[0]` and holds the device-context (`DC`).
@@ -312,16 +316,21 @@ Such addresses also cannot be routed within the device when peer-to-peer
 transactions within the device (e.g. between functions of a device) are
 supported.
 
+Use of `T2GPA` set to 1 may not be compatible with devices that implement caches
+tagged by the translated address returned in response to a PCIe ATS Translation
+Request.
+====
+
+<<<
+
+[NOTE]
+====
 Hypervisors that configure `T2GPA` to 1 must ensure through protocol-specific
 means that translated accesses are routed through the host such that the IOMMU
 may translate the GPA and then route the transaction based on PA to memory or
 to a peer device. For PCIe, for example, the Access Control Service (ACS) must
 be configured to always redirect peer-to-peer (P2P) requests upstream to the
 host.
-
-Use of `T2GPA` set to 1 may not be compatible with devices that implement caches
-tagged by the translated address returned in response to a PCIe ATS Translation
-Request.
 
 As an alternative to setting `T2GPA` to 1, the hypervisor may establish a trust
 relationship with the device if authentication protocols are supported by the
@@ -406,8 +415,7 @@ When `SXL` is 1, the following rules apply:
 * If the first-stage is not Bare, then a page fault corresponding to the original
   access type occurs if the `IOVA` has bits beyond bit 31 set to 1.
 * If the second-stage is not Bare, then a guest page fault corresponding to the
-  original access type occurs if the incoming GPA has bits beyond bit 33 set to
-  1.
+  original access type occurs if the incoming GPA has bits beyond bit 33 set to 1.
 
 ===== IO hypervisor guest address translation and protection (`iohgatp`)
 
@@ -437,11 +445,11 @@ encodings are as follows:
 
 [[IOHGATP_MODE_ENC]]
 .Encodings of `iohgatp.MODE` field
-[width=75%]
-[%header, cols="3,3,20"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^3,^3,20"]
 |===
 3+^|               `fctl.GXL=0`
-|Value | Name     | Description
+^|Value ^| Name     ^| Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
 | 8    | `Sv39x4` | Page-based 41-bit virtual addressing (2-bit extension
@@ -524,11 +532,11 @@ address.
 
 [[IOSATP_MODE_ENC]]
 .Encodings of `iosatp.MODE` field
-[width=75%]
-[%header, cols="3,3,20"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^3,^3,20"]
 |===
 3+^|               `DC.tc.SXL=0`
-|Value | Name     | Description
+^|Value ^| Name     ^| Description
 | 0    | `Bare`   | No translation or protection.
 | 1-7  | --       | Reserved for standard use.
 | 8    | `Sv39`   | Page-based 39-bit virtual addressing.
@@ -571,11 +579,11 @@ directly edit the PDT to associate a virtual-address space identified by a
 first-stage page table with a `process_id`.
 
 [[PDTP_MODE_ENC]]
-.Encoding of `pdtp.MODE` field
-[width=75%]
-[%header, cols="3,3,20"]
+.Encodings of `pdtp.MODE` field
+[%autowidth,float="center",align="center"]
+[%header, cols="^3,^3,20"]
 |===
-|Value | Name     | Description
+^|Value ^| Name     ^| Description
 | 0    | `Bare`   | No first-stage address translation or protection.
 | 1    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
                     256 entries.The bits 19:8 of `process_id` must be 0.
@@ -607,11 +615,13 @@ defined by the Advanced Interrupt Architecture specification.
 
 The `msiptp.MODE` field is used to select the MSI address translation scheme.
 
-.Encoding of `msiptp.MODE` field
-[width=75%]
-[%header, cols="3,3,20"]
+<<<
+
+.Encodings of `msiptp.MODE` field
+[%autowidth,float="center",align="center"]
+[%header, cols="^3,^3,20"]
 |===
-|Value | Name     | Description
+^|Value ^| Name     ^| Description
 | 0    | `Off`    | Recognition of accesses to
                     a virtual interrupt file using MSI address mask and
                     pattern is not performed.
@@ -882,6 +892,8 @@ misconfigured" (cause = 267).
 . `DC.tc.SXL` is 1 and `PC.fsc.MODE` is not one of the supported modes
 .. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
 
+<<<
+
 [NOTE]
 ====
 Some `PC` fields hold supervisor physical addresses or
@@ -1151,8 +1163,8 @@ file and translating the address using the MSI page table is as follows:
   process are equivalent to that of a regular RISC-V second-stage PTE with
   `R`=`W`=`U`=1 and `X`=0. Similar to a second-stage PTE, when checking the `U`
   bit, the transaction is treated as not requesting supervisor privilege.
-. If the transaction is an Untranslated or Translated read-for-execute then stop
-  and report "Instruction access fault" (cause = 1).
+.. If the transaction is an Untranslated or Translated read-for-execute then stop
+   and report "Instruction access fault" (cause = 1).
 . MSI address translation process is complete.
 
 [NOTE]
@@ -1181,6 +1193,8 @@ PTEs atomically. When updating of A and D bits in second-stage PTEs is enabled
   Translation completion, the PTE update must be globally visible before a
   memory access from the device using the translated address becomes globally
   visible.
+
+<<<
 
 [NOTE]
 ====
@@ -1348,6 +1362,8 @@ of "Page Request".
 When the IOMMU generates the response, the status field of the response depends
 on the cause of the error.
 
+<<<
+
 The status is set to Response Failure if the following faults are encountered:
 
 * `ddtp.iommu_mode` is `Off`
@@ -1399,6 +1415,8 @@ the following conditions:
 * "Page Request" could not be queued due to the page-request queue being full
   (`pqt == pqh - 1`) or had a overflow (`pqcsr.pqof == 1`).
 
+<<<
+
 [[CACHING]]
 === Caching in-memory data structures
 
@@ -1424,10 +1442,10 @@ more IDs to tag the cached entries to identify a specific entry or a
 group of entries.
 
 .Identifiers used to tag IOATC entries
-[width=90%]
+[%autowidth,float="center",align="center"]
 [%header, cols="8,10,10"]
 |===
-|Data Structure cached  |IDs used to tag entries    | Invalidation command
+^|Data Structure cached  ^|IDs used to tag entries    ^| Invalidation command
 |Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
 |Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
 |First-stage page table
@@ -1498,8 +1516,8 @@ determined by `fctl.BE` or by `DC.tc.SBE` as follows:
 
 [[ENDIAN_CONFIG]]
 .Endianness of memory access to data structures
-[width=75%]
-[%header, cols="16,8"]
+[%autowidth,float="center",align="center"]
+[%header, cols="10,8"]
 |===
 ^|Data Structure             ^| Controlled by
 | Device directory table     | `fctl.BE`

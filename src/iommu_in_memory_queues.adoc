@@ -62,13 +62,14 @@ tail update are ordered such that the consumer that observes an update to the
 tail register must also observe all data produced into the queue between the
 offsets determined by the head and the tail.
 
+<<<
+
 [NOTE]
 ====
 All RISC-V IOMMU implementations are required to support in-memory queues
 located in main memory. Supporting in-memory queues in I/O memory is not required
 but is not prohibited by this specification.
 ====
-
 
 === Command-Queue (CQ)
 
@@ -118,13 +119,13 @@ determined by `fctl.BE` (<<FCTRL>>).
 The following command opcodes are defined:
 
 .IOMMU command opcodes
-[width=100%]
+[%autowidth,float="center",align="center"]
 [%header, cols="12,^12,70"]
 |===
 |`opcode`  | Encoding ^| Description
 |`IOTINVAL`| 1        | IOMMU page-table cache invalidation commands.
 |`IOFENCE` | 2        | IOMMU command-queue fence commands.
-|`IOTDIR`  | 3        | IOMMU directory cache invalidation commands.
+|`IODIR`   | 3        | IOMMU directory cache invalidation commands.
 |`ATS`     | 4        | IOMMU PCIe cite:[PCI] ATS commands.
 | Reserved | 5-63     | Reserved for future standard use.
 | Custom   | 64-127   | Designated for custom use.
@@ -182,6 +183,8 @@ is Bare) are operated on. When `GV` is 0, the `GSCID` operand is ignored.
 When `AV` is 0, the `ADDR` operand is ignored. When `PSCV` operand is 0, the
 `PSCID` operand is ignored.
 
+<<<
+
 `IOTINVAL.VMA` ensures that previous stores made to the first-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
 reads from IOMMU to the corresponding first-stage page tables.
@@ -189,8 +192,8 @@ reads from IOMMU to the corresponding first-stage page tables.
 [[IVMA]]
 
 .`IOTINVAL.VMA` operands and operations
-[width=75%]
-[%header, cols="2,2,3,20"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^2,^2,^3,20"]
 |===
 |`GV`|`AV`|`PSCV`| Operation
 |0   |0   |0     | Invalidates all address-translation cache entries, including
@@ -234,8 +237,8 @@ is illegal.
 [[IGVMA]]
 
 .`IOTINVAL.GVMA` operands and operations
-[width=75%]
-[%header, cols="2,2,20"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^2,^2,20"]
 |===
 | `GV` | `AV`   | Operation
 | 0    | ignored| Invalidates information cached from any level of the
@@ -245,8 +248,8 @@ is illegal.
                   identified by the `GSCID` operand.
 | 1    | 1      | Invalidates information cached from leaf second-stage page
                   table entries corresponding to the guest-physical-address in
-                  `ADDR` operand, for only for VM address spaces identified
-                  `GSCID` operand.
+                  `ADDR` operand, but only for VM address spaces identified
+                  by the `GSCID` operand.
 |===
 
 [NOTE]
@@ -257,7 +260,12 @@ that maps guest physical addresses to supervisor physical addresses.
 `IOTINVAL.GVMA` need not invalidate the former cache, but it must invalidate
 entries from the latter cache that match the `IOTINVAL.GVMA` address and
 `GSCID` operands.
+====
 
+<<<
+
+[NOTE]
+====
 More commonly, implementations contain address-translation caches that map
 guest virtual addresses directly to supervisor physical addresses, removing a
 level of indirection. For such implementations, any entry whose guest virtual
@@ -268,12 +276,13 @@ which is costly, and so a common technique is to invalidate all entries that
 match the `GSCID` argument, regardless of the address argument.
 
 Simpler implementations may ignore the operand of `IOTINVAL.VMA` and/or
-`IOTINVAL.GVMA` and always perform a global invalidation of all
+`IOTINVAL.GVMA` and perform a global invalidation of all
 address-translation entries.
-====
 
-[NOTE]
-====
+Some implementations may cache an identity-mapped translation for the stage of
+address translation operating in `Bare` mode. Since these identity mappings
+are invariably correct, an explicit invalidation is unnecessary.
+
 A consequence of this specification is that an implementation may use any
 translation for an address that was valid at any time since the most recent
 `IOTINVAL` that subsumes that address. In particular, if a leaf PTE is
@@ -378,16 +387,18 @@ may not pass previous posted writes.
 
 The ordering guarantees are made for accesses to main-memory. For accesses to
 I/O memory, the ordering guarantees are implementation and I/O protocol
-defined.
-
-Simpler implementations may unconditionally order all previous memory accesses
-globally.
+defined. Simpler implementations may unconditionally order all previous memory
+accesses globally.
 ====
 
-The `AV` command operand indicates if `ADDR[63:2]` operand and `DATA` operands are
+The `AV` command operand indicates if `ADDR[63:2]` and `DATA` operands are
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address
 `ADDR[63:2] * 4` as a 4-byte store when the command completes. When `AV` is 0,
-the `ADDR[63:2]` and `DATA` operands are ignored.
+the `ADDR[63:2]` and `DATA` operands are ignored. If the attempt to perform this
+write encounters a memory fault, the `cmd_mf` bit in `cqcsr` <<CSR>> is set to
+signal this condition, and the `cqh` holds the index of the `IOFENCE.C` that
+encountered such a memory fault and did not complete.
+
 
 [NOTE]
 ====
@@ -608,8 +619,8 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 
 [[FAULT_CAUSE]]
 .Fault record `CAUSE` field encodings
-[width=75%]
-[%header, cols="4,20,6"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^4,20,^6"]
 |===
 |CAUSE | Description                         | Reported if `DTF` is 1?
 |1     | Instruction access fault            | No
@@ -655,8 +666,8 @@ value assumed for reporting such faults is 0.
 The `TTYP` field reports inbound transaction type.
 
 .Fault record `TTYP` field encodings
-[width=75%]
-[%header, cols="3,20"]
+[%autowidth,float="center",align="center"]
+[%header, cols="^3,20"]
 |===
 |TTYP   | Description
 |0      | None. Fault not caused by an inbound transaction.
@@ -673,10 +684,10 @@ The `TTYP` field reports inbound transaction type.
 |31 - 63| Designated for custom use
 |===
 
-If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If
-the `TTYP` is a PCIe message request then the message code is reported in `iotval`.
-If `TTYP` is 0, then the value reported in `iotval` and `iotval2` fields is
-as defined by the `CAUSE`.
+If the `TTYP` is a transaction with an IOVA, the IOVA is reported in `iotval`. If
+the `TTYP` is a PCIe message request, the message code of the PCIe message
+is reported in `iotval`. If `TTYP` is 0, the values reported in `iotval` and
+`iotval2` fields are as defined by the `CAUSE`.
 
 [NOTE]
 ====
@@ -687,6 +698,8 @@ bridge in some implementations may not provide the page offset part of the
 `IOVA` to the IOMMU and the IOMMU may report the page offset in `iotval` as 0.
 Likewise, an IOMMU may report the page offset of a GPA in `iotval2` as 0.
 ====
+
+<<<
 
 `DID` holds the `device_id` of the transaction. If `PV` is 0, then `PID` and
 `PRIV` are 0. If `PV` is 1, the `PID` holds a `process_id` of the transaction
@@ -724,7 +737,7 @@ fault-queue memory, the IOMMU sets the fault-queue memory access fault (`fqmf`)
 bit in `fqcsr`. While either error bit is set in `fqcsr`, the IOMMU discards
 the record that led to the fault and all further fault records. When an error
 bit in `fqcsr` is 1 or when a new fault record is produced in the fault-queue,
-the fault interrupt pending (`fip`) bit is set in the `ipsr` if interrupts from
+the fault interrupt pending (`fip`) bit is set in `ipsr` if interrupts from
 the fault-queue are enabled i.e. `fqcsr.fie` is 1.
 
 The IOMMU may identify multiple requests as having detected an identical fault.
