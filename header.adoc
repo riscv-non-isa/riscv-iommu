@@ -22,8 +22,9 @@
 :lang: en
 :listing-caption: Listing
 :sectnums:
+:sectnumlevels: 5
 :toc: left
-:toclevels: 4
+:toclevels: 5
 :source-highlighter: pygments
 ifdef::backend-pdf[]
 :source-highlighter: coderay
@@ -56,6 +57,7 @@ Copyright 2023 by RISC-V International.
 
 [preface]
 include::contributors.adoc[]
+include::iommu_preface.adoc[]
 include::iommu_intro.adoc[]
 include::iommu_data_structures.adoc[]
 include::iommu_in_memory_queues.adoc[]

@@ -197,6 +197,8 @@ image::ddt-base.svg[width=800,height=400]
 //ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
 //....
 
+<<<
+
 ==== Non-leaf DDT entry
 
 A valid (`V==1`) non-leaf DDT entry provides the PPN of the next level DDT.
@@ -374,6 +376,8 @@ that supports multiple process contexts and thus generates a valid `process_id`
 with its memory accesses. For PCIe, for example, if the request has a PASID
 then the PASID is used as the `process_id`.
 
+<<<
+
 When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the
 default value of `process_id` for translating requests without a valid
 `process_id`. When `PDTV` is 0, the `DPE` bit is reserved for future standard
@@ -543,6 +547,8 @@ address.
 | 8    | `Sv32`   | Page-based 32-bit virtual addressing.
 | 9-15 | --       | Reserved for standard use.
 |===
+
+<<<
 
 When `DC.tc.PDTV` is 1, the `DC.fsc` field holds the process-directory table
 pointer (`pdtp`). When the device supports multiple process contexts, selected
@@ -906,6 +912,8 @@ translation and protection process. When address translation caches
 (<<CACHING>>) are implemented, the translation process may use the `GSCID` and
 `PSCID` to associate the cached translations with their address spaces.
 
+<<<
+
 The process to translate an `IOVA` is as follows:
 
 
@@ -992,6 +1000,8 @@ The process to translate an `IOVA` is as follows:
 
 When checking the `U` bit in a second-stage PTE, the transaction is treated as
 not requesting supervisor privilege.
+
+<<<
 
 When the translation process reports a fault, and the request is an Untranslated
 request or a Translated request, the IOMMU requests the IO bridge to abort the
@@ -1151,8 +1161,8 @@ file and translating the address using the MSI page table is as follows:
   process are equivalent to that of a regular RISC-V second-stage PTE with
   `R`=`W`=`U`=1 and `X`=0. Similar to a second-stage PTE, when checking the `U`
   bit, the transaction is treated as not requesting supervisor privilege.
-. If the transaction is an Untranslated or Translated read-for-execute then stop
-  and report "Instruction access fault" (cause = 1).
+.. If the transaction is an Untranslated or Translated read-for-execute then stop
+   and report "Instruction access fault" (cause = 1).
 . MSI address translation process is complete.
 
 [NOTE]
@@ -1253,6 +1263,8 @@ set to 0 and the other permission bits set to the value determined from the
 page tables. The X permission is granted only if the R permission is also
 granted. Execute-only translations are not compatible with PCIe ATS as PCIe
 requires read permission to be granted if the execute permission is granted.
+
+<<<
 
 When a Success response is generated for an ATS translation request, no fault
 records are reported to software through the fault/event reporting mechanism,

@@ -1,0 +1,34 @@
+== Preface
+
+[.big]*_Preface to Version 1.0.1_*
+
+The following backward-compatible changes, comprising a set of clarifications
+and corrections, have been made since version 1.0.0:
+
+* A set of typographic errors and editorial updates were made.
+* Clarified that translations cached in IOMMU ATC do not require explicit
+  invalidation when the IOMMU operates in Bare mode.
+* Clarified that memory faults encountered by commands also set the `cqmf` flag.
+* Clarified that values tested by the algorithm in the SW Guidelines section
+  are those before any modifications made by the algorithm. 
+* Included SW guidelines for modifying non-leaf PDT entries.
+* Clarified the behavior for in-flight transactions observed at the time of `ddtp`
+  write operations.
+* Clarified the behavior when `IOTINVAL` is invoked with an invalid address.
+* Stated that faults leading to UR/CA ATS responses are reported in the Fault Queue.
+* Added a detailed description of the `capabilities.PAS` field.
+* Included software guidelines for changing IOMMU modes and provided
+  RV32-specific guidelines for programming tr_req_ctl and HPM counters.
+* Stated that the PCIe specification requires granting execute permission
+  in translation responses only if explicitly requested. 
+* Clarified the handling of hardware implementations that internally split
+  8-byte transactions.
+* Noted that shadow stack encodings introduced by Zicfiss are reserved
+  and not usable for IOMMU use.
+* Listed the fault codes reported for faults detected by Page Request.
+
+These changes were made through PR#243 cite:[PR243].
+
+[.big]*_Preface to Version 1.0.0_*
+
+* Ratified version of the RISC-V IOMMU Architecture Specification.

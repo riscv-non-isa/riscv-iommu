@@ -14,10 +14,10 @@ performed.
 
 [NOTE]
 ====
-The 8 byte IOMMU registers are defined in such a way that software can perform
-two individual 4 byte accesses, or hardware can perform two independent 4 byte
-transactions resulting from an 8 byte access, to the high and low halves of the
-register as long as the register semantics, with regards to side-effects, are
+The 8-byte IOMMU registers are defined in such a way that software can perform
+two individual 4-byte accesses, or hardware can perform two independent 4-byte
+transactions resulting from an 8-byte access, to the high and low halves of the
+register, as long as the register semantics, with regard to side-effects, are
 respected between the two software accesses, or two hardware transactions,
 respectively.
 ====
@@ -68,8 +68,10 @@ the register returns 0 and writes to that offset are ignored.
                                        CSR >>             | if `capabilities.ATS==0`
 |84    |`ipsr`          |4   |<<IPSR, Interrupt pending
                                          status register>>| No
-|88    |`iocntovf`      |4   |<<OVF, HPM counter overflows>> | if `capabilities.HPM==0`
-|92    |`iocntinh`      |4   |<<INH, HPM counter inhibits>> | if `capabilities.HPM==0`
+|88    |`iocountovf`    |4   |<<OVF, HPM counter
+                                              overflows>> | if `capabilities.HPM==0`
+|92    |`iocountinh`    |4   |<<INH, HPM counter
+                                               inhibits>> | if `capabilities.HPM==0`
 |96    |`iohpmcycles`   |8   |<<CYC, HPM cycles counter>> | if `capabilities.HPM==0`
 |104   |`iohpmctr1-31`  |248 |<<CTR, HPM event counters>> | if `capabilities.HPM==0`
 |352   |`iohpmevt1-31`  |248 |<<EVT, HPM event selector>> | if `capabilities.HPM==0`
@@ -98,6 +100,8 @@ The reset value is 0 for the following registers fields.
 * `pqcsr` - `pqen`, `pqie`, `pqon`, and `busy`
 * `tr_req_ctl.Go/Busy`
 * `ddtp.busy`
+
+<<<
 
 The reset value is 0 for the following registers.
 
@@ -403,7 +407,9 @@ the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
 To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off`
 state.
 
-When an IOMMU is transitioned to `Bare` of `Off` state, the IOMMU may retain
+<<<
+
+When an IOMMU is transitioned to `Bare` or `Off` state, the IOMMU may retain
 information cached from in-memory data structures such as page tables, DDT,
 PDT, etc. Software must use suitable invalidation commands to invalidate cached
 entries.
@@ -677,6 +683,8 @@ In RV32, only the low order 32-bits of the register (22-bit `PPN` and
 5-bit `LOG2SZ-1`) need to be written.
 ====
 
+<<<
+
 [[PQH]]
 === Page-request-queue head (`pqh`)
 
@@ -796,7 +804,7 @@ status of the command-queue.
                             sets the `cmd_ill` bit and stops processing from the
                             command-queue. To re-enable command processing
                             software should clear this bit by writing 1.
-|11   |`fence_w_ip`|RW1C  | An IOMMU that supports only wire-signaled-interrupts
+|11   |`fence_w_ip`|RW1C  | An IOMMU that supports wire-signaled-interrupts
                             sets the `fence_w_ip` bit to indicate completion
                             of an `IOFENCE.C` command.
                             To re-enable interrupts on `IOFENCE.C` completion,
@@ -851,6 +859,8 @@ or abort execution of those commands. Software must use an `IOFENCE.C` command
 to wait for all previous commands to be committed, if so desired, before
 turning off the command-queue.
 ====
+
+<<<
 
 [[FQCSR]]
 === Fault queue CSR (`fqcsr`)
@@ -967,7 +977,7 @@ status of the page-request-queue.
 |0     |`pqen`   |RW        | The page-request-enable bit enables the
                               page-request-queue when set to 1. +
                                                                                +
-                              Changing `pqen` from 0 to 1, sets the `pqh`
+                              Changing `pqen` from 0 to 1, sets the `pqt`
                               register and the `pqcsr` bits `pqmf` and `pqof`
                               to 0. The page-request-queue may take some time
                               to be active following setting the `pqen` to 1.
@@ -1117,8 +1127,10 @@ interrupt-pending bit.
 |===
 
 If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
-If the conditions to set that bit are still present (See <<IPSR_FIELDS>>) or if
+If the conditions to set that bit are still present (See <<IPSR_FIELD>>) or if
 they occur after the bit is cleared then that bit transitions again from 0->1.
+
+<<<
 
 [[OVF]]
 === Performance-monitoring counter overflow status (`iocountovf`)
@@ -1411,6 +1423,8 @@ during the update and the inhibit removed after the register has been programmed
 with the desired value.
 ====
 
+<<<
+
 [NOTE]
 ====
 If `capabilities.HPM` is 1 then a minimum of one programmable event counter
@@ -1662,6 +1676,8 @@ implements a MSI configuration table that is indexed by the vector from `icvec`
 to determine a MSI table entry. Each MSI table entry for interrupt vector `x`
 has three registers `msi_addr_x`, `msi_data_x`, and `msi_vec_ctl_x`. These
 registers are hardwired to 0 if `capabilities.IGS == WSI`.
+
+<<<
 
 If an access fault is detected on a MSI write using `msi_addr_x`, then the IOMMU
 reports a "IOMMU MSI write access fault" (cause 273) fault, with `TTYP` set to 0

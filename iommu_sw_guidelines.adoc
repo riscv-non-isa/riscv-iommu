@@ -144,7 +144,6 @@ If software changes a leaf-level DDT entry (i.e, a device context (`DC`), of
 device with `device_id = D`) then the following invalidations must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
-* If `DC.tc.PDTV==1` then `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
 
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
@@ -170,7 +169,7 @@ If software changes a leaf-level PDT entry (i.e, a process context (`PC`), for
 `device_id=D` and `process_id=P`) then the following invalidations must be
 performed:
 
-* `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
+* `IODIR.INVAL_PDT` with `DV=1`, `DID=D` and `PID=P`
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,
    and `PSCID=PC.PSCID`
@@ -301,6 +300,8 @@ enabled in the device context of the device. Since a translation request from
 the DevATC may be satisfied by the IOMMU from the IOATC, to ensure correct
 operation software must first invalidate the IOATC before sending
 invalidations to the DevATC.
+
+<<<
 
 ==== Caching invalid entries
 

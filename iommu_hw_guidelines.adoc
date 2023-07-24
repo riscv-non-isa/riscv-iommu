@@ -46,6 +46,8 @@ indicate this condition. For AXI, for example, the completion status is provided
 by SLVERR on RRESP (Read Data channel). For PCIe, for example, the completion
 status field may be set to "Unsupported Request" (UR) or "Completer Abort" (CA).
 
+<<<
+
 [[RAS]]
 === Reliability, Availability, and Serviceability (RAS)
 The IOMMU may support a RAS architecture that specifies the methods for
