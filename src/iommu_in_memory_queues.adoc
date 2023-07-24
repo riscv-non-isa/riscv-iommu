@@ -124,7 +124,7 @@ The following command opcodes are defined:
 |`opcode`  | Encoding ^| Description
 |`IOTINVAL`| 1        | IOMMU page-table cache invalidation commands.
 |`IOFENCE` | 2        | IOMMU command-queue fence commands.
-|`IOTDIR`  | 3        | IOMMU directory cache invalidation commands.
+|`IODIR`   | 3        | IOMMU directory cache invalidation commands.
 |`ATS`     | 4        | IOMMU PCIe cite:[PCI] ATS commands.
 | Reserved | 5-63     | Reserved for future standard use.
 | Custom   | 64-127   | Designated for custom use.
@@ -245,8 +245,8 @@ is illegal.
                   identified by the `GSCID` operand.
 | 1    | 1      | Invalidates information cached from leaf second-stage page
                   table entries corresponding to the guest-physical-address in
-                  `ADDR` operand, for only for VM address spaces identified
-                  `GSCID` operand.
+                  `ADDR` operand, but only for VM address spaces identified
+                  by the `GSCID` operand.
 |===
 
 [NOTE]
@@ -674,9 +674,9 @@ The `TTYP` field reports inbound transaction type.
 |===
 
 If the `TTYP` is a transaction with an IOVA then its reported in `iotval`. If
-the `TTYP` is a PCIe message request then the message code is reported in `iotval`.
-If `TTYP` is 0, then the value reported in `iotval` and `iotval2` fields is
-as defined by the `CAUSE`.
+the `TTYP` is a PCIe message request then the message code of the PCIe message
+is reported in `iotval`. If `TTYP` is 0, then the value reported in `iotval` and
+`iotval2` fields is as defined by the `CAUSE`.
 
 [NOTE]
 ====
