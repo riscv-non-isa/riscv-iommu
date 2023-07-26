@@ -190,10 +190,6 @@ in the device context.
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
-| PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables
-                    devices to request OS memory manager services to make pages
-                    resident cite:[PCI].
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard
                     cite:[PCI].
