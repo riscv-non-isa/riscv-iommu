@@ -403,7 +403,7 @@ the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
 To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off`
 state.
 
-When an IOMMU is transitioned to `Bare` of `Off` state, the IOMMU may retain
+When an IOMMU is transitioned to `Bare` or `Off` state, the IOMMU may retain
 information cached from in-memory data structures such as page tables, DDT,
 PDT, etc. Software must use suitable invalidation commands to invalidate cached
 entries.
