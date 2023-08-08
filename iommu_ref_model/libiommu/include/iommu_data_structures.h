@@ -370,8 +370,8 @@ typedef union {
 // doublewords in memory, little-endian or big-endian, is the endianness as
 // determined by `fctrl.END` (<<FCTRL>>).
 typedef struct {
-    pc_fsc_t   fsc;
-    pc_ta_t ta;
+    pc_ta_t  ta;
+    pc_fsc_t fsc;
 } process_context_t;
 
 #endif // __IOMMU_DATA_STRUCTURES_H__
