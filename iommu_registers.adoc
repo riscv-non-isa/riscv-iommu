@@ -1117,7 +1117,7 @@ interrupt-pending bit.
 |===
 
 If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
-If the conditions to set that bit are still present (See <<IPSR_FIELDS>>) or if
+If the conditions to set that bit are still present (See <<IPSR_FIELD>>) or if
 they occur after the bit is cleared then that bit transitions again from 0->1.
 
 [[OVF]]
