@@ -283,6 +283,10 @@ Some implementations may cache an identity-mapped translation for the stage of
 address translation operating in `Bare` mode. Since these identity mappings
 are invariably correct, an explicit invalidation is unnecessary.
 
+Some implementations may cache an identity-mapped translation for the stage of
+address translation operating in `Bare` mode. Since these identity mappings
+are invariably correct, an explicit invalidation is unnecessary.
+
 A consequence of this specification is that an implementation may use any
 translation for an address that was valid at any time since the most recent
 `IOTINVAL` that subsumes that address. In particular, if a leaf PTE is

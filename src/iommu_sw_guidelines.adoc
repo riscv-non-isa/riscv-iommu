@@ -149,9 +149,9 @@ device with `device_id = D`) then the following invalidations must be performed:
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
 ** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 * else
-** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare`
+** If `DC.tc.PDTV==1`
 *** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
-** else
+** else if `DC.fsc.MODE != Bare`
 *** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
 
 If software changes a non-leaf-level DDT entry the following invalidations
