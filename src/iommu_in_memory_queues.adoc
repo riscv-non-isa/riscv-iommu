@@ -270,6 +270,10 @@ match the `GSCID` argument, regardless of the address argument.
 Simpler implementations may ignore the operand of `IOTINVAL.VMA` and/or
 `IOTINVAL.GVMA` and always perform a global invalidation of all
 address-translation entries.
+
+Some implementations may cache an identity-mapped translation for the stage of
+address translation operating in `Bare` mode. Since these identity mappings
+are invariably correct, an explicit invalidation is unnecessary.
 ====
 
 [NOTE]
