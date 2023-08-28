@@ -403,7 +403,6 @@ write encounters a memory fault, the `cmd_mf` bit in `cqcsr` <<CSR>> is set to
 signal this condition, and the `cqh` holds the index of the `IOFENCE.C` that
 encountered such a memory fault and did not complete.
 
-
 [NOTE]
 ====
 Software may configure the `ADDR[63:2]` command operand to specify the address
