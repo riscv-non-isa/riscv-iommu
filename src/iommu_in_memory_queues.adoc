@@ -388,10 +388,13 @@ Simpler implementations may unconditionally order all previous memory accesses
 globally.
 ====
 
-The `AV` command operand indicates if `ADDR[63:2]` operand and `DATA` operands are
+The `AV` command operand indicates if `ADDR[63:2]` and `DATA` operands are
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address
 `ADDR[63:2] * 4` as a 4-byte store when the command completes. When `AV` is 0,
-the `ADDR[63:2]` and `DATA` operands are ignored.
+the `ADDR[63:2]` and `DATA` operands are ignored. If the attempt to perform this
+write encounters a memory fault, the `cmd_mf` bit in `cqcsr` <<CSR>> is set to
+signal this condition, and the `cqh` holds the index of the `IOFENCE.C` that
+encountered such a memory fault and did not complete.
 
 [NOTE]
 ====
