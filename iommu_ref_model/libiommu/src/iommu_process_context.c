@@ -13,7 +13,7 @@ locate_process_context(
     uint8_t i, LEVELS, status, gst_fault;
     gpte_t g_pte;
     pdte_t pdte;
-    uint8_t PDI[3];
+    uint16_t PDI[3];
 
     // The device-context provides the PDT root page PPN (pdtp.ppn). 
     // When DC.iohgatp.mode is not Bare, pdtp.PPN as well as pdte.PPN

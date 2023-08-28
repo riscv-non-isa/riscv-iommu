@@ -11,7 +11,7 @@ add_process_context(
     uint64_t a;
     uint8_t i, LEVELS;
     pdte_t pdte;
-    uint8_t PDI[3];
+    uint16_t PDI[3];
 
     PDI[0] = get_bits(7,   0, process_id);
     PDI[1] = get_bits(16,  8, process_id);
