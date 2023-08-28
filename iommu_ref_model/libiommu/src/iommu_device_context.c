@@ -13,7 +13,7 @@ locate_device_context(
     uint64_t a;
     uint8_t i, LEVELS, status, DC_SIZE;
     ddte_t ddte;
-    uint8_t DDI[3];
+    uint16_t DDI[3];
 
     // The following diagrams illustrate the DDT radix-tree. The PPN of the root
     // device-directory-table is held in a memory-mapped register called the
