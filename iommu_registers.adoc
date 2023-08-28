@@ -787,11 +787,12 @@ status of the command-queue.
                             generation of interrupts from command-queue when
                             set to 1.
 |7:2  |reserved|WPRI    | Reserved for standard use
-|8    |`cqmf`  |RW1C      | If command-queue access leads to a memory fault then
-                            the command-queue-memory-fault bit is set to 1 and
-                            the command-queue stalls until this bit is cleared.
-                            To re-enable command processing, software should
-                            clear this bit by writing 1.
+|8    |`cqmf`  |RW1C      | If command-queue access to fetch a command or a
+                            memory access made by a command leads to a memory
+                            fault, then the command-queue-memory-fault bit is set
+                            to 1, and the command-queue stalls until this bit is
+                            cleared. To re-enable command processing, software
+                            should clear this bit by writing 1.
 |9    |`cmd_to`|RW1C      | If the execution of a command leads to a
                             timeout (e.g. a command to invalidate device ATC
                             may timeout waiting for a completion), then the
