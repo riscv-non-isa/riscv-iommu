@@ -180,6 +180,11 @@ performed:
 * else
 ** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
 
+If software changes a non-leaf-level PDT entry the following invalidations
+must be performed:
+
+* `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
+
 Between a change to the PDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or
 the new value of the entry.
