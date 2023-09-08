@@ -138,6 +138,10 @@ previous read and/or write requests, that have already been processed by the
 IOMMU, be committed to a global ordering point as part of the `IOFENCE.C`
 command.
 
+In subsequent sections, when an algorithm step tests values in the in-memory
+data structures to determine the type of invalidation operation to perform, the
+data values tested are the old values i.e. values before a change is made.
+
 [[DC_CHANGE]]
 ==== Changing device directory table entry
 If software changes a leaf-level DDT entry (i.e, a device context (`DC`), of
