@@ -396,11 +396,13 @@ subset of directory-table levels and device-context widths. At a minimum one
 of the modes must be supported.
 
 When the `iommu_mode` field value is changed to `Off` the IOMMU guarantees that
-in-flight transactions from devices connected to the IOMMU will be processed
-with the configurations applicable to the old value of the `iommu_mode` field
-and that all transactions and previous requests from devices that have already
-been processed by the IOMMU be committed to a global ordering point such that
-they can be observed by all RISC-V harts, devices, and IOMMUs in the platform.
+in-flight transactions, observed at the time of the write to this field, from devices
+connected to the IOMMU will either be processed with the configurations
+applicable to the old value of the `iommu_mode` field or be aborted
+(<<IOBR_FAULT_RESP>>). It also ensures that all transactions and previous
+requests from devices that have already been processed by the IOMMU are committed
+to a global ordering point such that they can be observed by all RISC-V harts,
+devices, and IOMMUs in the platform.
 
 The IOMMU behavior of writing `iommu_mode` to `1LVL`, `2LVL`, or `3LVL`, when
 the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
