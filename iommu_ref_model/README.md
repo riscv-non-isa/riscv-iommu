@@ -208,4 +208,3 @@ a range of pages with the base page aligned to num_ppn.
 This function is used to allocate a set of pages in the memory space of the guest associated with iohgatp. 
 The function should provide a range of pages with the base page aligned to num_gppn.
 
-#endif // __TABLES_API_H__
