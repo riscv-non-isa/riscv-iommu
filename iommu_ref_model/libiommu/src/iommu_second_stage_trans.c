@@ -15,7 +15,8 @@ second_stage_address_translation(
     uint16_t vpn[5];
     uint16_t ppn[5];
     gpte_t amo_gpte;
-    uint8_t i, PTESIZE, LEVELS, status, gpte_changed;
+    uint8_t PTESIZE, LEVELS, status, gpte_changed;
+    int8_t i;
     uint64_t a;
     uint64_t gpa_upper_bits;
     uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);

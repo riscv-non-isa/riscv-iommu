@@ -20,7 +20,8 @@ two_stage_address_translation(
     pte_t amo_pte;
     gpte_t gpte;
     uint8_t NL_G = 1;
-    uint8_t i, PTESIZE, LEVELS, status, pte_changed, gst_fault;
+    uint8_t PTESIZE, LEVELS, status, pte_changed, gst_fault;
+    int8_t i;
     uint64_t a, masked_upper_bits, mask;
     uint64_t gst_page_sz;
     uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
