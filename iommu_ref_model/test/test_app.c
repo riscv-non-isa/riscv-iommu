@@ -1209,7 +1209,7 @@ main(void) {
             req.tr.iova = gpa;
             gpte.PPN = 512UL * 512UL * 512UL * 512UL;
             gpte.PPN |= (1UL << (i * 9UL));
-            add_g_stage_pte(DC.iohgatp, gpa, gpte, i);
+            pte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, i);
             iommu_translate_iova(&req, &rsp);
             fail_if( ( rsp.status != SUCCESS ) ); 
             fail_if( ( rsp.trsp.S == 1 && i == 0 ) ); 
@@ -1231,6 +1231,24 @@ main(void) {
             fail_if( ( ((temp + 1) != 512UL * PAGESIZE) && i == 1 ) ); 
             fail_if( ( ((temp + 1) != 512UL * 512UL * PAGESIZE) && i == 2 ) ); 
             fail_if( ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) ); 
+
+            // Test for walking past max levels
+            if ( i == 0 ) {
+                pte.X = 0;
+                pte.W = 0;
+                pte.R = 0;
+                write_memory((char *)&pte, pte_addr, 8);
+                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+                iommu_translate_iova(&req, &rsp);
+                fail_if( ( rsp.status != SUCCESS ) ); 
+                fail_if( ( rsp.trsp.R != 0 ) );
+                fail_if( ( rsp.trsp.W != 0 ) );
+                pte.X = 1;
+                pte.W = 1;
+                pte.R = 1;
+                write_memory((char *)&pte, pte_addr, 8);
+                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+            }
         }
     }
     g_reg_file.capabilities.Sv57x4 = 0;
@@ -1466,7 +1484,7 @@ main(void) {
             req.tr.iova = gva;
             pte.PPN = 512UL * 512UL * 512UL * 512UL;
             pte.PPN |= (1UL << (i * 9UL));
-            add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
+            pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
             iommu_translate_iova(&req, &rsp);
             fail_if( ( rsp.status != SUCCESS ) ); 
             fail_if( ( rsp.trsp.S == 1 && i == 0 ) ); 
@@ -1488,6 +1506,24 @@ main(void) {
             fail_if( ( ((temp + 1) != 512UL * PAGESIZE) && i == 1 ) ); 
             fail_if( ( ((temp + 1) != 512UL * 512UL * PAGESIZE) && i == 2 ) ); 
             fail_if( ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) ); 
+              
+            // Test for walking past max levels
+            if ( i == 0 ) {
+                pte.X = 0;
+                pte.W = 0;
+                pte.R = 0;
+                write_memory((char *)&pte, pte_addr, 8);
+                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+                iommu_translate_iova(&req, &rsp);
+                fail_if( ( rsp.status != SUCCESS ) ); 
+                fail_if( ( rsp.trsp.R != 0 ) );
+                fail_if( ( rsp.trsp.W != 0 ) );
+                pte.X = 1;
+                pte.W = 1;
+                pte.R = 1;
+                write_memory((char *)&pte, pte_addr, 8);
+                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+            }
         }
     }
     g_reg_file.capabilities.Sv57 = 0;
