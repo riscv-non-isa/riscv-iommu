@@ -46,7 +46,7 @@ iommu_translate_iova(
                      req->device_id, 0 /* GSCV */, 0 /* GSCID */, TRANSLATION_REQUEST);
     TTYP = TTYPE_NONE;
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.read_writeAMO == READ ) {
-        if ( req->pid_valid && req->exec_req )
+        if ( req->exec_req )
             TTYP = UNTRANSLATED_READ_FOR_EXECUTE_TRANSACTION;
         else
             TTYP = UNTRANSLATED_READ_TRANSACTION;
