@@ -282,7 +282,7 @@ check_rsp_and_faults(
 
     EXP_TTYP = TTYPE_NONE;
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED && req->tr.read_writeAMO == READ ) {
-        if ( req->pid_valid && req->exec_req )
+        if ( req->exec_req )
             EXP_TTYP = UNTRANSLATED_READ_FOR_EXECUTE_TRANSACTION;
         else
             EXP_TTYP = UNTRANSLATED_READ_TRANSACTION;
