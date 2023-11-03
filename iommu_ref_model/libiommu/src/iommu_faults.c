@@ -121,7 +121,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     fqh = g_reg_file.fqh.index;
     fqt = g_reg_file.fqt.index;
     fqb = g_reg_file.fqb.ppn;
-    if ( fqt == (fqh - 1) ) {
+    if ( ((fqt + 1) & ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1)) == fqh ) {
         g_reg_file.fqcsr.fqof = 1;
         generate_interrupt(FAULT_QUEUE);
         return;
