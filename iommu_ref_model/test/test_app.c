@@ -228,6 +228,10 @@ main(void) {
     // Trigger a fault queue overflow
     // The queue should be empty now
     fail_if( ( (read_register(FQH_OFFSET, 4) != read_register(FQT_OFFSET, 4)) ) );
+    // Force the head and tail to 0
+    g_reg_file.fqh.index = 0;
+    g_reg_file.fqt.index = 0;
+    fqb.raw = read_register(FQB_OFFSET, 8);
     pid_valid = exec_req = priv_req = no_write = 1;
     at = 0;
     for ( i = 0; i < 1023; i++ ) {
@@ -248,14 +252,16 @@ main(void) {
     fail_if( ( ipsr.fip != 0 ) );
 
     // The queue should be be full
-    fail_if( ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) );
+    fail_if( (((read_register(FQT_OFFSET, 4) + 1) & ((1UL << (fqb.log2szm1 + 1)) - 1)) !=
+                read_register(FQH_OFFSET, 4)) );
     // No overflow should be set
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof == 1 ) );
     // Next fault should cause overflow
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
-    fail_if( ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) );
+    fail_if( (((read_register(FQT_OFFSET, 4) + 1) & ((1UL << (fqb.log2szm1 + 1)) - 1)) !=
+                read_register(FQH_OFFSET, 4)) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof == 0 ) );
 
@@ -279,7 +285,8 @@ main(void) {
     // Overflow should remain
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
-    fail_if( ( ((read_register(FQH_OFFSET, 4) - 1) != read_register(FQT_OFFSET, 4)) ) );
+    fail_if( (((read_register(FQT_OFFSET, 4) + 1) & ((1UL << (fqb.log2szm1 + 1)) - 1)) !=
+                read_register(FQH_OFFSET, 4)) );
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( ( fqcsr.fqof == 0 ) );
 
@@ -2904,7 +2911,10 @@ main(void) {
     fail_if( ( message_received == 1 ) );
    
     // Create a overflow case
-    write_register(PQH_OFFSET, 4, read_register(PQT_OFFSET, 4)+1);
+    pqb.raw = read_register(PQB_OFFSET, 8);
+    write_register(PQH_OFFSET, 4,
+        (read_register(PQT_OFFSET, 4) + 1) & ((1UL << (pqb.log2szm1 + 1)) - 1));
+
     pr.RID = 0x2233;
     pr.DSEG = 0x11;
     DC.tc.EN_ATS = 1;

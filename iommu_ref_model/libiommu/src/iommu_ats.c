@@ -210,7 +210,7 @@ handle_page_request(
     pqh = g_reg_file.pqh.index;
     pqt = g_reg_file.pqt.index;
     pqb = g_reg_file.pqb.ppn;
-    if ( pqt == (pqh - 1) ) {
+    if ( ((pqt + 1) & ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1)) == pqh ) {
         g_reg_file.pqcsr.pqof = 1;
         generate_interrupt(PAGE_QUEUE);
         response_code = SUCCESS;
