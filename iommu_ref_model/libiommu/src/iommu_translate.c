@@ -91,8 +91,8 @@ iommu_translate_iova(
     // or Execute Requested bit Set, these may be used in constructing the Translation 
     // Completion Data Entry.  The PASID Extended Capability indicates whether a Function
     // supports and is enabled to send and receive TLPs with the PASID.
-    is_exec = ( (req->tr.read_writeAMO == READ) && req->pid_valid && req->exec_req &&
-                (req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) ? 1 : 0; 
+    is_exec = ( (is_read && req->exec_req &&
+                (req->tr.at == ADDR_TYPE_UNTRANSLATED || req->pid_valid)) ) ? 1 : 0;
     priv = ( req->pid_valid && req->priv_req ) ? S_MODE : U_MODE;
 
     // The process to translate an `IOVA` is as follows:
