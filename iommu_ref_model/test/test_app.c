@@ -844,6 +844,7 @@ main(void) {
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
             if ( pid_valid == 1 ) exp_cause = 260;
             else if ( (no_write ^ 1) == WRITE ) exp_cause = 23;
+            else if ( exec_req == 1 ) exp_cause = 20;
             else exp_cause = 21;
             exp_iotval2 = ( exp_cause != 260) ? 0xdeadbeec : 0;
             // iotval2 reports the gpa i.e. the iova
