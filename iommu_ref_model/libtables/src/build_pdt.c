@@ -24,9 +24,9 @@ add_process_context(
     a = DC->fsc.pdtp.PPN * PAGESIZE;
     i = LEVELS - 1;
     while ( i > 0 ) {
-        if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return 1;
+        if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return -1;
         pdte.raw = 0;
-        read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw);
+        if ( read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw) ) return -1;
         if ( pdte.V == 0 ) {
             pdte.V = 1;
             pdte.reserved0 = pdte.reserved1 = 0;
@@ -47,16 +47,16 @@ add_process_context(
                 gpte.PBMT = PMA;
                 gpte.PPN = get_free_ppn(1);
 
-                add_g_stage_pte(DC->iohgatp, (PAGESIZE * pdte.PPN), gpte, 0);
+                if ( add_g_stage_pte(DC->iohgatp, (PAGESIZE * pdte.PPN), gpte, 0) == -1 ) return -1;
             } else {
                 pdte.PPN = get_free_ppn(1);
             }
-            write_memory((char *)&pdte.raw, (a + (PDI[i] * 8)), 8);
+            if ( write_memory((char *)&pdte.raw, (a + (PDI[i] * 8)), 8) ) return -1;
         }
         i = i - 1;
         a = pdte.PPN * PAGESIZE;
     }
-    if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return 1;
-    write_memory((char *)PC, (a + (PDI[0] * 16)), 16);
+    if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return -1;
+    if ( write_memory((char *)PC, (a + (PDI[0] * 16)), 16) ) return -1;
     return (a + (PDI[0] * 16));
 }
