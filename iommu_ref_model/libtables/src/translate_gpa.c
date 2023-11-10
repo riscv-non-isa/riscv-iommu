@@ -16,7 +16,7 @@ translate_gpa (
     PTESIZE = 8;
     if ( iohgatp.MODE == IOHGATP_Bare ) {
         *spa = gpa;
-        return 0;
+        return -1;
     }
     if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
         vpn[0] = get_bits(21, 12, gpa);
@@ -53,8 +53,8 @@ translate_gpa (
     a = iohgatp.PPN * PAGESIZE;
     while ( 1 ) {
         nl_gpte.raw = 0;
-        read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw);
-        if ( nl_gpte.V == 0 ) return 1;
+        if ( read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw) ) return -1;
+        if ( nl_gpte.V == 0 ) return -1;
         if ( nl_gpte.R != 0 || nl_gpte.X != 0 ) {
             *spa = nl_gpte.PPN;
             *spa = *spa * PAGESIZE;
@@ -63,7 +63,7 @@ translate_gpa (
             return (a | (vpn[i] * PTESIZE));
         }
         i = i - 1;
-        if ( i < 0 ) return -11;
+        if ( i < 0 ) return -1;
         gst_page_sz = ( i == 0 ) ? PAGESIZE : (gst_page_sz / 512);
         a = nl_gpte.PPN * PAGESIZE;
     }

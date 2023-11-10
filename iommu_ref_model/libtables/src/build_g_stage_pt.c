@@ -45,16 +45,16 @@ add_g_stage_pte (
     a = iohgatp.PPN * PAGESIZE;
     while ( i > add_level ) {
         nl_gpte.raw = 0;
-        read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw);
+        if ( read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw) ) return -1;
         if ( nl_gpte.V == 0 ) {
             nl_gpte.V = 1;
             nl_gpte.PPN = get_free_ppn(1);
-            write_memory((char *)&nl_gpte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
+            if ( write_memory((char *)&nl_gpte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
         }
         i = i - 1;
-        if ( i < 0 ) return 1;
+        if ( i < 0 ) return -1;
         a = nl_gpte.PPN * PAGESIZE;
     }
-    write_memory((char *)&gpte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE);
+    if ( write_memory((char *)&gpte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
     return (a | (vpn[i] * PTESIZE));
 }
