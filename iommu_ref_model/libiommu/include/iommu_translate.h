@@ -58,6 +58,7 @@ typedef union {
     struct {
         uint64_t V:1;
         uint64_t M:2;
+        uint64_t reserved0:7;
         uint64_t PPN:44;
         uint64_t reserved:9;
         uint64_t C:1;
