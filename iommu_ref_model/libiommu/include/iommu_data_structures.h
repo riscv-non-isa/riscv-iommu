@@ -237,7 +237,7 @@ typedef union {
 typedef union {
     struct {
         uint64_t PPN:44; 
-        uint64_t reserved:15; 
+        uint64_t reserved:16;
         uint64_t MODE:4; 
     };
     uint64_t raw;
