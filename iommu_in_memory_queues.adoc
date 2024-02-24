@@ -248,8 +248,8 @@ is illegal.
                   identified by the `GSCID` operand.
 | 1    | 1      | Invalidates information cached from leaf second-stage page
                   table entries corresponding to the guest-physical-address in
-                  `ADDR` operand, for only for VM address spaces identified
-                  `GSCID` operand.
+                  `ADDR` operand, but only for VM address spaces identified
+                  by the `GSCID` operand.
 |===
 
 [NOTE]
