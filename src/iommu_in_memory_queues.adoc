@@ -180,7 +180,17 @@ operand is valid. Setting `PSCV` to 1 is allowed only for `IOTINVAL.VMA`. The
 the translations associated with the host (i.e. those where the second-stage
 is Bare) are operated on. When `GV` is 0, the `GSCID` operand is ignored.
 When `AV` is 0, the `ADDR` operand is ignored. When `PSCV` operand is 0, the
-`PSCID` operand is ignored.
+`PSCID` operand is ignored. When the `AV` operand is set to 1, if the `ADDR`
+operand specifies an invalid address, the command may or may not perform any
+invalidations.
+
+[NOTE]
+====
+When an invalid address is specified, an implementation may either complete the
+command with no effect or may complete the command using an alternate, yet
+`UNSPECIFIED`, legal value for the address. Note that entries may generally be
+invalidated from the address translation cache at any time.
+====
 
 `IOTINVAL.VMA` ensures that previous stores made to the first-stage page
 tables by the harts are observed by the IOMMU before all subsequent implicit
