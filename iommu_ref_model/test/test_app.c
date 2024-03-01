@@ -105,7 +105,7 @@ main(void) {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 256, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
@@ -121,7 +121,7 @@ main(void) {
         send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                  priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
         } 
         if ( at == ADDR_TYPE_TRANSLATED ) {
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
@@ -138,11 +138,11 @@ main(void) {
     fail_if( ( enable_iommu(DDT_1LVL) < 0 ) );
     send_translation_request(0x000145, 0, 0x99, 0, 0, 0, 0, 
                              UNTRANSLATED_REQUEST, 0, 1, READ, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
     fail_if( ( enable_iommu(DDT_2LVL) < 0 ) );
     send_translation_request(0x012345, 0, 0x99, 0, 0, 0, 0, 
                              UNTRANSLATED_REQUEST, 0, 1, READ, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
 
     END_TEST();
 
@@ -158,7 +158,7 @@ main(void) {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 258, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
@@ -195,7 +195,7 @@ main(void) {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
@@ -402,7 +402,7 @@ main(void) {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 258, 0) < 0 ) );
         } else {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
@@ -833,7 +833,7 @@ main(void) {
         if ( at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, READ, &req, &rsp);
-            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+            fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
         } else if ( at == ADDR_TYPE_TRANSLATED ) {
             send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                                      priv_req, 0, at, 0xdeadbeef, 16, (no_write ^1), &req, &rsp);
@@ -2373,7 +2373,7 @@ main(void) {
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
              1, READ, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
 
     // Disable supv to user access
     PC.ta.ENS = 1;
@@ -2394,7 +2394,7 @@ main(void) {
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, COMPLETER_ABORT, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, COMPLETER_ABORT, 265, 0) < 0 ) );
     access_viol_addr = -1;
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
 
@@ -2405,21 +2405,21 @@ main(void) {
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
     DC.fsc.pdtp.MODE = PD17;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 260, 0) < 0 ) );
     DC.fsc.pdtp.MODE = 9;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gva,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 0, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.fsc.pdtp.MODE = PD20;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
