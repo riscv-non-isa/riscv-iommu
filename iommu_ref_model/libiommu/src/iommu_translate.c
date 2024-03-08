@@ -503,7 +503,8 @@ guest_page_fault:
     goto stop_and_report_fault;
 
 stop_and_report_fault:
-    // No faults are logged in the fault queue for PCIe ATS Translation Requests.
+    // No faults are logged in the fault queue for PCIe ATS Translation Requests
+    // with success response.
     if ( req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
         report_fault(cause, iotval, iotval2, TTYP, DTF,
                      req->device_id, req->pid_valid, req->process_id, req->priv_req);
@@ -521,8 +522,11 @@ stop_and_report_fault:
     // * PDT entry load access fault (cause = 265)
     // * PDT entry misconfigured (cause = 267)
     if ( (cause == 1) || (cause == 5) || (cause == 7) || (cause == 261) || 
-         (cause == 263) || (cause == 265) || (cause == 267) )
+         (cause == 263) || (cause == 265) || (cause == 267) ) {
+        report_fault(cause, iotval, iotval2, TTYP, DTF,
+                     req->device_id, req->pid_valid, req->process_id, req->priv_req);
         goto return_completer_abort;
+    }
 
     // If there is a permanent error or if ATS transactions are disabled then a
     // Unsupported Request (UR) response is generated. The following cause codes
@@ -532,12 +536,17 @@ stop_and_report_fault:
     // * DDT entry not valid (cause = 258)
     // * DDT entry misconfigured (cause = 259)
     // * Transaction type disallowed (cause = 260)
-    if ( (cause == 256) || (cause == 257) || (cause == 258) || (cause == 259) || (cause == 260) ) 
+    if ( (cause == 256) || (cause == 257) || (cause == 258) || (cause == 259) ||
+        (cause == 260) ) {
+        report_fault(cause, iotval, iotval2, TTYP, DTF,
+                     req->device_id, req->pid_valid, req->process_id, req->priv_req);
         goto return_unsupported_request;
+    }
 
     // When translation could not be completed due to PDT entry being not present, MSI
     // PTE being not present, or first and/or second stage PTE being not present or
     // misconfigured then a Success Response with R and W bits set to 0 is generated.
+    // No faults are logged in the fault queue on these errors.
     // The translated address returned with such completions is undefined. The
     // following cause codes belong to this category:
     // * Instruction page fault (cause = 12)
