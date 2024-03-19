@@ -97,9 +97,11 @@ two_stage_address_translation(
     }
     // Instruction fetch addresses and load and store effective addresses, 
     // which are 64 bits, must have bits 63:<VASIZE> all equal to bit 
-    // (VASIZE-1), or else a page-fault exception will occur.
-    // Do the address is canonical check
-    if ( masked_upper_bits != 0  && masked_upper_bits != mask ) goto page_fault;
+    // (VASIZE-1), or else a page-fault exception will occur - for SXL=0
+    // Do the address is canonical check - for SXL=0
+    // For SXL = 1 check bits 63:32 are all 0
+    if ( (masked_upper_bits != 0 && masked_upper_bits != mask && SXL == 0) ||
+         (masked_upper_bits != 0 && SXL == 1) ) goto page_fault;
 
     i = LEVELS - 1;
     a = iosatp.PPN * PAGESIZE;
