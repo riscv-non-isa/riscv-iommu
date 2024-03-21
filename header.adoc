@@ -22,8 +22,9 @@
 :lang: en
 :listing-caption: Listing
 :sectnums:
+:sectnumlevels: 5
 :toc: left
-:toclevels: 4
+:toclevels: 5
 :source-highlighter: pygments
 ifdef::backend-pdf[]
 :source-highlighter: coderay

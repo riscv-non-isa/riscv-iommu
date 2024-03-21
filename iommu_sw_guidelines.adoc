@@ -138,21 +138,24 @@ previous read and/or write requests, that have already been processed by the
 IOMMU, be committed to a global ordering point as part of the `IOFENCE.C`
 command.
 
+In subsequent sections, when an algorithm step tests values in the in-memory
+data structures to determine the type of invalidation operation to perform, the
+data values tested are the old values i.e. values before a change is made.
+
 [[DC_CHANGE]]
 ==== Changing device directory table entry
 If software changes a leaf-level DDT entry (i.e, a device context (`DC`), of
 device with `device_id = D`) then the following invalidations must be performed:
 
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
-* If `DC.tc.PDTV==1` then `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
 
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
 ** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
 * else
-** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare`
+** If `DC.tc.PDTV==1`
 *** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
-** else
+** else if `DC.fsc.MODE != Bare`
 *** `IOTINVAL.VMA` with `GV=AV=0` and `PSCV=1`, and `PSCID=DC.ta.PSCID`
 
 If software changes a non-leaf-level DDT entry the following invalidations
@@ -170,12 +173,17 @@ If software changes a leaf-level PDT entry (i.e, a process context (`PC`), for
 `device_id=D` and `process_id=P`) then the following invalidations must be
 performed:
 
-* `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
+* `IODIR.INVAL_PDT` with `DV=1`, `DID=D` and `PID=P`
 * If `DC.iohgatp.MODE != Bare`
 ** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,
    and `PSCID=PC.PSCID`
 * else
 ** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
+
+If software changes a non-leaf-level PDT entry the following invalidations
+must be performed:
+
+* `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
 
 Between a change to the PDT entry and when an invalidation command to invalidate
 the cached entry is processed by the IOMMU, the IOMMU may use the old value or

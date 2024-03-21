@@ -52,8 +52,8 @@ management complexity for DMA. Use of an identical format also allows the same
 page tables to be used simultaneously by both the CPU MMU and the IOMMU.
 
 Although there is no option to disable two-stage address translation, either
-stage may be effectivly disabled by configuring the virtual memory scheme for
-that stage to be `Bare` i.e. perfom no address translation or memory protection.
+stage may be effectively disabled by configuring the virtual memory scheme for
+that stage to be `Bare` i.e. perform no address translation or memory protection.
 
 The virtual memory scheme employed by the IOMMU may be configured individually
 per device in the IOMMU. Devices perform DMA using an I/O virtual address (IOVA).
@@ -87,7 +87,7 @@ is a VA. Two-stage address translation is in effect. The first-stage translates
 the VA to a GPA and the second-stage translates the GPA to a SPA. Each stage
 enforces the configured memory protections. Such a configuration would be
 typically be employed when the device control is passed-through to a virtual
-machine and the Guest OS in the VM uses the first-stage addresss translation to
+machine and the Guest OS in the VM uses the first-stage address translation to
 further constrain the memory accessed by such devices and associated privileges
 and memory protections. Comparing to a RISC-V hart, this configuration is
 analogous to two-stage address translation being in effect on a RISC-V hart with
@@ -190,10 +190,6 @@ in the device context.
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
-| PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables
-                    devices to request OS memory manager services to make pages
-                    resident cite:[PCI].
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard
                     cite:[PCI].
