@@ -238,6 +238,9 @@ must be supported.
 IOMMU implementations must support the Svnapot standard extension for NAPOT
 Translation Contiguity.
 
+The physical address space addressable by the IOMMU ranges from 0 to
+stem:[2^{capabilities.PAS} - 1].
+
 [NOTE]
 ====
 Hypervisor may provide an SW emulated IOMMU to allow the guest to manage
