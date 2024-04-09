@@ -1271,7 +1271,9 @@ requires read permission to be granted if the execute permission is granted.
 When a Success response is generated for an ATS translation request, no fault
 records are reported to software through the fault/event reporting mechanism,
 even when the response indicates no access was granted or some permissions were
-denied.
+denied. Conversely, when a UR or CA response is generated for an ATS translation
+request, the corresponding fault is reported to software through the fault/event
+reporting mechanism.
 
 If the translation request has an address determined to be an MSI address using
 the rules defined by the <<MSI_ID>> but the MSI PTE is configured in MRIF
