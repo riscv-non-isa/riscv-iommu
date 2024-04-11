@@ -3244,8 +3244,54 @@ main(void) {
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0 ) );
 
+    msipte.C = 0;
+    msipte.M = 0x3;
+    msipte.translate_rw.reserved = 0x1;
+    msipte.translate_rw.reserved0 = 0x0;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved = 0x4;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+
+    msipte.C = 0;
+    msipte.M = 0x3;
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved = 0x4;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+
+    msipte.C = 0;
+    msipte.M = 0x3;
+    msipte.translate_rw.reserved = 0x1;
+    msipte.translate_rw.reserved0 = 0x1;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+    msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved = 0x4;
+    write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
+    send_translation_request(0x042874, 0, 0x0000, 0,
+             0, 0, 0, ADDR_TYPE_UNTRANSLATED, gpa, 4, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 263, 0) < 0) );
+
     // Write through PTE
     msipte.translate_rw.reserved = 0x0;
+    msipte.translate_rw.reserved0 = 0x0;
     msipte.translate_rw.M = 0x3;
     msipte.translate_rw.PPN = 0xdeadbeef;
     write_memory((char *)&msipte, ((DC.msiptp.PPN * PAGESIZE) + 3 * 16), 16);
