@@ -109,7 +109,7 @@ msi_address_translation(
     //       set within msipte, stop and report "MSI PTE misconfigured" (cause = 263).
     //    b. Compute the translated address as `msipte.PPN << 12 | A[11:0]`.
     if ( msipte.M == 3 ) {
-        if ( msipte.translate_rw.reserved != 0 ) {
+        if ( msipte.translate_rw.reserved != 0 || msipte.translate_rw.reserved0 != 0 ) {
             *cause = 263;
             return 1;
         }
@@ -136,7 +136,7 @@ msi_address_translation(
     }
 
     //    b. If any bits or encoding that are reserved for future standard use are
-    //       set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 262).
+    //       set within `msipte`, stop and report "MSI PTE misconfigured" (cause = 263).
     if ( msipte.mrif.reserved1 != 0 || msipte.mrif.reserved2 != 0 ||
          msipte.mrif.reserved3 != 0 || msipte.mrif.reserved4 != 0 ) {
         *cause = 263;
