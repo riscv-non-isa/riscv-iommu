@@ -557,7 +557,7 @@ stop_and_report_fault:
     // * Write/AMO guest-page fault (cause = 23)
     // * PDT entry not valid (cause = 266)
     // * MSI PTE not valid (cause = 262)
-    if ( (cause = 12) || (cause == 13) || (cause == 15) || (cause == 20) || (cause == 21) ||
+    if ( (cause == 12) || (cause == 13) || (cause == 15) || (cause == 20) || (cause == 21) ||
          (cause == 23) || (cause == 266) || (cause == 262) ) {
         // Return response with R=W=0. The rest of the field are undefined. The reference
         // model sets them to 0.
@@ -566,6 +566,4 @@ stop_and_report_fault:
         page_sz = PAGESIZE;
         goto step_20;
     }
-    *((char *)0) = 0; // unexpected cause
-    return;
 }
