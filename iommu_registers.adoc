@@ -405,12 +405,14 @@ applicable to the old value of the `iommu_mode` field or be aborted
 (<<IOBR_FAULT_RESP>>). It also ensures that all transactions and previous
 requests from devices that have already been processed by the IOMMU are committed
 to a global ordering point such that they can be observed by all RISC-V harts,
-devices, and IOMMUs in the platform.
+devices, and IOMMUs in the platform. Software must not change the `PPN` field
+value when transitioning the `iommu_mode` to `Off`.
 
 The IOMMU behavior of writing `iommu_mode` to `1LVL`, `2LVL`, or `3LVL`, when
 the previous value of the `iommu_mode` is not `Off` or `Bare` is `UNSPECIFIED`.
 To change DDT levels, the IOMMU must first be transitioned to `Bare` or `Off`
-state.
+state. The behavior resulting from changing the `iommu_mode` to `Bare` when the
+previous value of the `iommu_mode` was not `Off` is `UNSPECIFIED`.
 
 <<<
 
@@ -1200,6 +1202,11 @@ When the `iohpmcycles` counter is not needed, it is desirable to conditionally
 inhibit it to reduce energy consumption. Providing a single register to
 inhibit all counters allows a) one or more counters to be atomically programmed
 with events to count b) one or more counters to be sampled atomically.
+
+To initialize an event counter or the cycles counter to a desired value, it
+should be first inhibited if it is enabled to count. This measure ensures that
+it does not count during the update process. The inhibition should be removed
+after the register has been programmed with the desired value.
 ====
 
 [[CYC]]
@@ -1530,6 +1537,11 @@ translation-request interface for debug. This register is present when
                                  this translation request.
 |===
 
+[NOTE]
+====
+In RV32, the high half of the register should be written first, followed by the
+low half, which includes the `Go/Busy` bit, to initiate a translation.
+====
 
 [[TRR_RSP]]
 === Translation-response (`tr_response`)
