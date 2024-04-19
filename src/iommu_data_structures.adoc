@@ -1260,13 +1260,14 @@ process-context is 0 then a Success response with R and W bits set to 0 is
 generated.
 
 If the translation could be successfully completed but the requested
-permissions are not present (Execute requested but no execute permission;
+permissions are not present in either stage (Execute requested but no execute permission;
 no-write not requested and no write permission; no read permission)
 then a Success response is returned with the denied permission (R, W or X)
 set to 0 and the other permission bits set to the value determined from the
 page tables. The X permission is granted only if the R permission is also
-granted. Execute-only translations are not compatible with PCIe ATS as PCIe
-requires read permission to be granted if the execute permission is granted.
+granted and the execute permission was requested. Execute-only translations are
+not compatible with PCIe ATS as PCIe requires read permission to be granted
+if the execute permission is granted.
 
 When a Success response is generated for an ATS translation request, no fault
 records are reported to software through the fault/event reporting mechanism,
