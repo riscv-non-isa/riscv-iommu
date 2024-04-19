@@ -1261,8 +1261,9 @@ no-write not requested and no write permission; no read permission)
 then a Success response is returned with the denied permission (R, W or X)
 set to 0 and the other permission bits set to the value determined from the
 page tables. The X permission is granted only if the R permission is also
-granted. Execute-only translations are not compatible with PCIe ATS as PCIe
-requires read permission to be granted if the execute permission is granted.
+granted and the execute permission was requested. Execute-only translations are
+not compatible with PCIe ATS as PCIe requires read permission to be granted
+if the execute permission is granted.
 
 <<<
 
