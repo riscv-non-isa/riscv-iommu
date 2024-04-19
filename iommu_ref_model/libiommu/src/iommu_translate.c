@@ -444,7 +444,8 @@ step_20:
         // no-write not requested and no write permission; no read permission) then a 
         // Success response is returned with the denied permission (R, W or X) set to 0
         // and the other permission bits set to value determined from the page tables. 
-        // The X permission is granted only if the R permission is also granted. 
+        // The X permission is granted only if the R permission is also granted
+        // and execute permission was requested. 
         // Execute-only translations are not compatible with PCIe ATS as PCIe requires 
         // read permission to be granted if the execute permission is granted.
         // When a Success response is generated for a ATS translation request, no fault 
@@ -464,7 +465,7 @@ step_20:
         rsp_msg->trsp.U      = (is_msi & is_mrif);
         rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
         rsp_msg->trsp.W      = (vs_pte.W & g_pte.W & vs_pte.D & g_pte.D);
-        rsp_msg->trsp.Exe    = (vs_pte.X & g_pte.X & vs_pte.R & g_pte.R);
+        rsp_msg->trsp.Exe    = (vs_pte.X & g_pte.X & vs_pte.R & g_pte.R) & req->exec_req;
     }
     return;
 
