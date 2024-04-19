@@ -9,15 +9,15 @@ the size of the access, or if the access spans multiple registers, or if the
 size of the access is not 4 bytes or 8 bytes, is `UNSPECIFIED`. A 4 byte access
 to an IOMMU register must be single-copy atomic. Whether an 8 byte access to an
 IOMMU register is single-copy atomic is `UNSPECIFIED`, and such an access may
-appear, internally to the IOMMU, as if two separate 4 byte accesses were
-performed.
+appear, internally to the IOMMU, as if two separate 4 byte accesses -- first to
+the high half and second to the low half -- were performed.
 
 [NOTE]
 ====
 The 8-byte IOMMU registers are defined in such a way that software can perform
 two individual 4-byte accesses, or hardware can perform two independent 4-byte
 transactions resulting from an 8-byte access, to the high and low halves of the
-register, as long as the register semantics, with regard to side-effects, are
+register, in that order, as long as the register semantics, with regard to side-effects, are
 respected between the two software accesses, or two hardware transactions,
 respectively.
 ====
@@ -363,10 +363,10 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 !5-13   ! reserved ! Reserved for standard use.
                                 !14-15  ! custom   ! Designated for custom use.
 !===
-|4     |`busy`     |RO        | A write to `ddtp` may require the IOMMU to
+|4     |`busy`     |RO        | A write to `ddtp.iommu_mode` may require the IOMMU to
                                 perform many operations that may not occur
                                 synchronously to the write. When a write is
-                                observed by the `ddtp`, the `busy` bit is set
+                                observed by the `ddtp.iommu_mode`, the `busy` bit is set
                                 to 1. When the `busy` bit is 1, behavior of
                                 additional writes to the `ddtp` is
                                 `UNSPECIFIED`. Some implementations
@@ -377,7 +377,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                                                                +
                                 If the `busy` bit reads 0 then the IOMMU has
                                 completed the operations associated with the
-                                previous write to `ddtp`. +
+                                previous write to `ddtp.iommu_mode`. +
                                                                                +
                                 An IOMMU that can complete these operations
                                 synchronously may hard-wire this bit to 0.
