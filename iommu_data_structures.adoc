@@ -999,7 +999,9 @@ The process to translate an `IOVA` is as follows:
 . Translation process is complete
 
 When checking the `U` bit in a second-stage PTE, the transaction is treated as
-not requesting supervisor privilege.
+not requesting supervisor privilege. The `pte.xwr=010` encoding, as specified by
+the Zicfiss cite:[CFI] extension for the Shadow Stack page type in single-stage
+and VS-stage page tables, remains a reserved encoding for IO transactions.
 
 <<<
 
