@@ -215,6 +215,11 @@ write_register(
                 return;
             g_reg_file.cqb.ppn = cqb_temp.ppn & ppn_mask;
             g_reg_file.cqb.log2szm1 = cqb_temp.log2szm1;
+            // The status of bits 31:cqb.LOG2SZ in cqt following a write to cqb
+            // is 0 and the bits cqb.LOG2SZ-1:0 in cqt assume a valid but
+            // otherwise UNSPECIFIED value.
+            // The reference model sets all bits to 0.
+            g_reg_file.cqt.index = 0;
             break;
         case CQH_OFFSET:
             // This register is read only
@@ -236,6 +241,11 @@ write_register(
                 return;
             g_reg_file.fqb.ppn = fqb_temp.ppn & ppn_mask;
             g_reg_file.fqb.log2szm1 = fqb_temp.log2szm1;
+            // The status of bits 31:fqb.LOG2SZ in fqh following a write to fqb
+            // is 0 and the bits fqb.LOG2SZ-1:0 in fqh assume a valid but
+            // otherwise UNSPECIFIED value.
+            // The reference model sets all bits to 0.
+            g_reg_file.fqh.index = 0;
             break;
         case FQH_OFFSET:
             g_reg_file.fqh.index = fqh_temp.index & 
@@ -260,6 +270,11 @@ write_register(
                 return;
             g_reg_file.pqb.ppn = pqb_temp.ppn & ppn_mask;
             g_reg_file.pqb.log2szm1 = pqb_temp.log2szm1;
+            // The status of bits 31:pqb.LOG2SZ in pqh following a write to pqb
+            // is 0 and the bits pqb.LOG2SZ-1:0 in pqh assume a valid but
+            // otherwise UNSPECIFIED value.
+            // The reference model sets all bits to 0.
+            g_reg_file.pqh.index = 0;
             break;
         case PQH_OFFSET:
             // This register is read-only 0 if capabilities.ATS is 0.
@@ -296,18 +311,18 @@ write_register(
             g_reg_file.cqcsr.busy = 1;
             // The command-queue-enable bit enables the command-
             // queue when set to 1. Changing `cqen` from 0 to 1
-            // sets the `cqh` and `cqt` to 0. The command-queue
-            // may take some time to be active following setting
-            // the `cqen` to 1. When the command queue is active,
-            // the `cqon` bit reads 1.
+            // sets the `cqh` register and the `cqcsr` bits
+            // `cmd_ill`,`cmd_to`, `cqmf`, `fence_w_ip` to 0.
+            // The command-queue may take some time to be active
+            // following setting the `cqen` to 1. During
+            // this delay the `busy` bit is 1. When the command
+            // queue is active, the `cqon` bit reads 1.
             // When `cqen` is changed from 1 to 0, the command 
             // queue may stay active till the commands already 
             // fetched from the command-queue are being processed 
             // and/or there are outstanding implicit loads from 
             // the command-queue.  When the command-queue turns 
-            // off, the `cqon` bit reads 0, `cqh` is set to 0, 
-            // `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`, 
-            // `cmd_to`, `cqmf`, `fence_w_ip` are set to 0.
+            // off, the `cqon` bit reads 0.
             // When the `cqon` bit reads 0, the IOMMU guarantees 
             // that no implicit memory accesses to the command 
             // queue are in-flight and the command-queue will not 
@@ -316,18 +331,15 @@ write_register(
                 // cqen going from 0->1 or 1->0
                 if ( cqcsr_temp.cqen == 1 ) {
                     g_reg_file.cqh.index = 0;
-                    g_reg_file.cqt.index = 0;
+                    g_reg_file.cqcsr.cmd_ill = 0;
+                    g_reg_file.cqcsr.cmd_to = 0;
+                    g_reg_file.cqcsr.cqmf = 0;
+                    g_reg_file.cqcsr.fence_w_ip = 0;
                     // mark queue as being on
                     g_reg_file.cqcsr.cqen = 1;
                     g_reg_file.cqcsr.cqon = 1;
                 }
                 if ( cqcsr_temp.cqen == 0 ) {
-                    g_reg_file.cqh.index = 0;
-                    g_reg_file.cqt.index = 0;
-                    g_reg_file.cqcsr.cmd_ill = 0;
-                    g_reg_file.cqcsr.cmd_to = 0;
-                    g_reg_file.cqcsr.cqmf = 0;
-                    g_reg_file.cqcsr.fence_w_ip = 0;
                     // mark queue as being off
                     g_reg_file.cqcsr.cqon = 0;
                     g_reg_file.cqcsr.cqen = 0;
@@ -361,19 +373,18 @@ write_register(
             // before writing to the `fqcsr`. 
             // An IOMMU that can complete controls synchronously 
             // may hard-wire this bit to 0. 
-            if ( g_reg_file.fqcsr.busy ) {
+            if ( g_reg_file.fqcsr.busy )
                 return;
-            }
             // First set the busy bit
             g_reg_file.fqcsr.busy = 1;
             // The fault-queue enable bit enables the fault-queue
             // when set to 1.
-            // Changing `fqen`  from 0 to 1, resets the `fqh` and
-            // `fqt` to 0 and clears `fqcsr` bits `fqmf` and `fqof`.
-            // The fault-queue may take some time to be active
-            // following setting the `fqen` to 1. When the fault
-            // queue is active, the `fqon` bit reads 1.
-
+            // Changing `fqen` from 0 to 1 sets the `fqt` register
+            // and the `fqcsr` bits `fqof` and `fqmf` to 0. The
+            // fault-queue may take some time to be active following
+            // setting the `fqen` to 1. During this delay the `busy`
+            // bit is 1. When the fault queue is active, the `fqon`
+            // bit reads 1.
             // When `fqen` is changed from 1 to 0, the fault-queue
             // may stay active till in-flight fault-recording is
             // completed. When the fault-queue is off, the `fqon`
@@ -384,17 +395,14 @@ write_register(
             if ( g_reg_file.fqcsr.fqen != fqcsr_temp.fqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( fqcsr_temp.fqen == 1 ) {
-                    g_reg_file.fqh.index = 0;
                     g_reg_file.fqt.index = 0;
+                    g_reg_file.fqcsr.fqof = 0;
+                    g_reg_file.fqcsr.fqmf = 0;
                     // mark queue as being on
                     g_reg_file.fqcsr.fqon = 1;
                     g_reg_file.fqcsr.fqen = 1;
                 }
                 if ( fqcsr_temp.fqen == 0 ) {
-                    g_reg_file.fqh.index = 0;
-                    g_reg_file.fqt.index = 0;
-                    g_reg_file.fqcsr.fqof = 0;
-                    g_reg_file.fqcsr.fqmf = 0;
                     // mark queue as being off
                     g_reg_file.fqcsr.fqon = 0;
                     g_reg_file.fqcsr.fqen = 0;
@@ -433,22 +441,19 @@ write_register(
             g_reg_file.pqcsr.busy = 1;
             // The page-request-enable bit enables the
             // page-request-queue when set to 1.
-            // Changing `pqen` from 0 to 1, resets the `pqh`
-            // and `pqt` to 0 and clears `pqcsr` bits `pqmf` and
-            // `pqof` to 0. The page-request-queue may take
-            // some time to be active following setting the
-            // `pqen` to 1. When the page-request-queue is
-            // active, the `pqon` bit reads 1.
-            // When `pqen` is changed from 1 to 0, the
-            // page-request-queue may stay active till in-flight
-            // page-request writes are completed. When the
-            // page-request-queue turns off, the `pqon` bit
-            // reads 0, `pqh` is set to 0, `pqt` is set to 0 and
-            // the `pqcsr` bits `pqof`, and `pqmf` are set to 0.
-            // When `pqon` reads 0, the IOMMU guarantees that
-            // there are no older in-flight implicit writes to
-            // the queue memory and no further implicit writes
-            // will be generated to the queue memory.
+            // Changing `pqen` from 0 to 1, sets the `pqt` register and
+            // the `pqcsr` bits `pqmf` and `pqof` to 0. The
+            // page-request-queue may take some time to be active following
+            // setting the `pqen` to 1. During this delay the `busy` bit is
+            // 1. When the page-request-queue is active, the `pqon` bit
+            // reads 1.
+            // When `pqen` is changed from 1 to 0, the page-request-queue may
+            // stay active (with `busy` asserted) until in-flight
+            // page-request writes are completed. When the page-request-queue
+            // turns off, the `pqon` bit reads 0.
+            // When `pqon` reads 0, the IOMMU guarantees that there are no
+            // older in-flight implicit writes to the queue memory and no
+            // further implicit writes will be generated to the queue memory
             // The IOMMU may respond to “Page Request” messages
             // received when page-request-queue is off or in
             // the process of being turned off, as having
@@ -457,17 +462,14 @@ write_register(
             if ( g_reg_file.pqcsr.pqen != pqcsr_temp.pqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( pqcsr_temp.pqen == 1 ) {
-                    g_reg_file.pqh.index = 0;
                     g_reg_file.pqt.index = 0;
+                    g_reg_file.pqcsr.pqof = 0;
+                    g_reg_file.pqcsr.pqmf = 0;
                     // mark queue as being on
                     g_reg_file.pqcsr.pqon = 1;
                     g_reg_file.pqcsr.pqen = 1;
                 }
                 if ( pqcsr_temp.pqen == 0 ) {
-                    g_reg_file.pqh.index = 0;
-                    g_reg_file.pqt.index = 0;
-                    g_reg_file.pqcsr.pqof = 0;
-                    g_reg_file.pqcsr.pqmf = 0;
                     // mark queue as being off
                     g_reg_file.pqcsr.pqon = 0;
                     g_reg_file.pqcsr.pqen = 0;

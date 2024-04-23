@@ -294,14 +294,11 @@ main(void) {
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fqcsr.fqen = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    write_register(FQH_OFFSET, 4, 0);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
     fail_if( (fqcsr.fqen == 1) );
     fail_if( (fqcsr.fqon == 1) );
     fail_if( (fqcsr.busy == 1) );
-    fail_if( (fqcsr.fqmf == 1) );
-    fail_if( (fqcsr.fqof == 1) );
-    fail_if( ( ((read_register(FQH_OFFSET, 4)) != read_register(FQT_OFFSET, 4)) ) );
-    fail_if( ( (read_register(FQH_OFFSET, 4) != 0) ) );
 
     // Clear IPSR
     ipsr.raw = read_register(IPSR_OFFSET, 4);
@@ -318,6 +315,8 @@ main(void) {
     fail_if( (fqcsr.busy == 1) );
     fail_if( (fqcsr.fqmf == 1) );
     fail_if( (fqcsr.fqof == 1) );
+    fail_if( ( ((read_register(FQH_OFFSET, 4)) != read_register(FQT_OFFSET, 4)) ) );
+    fail_if( ( (read_register(FQH_OFFSET, 4) != 0) ) );
 
     // Create a memory fault
     fqb.raw = read_register(FQB_OFFSET, 8);
@@ -1065,13 +1064,11 @@ main(void) {
     fail_if( ( (read_register(CQH_OFFSET, 4) + 1) != read_register(CQT_OFFSET, 4) ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
     fail_if( ( cqcsr.cqen == 1 ) );
     fail_if( ( cqcsr.cqon == 1 ) );
-    fail_if( ( cqcsr.cqmf == 1 ) );
     fail_if( ( cqcsr.busy == 1 ) );
-    fail_if( ( cqcsr.cmd_ill == 1 ) );
-    fail_if( ( cqcsr.cmd_to == 1 ) );
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -1095,6 +1092,7 @@ main(void) {
     fail_if( ( ipsr.cip != 0 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     cqcsr.cie = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
@@ -1108,10 +1106,13 @@ main(void) {
     write_register(DDTP_OFFSET, 8, ddtp.raw);
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     fqcsr.fqen = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    write_register(FQH_OFFSET, 4, 0);
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    write_register(PQH_OFFSET, 4, 0);
 
     fctl.raw = read_register(FCTRL_OFFSET, 4);
     fctl.wsi = 1;
@@ -1154,10 +1155,13 @@ main(void) {
     write_register(DDTP_OFFSET, 8, ddtp.raw);
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     fqcsr.fqen = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    write_register(FQH_OFFSET, 4, 0);
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    write_register(PQH_OFFSET, 4, 0);
 
     fctl.wsi = 0;
     write_register(FCTRL_OFFSET, 4, fctl.raw);
@@ -1572,6 +1576,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
 
@@ -3412,6 +3417,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3498,6 +3504,7 @@ main(void) {
             fail_if( ( cqcsr.cmd_ill != 1 ) );
             cqcsr.cqen = 0;
             write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+            write_register(CQT_OFFSET, 4, 0);
             cqcsr.cqen = 1;
             write_register(CQCSR_OFFSET, 4, cqcsr.raw);
             cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3514,6 +3521,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3527,6 +3535,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3541,6 +3550,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3552,6 +3562,7 @@ main(void) {
     fail_if( ( cqcsr.cmd_ill != 1 ) );
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(CQT_OFFSET, 4, 0);
     cqcsr.cqen = 1;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -3562,10 +3573,6 @@ main(void) {
     iodir(INVAL_PDT, 1, 0x112233, 0xBABEC);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
     fail_if( ( cqcsr.cmd_ill != 0 ) );
-
-
-
-
 
     // idle 
     process_commands();
@@ -3705,6 +3712,7 @@ main(void) {
                 cqcsr.raw = read_register(CQCSR_OFFSET, 4);
                 cqcsr.cqen = 0;
                 write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+                write_register(CQT_OFFSET, 4, 0);
                 write_register(i, 4, fctl.raw);
                 fctl.raw = read_register(i, 4);
                 fail_if( ( fctl.be != 1 ) ); 
