@@ -102,27 +102,43 @@ handle_page_request(
     page_rec_t prec;
     uint8_t L;
     uint16_t PRGI;
-    uint32_t device_id, cause, status, response_code;
+    uint32_t device_id, cause, status, response_code, PRPR;
     uint64_t prec_addr;
     uint64_t pqb;
     uint32_t pqh;
     uint32_t pqt;
 
+    PRPR = 0;
+    device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
+    if ( g_reg_file.ddtp.iommu_mode == Off ) {
+        cause = 256; // "All inbound transactions disallowed"
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+                     device_id, pr->PV, pr->PID, pr->PRIV);
+        response_code = RESPONSE_FAILURE;
+        goto send_prgr;
+    }
+    if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
+        cause = 260; // "Transaction type disallowed"
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+                     device_id, pr->PV, pr->PID, pr->PRIV);
+        response_code = INVALID_REQUEST;
+        goto send_prgr;
+    }
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
     // locates the device-context to determine if ATS and PRI are enabled for
     // the requestor. 
-    device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
     if ( locate_device_context(&DC, device_id, pr->PV, pr->PID, &cause) ) {
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0, 
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = RESPONSE_FAILURE;
         goto send_prgr;
     }
+    PRPR = DC.tc.PRPR;
     if ( DC.tc.EN_PRI == 0 ) {
         // 7. if any of the following conditions hold then stop and report
         //    "Transaction type disallowed" (cause = 260).
         //   * Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
-        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0, 
+        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, DC.tc.DTF,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = INVALID_REQUEST;
         goto send_prgr;
@@ -286,17 +302,12 @@ send_prgr:
     // the associated "Page Request" had a PASID.  For IOMMU generated "Page Request 
     // Group Response" with response code set to Response Failure, if the "Page Request" 
     // had a PASID then response is generated with a PASID.
-    if ( response_code == INVALID_REQUEST || response_code == SUCCESS ) {
-        if ( DC.tc.PRPR == 1 ) {
-            prgr.PV = pr->PV;
-            prgr.PID = pr->PID;
-        } else {
-            prgr.PV = 0;
-            prgr.PID = 0;
-        }
-    } else {
+    if ( PRPR == 1 ) {
         prgr.PV = pr->PV;
         prgr.PID = pr->PID;
+    } else {
+        prgr.PV = 0;
+        prgr.PID = 0;
     }
     // PAYLOAD encoding of PRGR is as follows
     //           +0         |      +1         |      +2         |      +3        |

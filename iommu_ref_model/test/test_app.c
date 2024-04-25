@@ -112,6 +112,29 @@ main(void) {
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 256, 0) < 0 ) );
         }
     });
+    pr.MSGCODE = PAGE_REQ_MSG_CODE;
+    pr.TAG = 0;
+    pr.RID = 0x1234;
+    pr.PV = 1;
+    pr.PID = 0xbabec;
+    pr.PRIV = 1;
+    pr.EXEC_REQ = 0;
+    pr.DSV = 1;
+    pr.DSEG = 0x43;
+    pr.PAYLOAD = 0xdeadbeef00000007; // Set last, PRG index = 0
+    exp_msg.MSGCODE = PRGR_MSG_CODE;
+    exp_msg.TAG = 0;
+    exp_msg.RID = 0x1234;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PRIV = 0;
+    exp_msg.EXEC_REQ = 0;
+    exp_msg.DSV = 1;
+    exp_msg.DSEG = 0x43;
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    handle_page_request(&pr);
+    fail_if( ( exp_msg_received == 0 ) );
+    fail_if( ( check_msg_faults(256, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
     END_TEST();
 
     START_TEST("Bare mode tests");
@@ -130,6 +153,29 @@ main(void) {
                 fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
         }
     });
+    pr.MSGCODE = PAGE_REQ_MSG_CODE;
+    pr.TAG = 0;
+    pr.RID = 0x1234;
+    pr.PV = 0;
+    pr.PID = 0;
+    pr.PRIV = 0;
+    pr.EXEC_REQ = 0;
+    pr.DSV = 1;
+    pr.DSEG = 0x43;
+    pr.PAYLOAD = 0xdeadbeef00000007; // Set last, PRG index = 0
+    exp_msg.MSGCODE = PRGR_MSG_CODE;
+    exp_msg.TAG = 0;
+    exp_msg.RID = 0x1234;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PRIV = 0;
+    exp_msg.EXEC_REQ = 0;
+    exp_msg.DSV = 1;
+    exp_msg.DSEG = 0x43;
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
+    handle_page_request(&pr);
+    fail_if( ( exp_msg_received == 0 ) );
+    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
     // Turn it off
     fail_if( ( enable_iommu(Off) < 0 ) );
     END_TEST();
@@ -2847,8 +2893,8 @@ main(void) {
     exp_msg.MSGCODE = PRGR_MSG_CODE;
     exp_msg.TAG = 0;
     exp_msg.RID = 0x1234;
-    exp_msg.PV = 1;
-    exp_msg.PID = 0xbabec;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
     exp_msg.PRIV = 0;
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
@@ -2895,6 +2941,7 @@ main(void) {
     fail_if( ( enable_disable_pq(4, 0) < 0 ) );
     DC.tc.EN_ATS = 1;
     DC.tc.EN_PRI = 1;
+    DC.tc.PRPR = 1;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     exp_msg.RID = 0x2233;
@@ -2927,6 +2974,7 @@ main(void) {
     pr.DSEG = 0x11;
     DC.tc.EN_ATS = 1;
     DC.tc.EN_PRI = 1;
+    DC.tc.PRPR = 0;
     write_memory((char *)&DC, DC_addr, 64);
     iodir(INVAL_DDT, 1, 0x112233, 0);
     message_received = 0;
