@@ -1365,13 +1365,14 @@ of "Page Request".
   a "Page Request Group Response" message to the device.
 
 When the IOMMU generates the response, the status field of the response depends
-on the cause of the error.
+on the cause of the error. If a fault condition prevents locating a valid device
+context then the `PRPR` value assumed is 0.
 
 <<<
 
 The status is set to Response Failure if the following faults are encountered:
 
-* `ddtp.iommu_mode` is `Off`
+* `ddtp.iommu_mode` is `Off` (cause = 256)
 * DDT entry load access fault (cause = 257)
 * DDT entry misconfigured (cause = 259)
 * DDT entry not valid (cause = 258)
@@ -1380,8 +1381,8 @@ The status is set to Response Failure if the following faults are encountered:
 
 The status is set to Invalid Request if the following faults are encountered:
 
-* `ddtp.iommu_mode` is `Bare`
-* `EN_PRI` is set to 0
+* `ddtp.iommu_mode` is `Bare` (cause = 260)
+* `EN_PRI` is set to 0 (cause = 260)
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
