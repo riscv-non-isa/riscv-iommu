@@ -28,5 +28,7 @@ extern void process_commands(void);
 
 extern void iommu_to_hb_do_global_observability_sync(uint8_t PR, uint8_t PW);
 extern void send_msg_iommu_to_hb(ats_msg_t *prgr);
+extern void get_attribs_from_req(hb_to_iommu_req_t *req, uint8_t *read,
+                                 uint8_t *write, uint8_t *exec, uint8_t *priv);
 
 #endif // __IOMMU_REF_API_H__
