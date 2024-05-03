@@ -321,7 +321,7 @@ step_17:
     //     If a fault is detected by the MSI address translation process then stop and
     //     report the fault else the process continues at step 20.
     if ( msi_address_translation(gpa, is_exec, &DC, &is_msi, &is_mrif, &mrif_nid, &dest_mrif_addr,
-                                 &cause, &iotval2, &pa, &gst_page_sz, &g_pte) )
+                                 &cause, &iotval2, &pa, &gst_page_sz, &g_pte, TTYP) )
         goto stop_and_report_fault;
     if ( is_msi == 1 ) goto skip_gpa_trans;
 
