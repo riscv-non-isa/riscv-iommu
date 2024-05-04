@@ -142,6 +142,10 @@ This function when invoked causes the IOMMU to process a command from the comman
 function acts like a "clock" and in each invocation processes one command. If multiple command
 processing is required then the function should be invoked for each command.
 
+9. **`void get_attribs_from_req(hb_to_iommu_req_t *req, uint8_t *read, uint8_t *write, uint8_t *exec, uint8_t *priv)`**
+
+This function is used to extract the read, write, execute, and privilege
+attributes from the the request.
 
 # Libtables functions
 The following functions are provided by the libtables to build memory resident data structures.
