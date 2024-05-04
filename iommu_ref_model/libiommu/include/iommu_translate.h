@@ -113,6 +113,6 @@ msi_address_translation(
     uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
-    uint64_t *page_sz, gpte_t *g_pte, uint8_t TTYP );
+    uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms );
 
 #endif // __IOMMU_TRANSLATE_H__
