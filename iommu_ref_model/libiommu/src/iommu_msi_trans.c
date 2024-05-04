@@ -21,7 +21,7 @@ msi_address_translation(
     uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
-    uint64_t *page_sz, gpte_t *g_pte ) {
+    uint64_t *page_sz, gpte_t *g_pte, uint8_t TTYP ) {
 
     uint64_t A, m, I;
     uint8_t status;
@@ -168,9 +168,9 @@ step_15:
     //    this process are equivalent to that of a regular RISC-V second-stage PTE with
     //    R=W=U=1 and X=0. Similar to a second-stage PTE, when checking the U bit, the
     //    transaction is treated as not requesting supervisor privilege.
-    //16. If the transaction is a Untranslated or Translated read-for-execute then stop
-    //    and report "Instruction acccess fault" (cause = 1).
-    if ( is_exec ) {
+    //    a. If the transaction is a Untranslated or Translated read-for-execute then stop
+    //       and report "Instruction acccess fault" (cause = 1).
+    if ( is_exec && TTYP != PCIE_ATS_TRANSLATION_REQUEST ) {
         *cause = 1;
         return 1;
     }

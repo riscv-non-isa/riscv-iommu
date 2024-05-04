@@ -3242,7 +3242,7 @@ main(void) {
 
     START_TEST("MSI write-through mode");
 
-    DC_addr = add_device(0x042874, 0x1974, 0, 0, 0, 0, 0, 
+    DC_addr = add_device(0x042874, 0x1974, 1, 0, 0, 0, 0,
                          1, 1, 0, 0, 0,
                          IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
@@ -3392,6 +3392,14 @@ main(void) {
              1, READ, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 1, 0) < 0 ) );
 
+    // Execute permission request using translation request
+    send_translation_request(0x042874, 1, 0xBABEC, 0,
+             1, 0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, gpa, 4, READ, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+    fail_if( ( rsp.trsp.U == 1 ) );
+    fail_if( ( rsp.trsp.R != 1 ) );
+    fail_if( ( rsp.trsp.W != 1 ) );
+    fail_if( ( rsp.trsp.Exe != 0 ) );
 
     END_TEST();
 
