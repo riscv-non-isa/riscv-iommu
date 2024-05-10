@@ -100,6 +100,7 @@ handle_page_request(
     ats_msg_t prgr;
     device_context_t DC;
     page_rec_t prec;
+    uint8_t DDI[3];
     uint8_t L;
     uint16_t PRGI;
     uint32_t device_id, cause, status, response_code, PRPR;
@@ -122,6 +123,39 @@ handle_page_request(
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = INVALID_REQUEST;
+        goto send_prgr;
+    }
+    // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
+    //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
+    //    `DDI[2]` be `device_id[23:16]`.
+    if ( g_reg_file.capabilities.msi_flat == 0 ) {
+        DDI[0] = get_bits(6,  0, device_id);
+        DDI[1] = get_bits(15, 7, device_id);
+        DDI[2] = get_bits(23, 16, device_id);
+    }
+    // 4. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses extended-format device
+    //    context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
+    //    `DDI[2]` be `device_id[23:15]`.
+    if ( g_reg_file.capabilities.msi_flat == 1 ) {
+        DDI[0] = get_bits(5,  0, device_id);
+        DDI[1] = get_bits(14, 6, device_id);
+        DDI[2] = get_bits(23, 15, device_id);
+    }
+    // 5. The `device_id` is wider than that supported by the IOMMU mode if any of the
+    //    following conditions hold. If the following conditions hold then stop and
+    //    report "Transaction type disallowed" (cause = 260).
+    //    a. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
+    //    b. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
+    if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL && DDI[2] != 0 ) {
+        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+                     device_id, pr->PV, pr->PID, pr->PRIV);
+        response_code = RESPONSE_FAILURE;
+        goto send_prgr;
+    }
+    if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
+        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+                     device_id, pr->PV, pr->PID, pr->PRIV);
+        response_code = RESPONSE_FAILURE;
         goto send_prgr;
     }
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
@@ -302,12 +336,17 @@ send_prgr:
     // the associated "Page Request" had a PASID.  For IOMMU generated "Page Request 
     // Group Response" with response code set to Response Failure, if the "Page Request" 
     // had a PASID then response is generated with a PASID.
-    if ( PRPR == 1 ) {
+    if ( response_code == INVALID_REQUEST || response_code == SUCCESS ) {
+        if ( PRPR == 1 ) {
+            prgr.PV = pr->PV;
+            prgr.PID = pr->PID;
+        } else {
+            prgr.PV = 0;
+            prgr.PID = 0;
+        }
+    } else {
         prgr.PV = pr->PV;
         prgr.PID = pr->PID;
-    } else {
-        prgr.PV = 0;
-        prgr.PID = 0;
     }
     // PAYLOAD encoding of PRGR is as follows
     //           +0         |      +1         |      +2         |      +3        |
