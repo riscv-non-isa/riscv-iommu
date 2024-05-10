@@ -204,7 +204,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
@@ -233,7 +233,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
@@ -259,7 +259,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );

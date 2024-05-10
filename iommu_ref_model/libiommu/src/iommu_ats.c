@@ -147,15 +147,17 @@ handle_page_request(
     //    a. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
     //    b. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
     if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL && DDI[2] != 0 ) {
-        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        cause = 260; // "Transaction type disallowed"
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = RESPONSE_FAILURE;
+        response_code = INVALID_REQUEST;
         goto send_prgr;
     }
     if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
-        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        cause = 260; // "Transaction type disallowed"
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = RESPONSE_FAILURE;
+        response_code = INVALID_REQUEST;
         goto send_prgr;
     }
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
