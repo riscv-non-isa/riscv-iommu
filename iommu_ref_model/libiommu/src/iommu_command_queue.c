@@ -129,6 +129,10 @@ process_commands(
                     // the DID operand must not be wider than that supported by
                     // the ddtp.iommu_mode.
                     if ( command.iodir.dv != 1 ) goto command_illegal;
+                    // When DV operand is 1, the value of the DID operand must not
+                    // be wider than that supported by the ddtp.iommu_mode.
+                    if ( command.iodir.did & ~g_max_devid_mask )
+                        goto command_illegal;
                     // The PID operand of IODIR.INVAL_PDT must not be wider than
                     // the width supported by the IOMMU (see Section 5.3)
                     if ( g_reg_file.capabilities.pd20 == 0 && 
