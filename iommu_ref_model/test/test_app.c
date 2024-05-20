@@ -2417,6 +2417,14 @@ main(void) {
     write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqh.index * 16)), 16);
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
 
+    // Invalidate PC - DID must not be too wide
+    g_max_devid_mask = 0x3F;
+    process_commands();
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    fail_if( ( cqcsr.cmd_ill != 1 ) );
+    g_max_devid_mask = 0xFFFFFF;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+
     // Process the fixed up command
     process_commands();
 
