@@ -498,8 +498,16 @@ stop_and_report_fault:
     // * MSI PTE misconfigured (cause = 263)
     // * PDT entry load access fault (cause = 265)
     // * PDT entry misconfigured (cause = 267)
-    if ( (cause == 1) || (cause == 5) || (cause == 7) || (cause == 261) || 
-         (cause == 263) || (cause == 265) || (cause == 267) ) {
+    // * DDT data corruption (cause = 268)
+    // * PDT data corruption (cause = 269)
+    // * MSI PT data corruption (cause = 270)
+    // * MSI MRIF data corruption (cause = 271)
+    // * Internal data-path error (cause = 272)
+    // * First/second-stage PT data corruption (cause = 274)
+    if ( (cause == 1) || (cause == 5) || (cause == 7) || (cause == 261) ||
+         (cause == 263) || (cause == 265) || (cause == 267) ||
+         (cause == 268) || (cause == 269) || (cause == 270) ||
+         (cause == 271) || (cause == 272) || (cause == 274) ) {
         report_fault(cause, iotval, iotval2, TTYP, DTF,
                      req->device_id, req->pid_valid, req->process_id, req->priv_req);
         goto return_completer_abort;
