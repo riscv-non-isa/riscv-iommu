@@ -101,7 +101,7 @@ handle_page_request(
     device_context_t DC;
     page_rec_t prec;
     uint8_t DDI[3];
-    uint8_t L;
+    uint8_t L, R, W;
     uint16_t PRGI;
     uint32_t device_id, cause, status, response_code, PRPR;
     uint64_t prec_addr;
@@ -319,9 +319,11 @@ send_prgr:
     // The status is set to Success if no other faults were encountered but the 
     // "Page Request" could not be queued due to the page-request queue being full 
     // (pqh == pqt - 1) or had a overflow (pqcsr.pqof == 1).
+    R    = get_bits(0,  0, pr->PAYLOAD);
+    W    = get_bits(1,  1, pr->PAYLOAD);
     L    = get_bits(2,  2, pr->PAYLOAD);
     PRGI = get_bits(11, 3, pr->PAYLOAD);
-    if ( L == 0 ) {
+    if ( L == 0 || (L == 1 && R == 0 && W == 0) ) {
         return;
     }
     prgr.MSGCODE = PRGR_MSG_CODE;
