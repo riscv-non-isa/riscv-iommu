@@ -32,6 +32,8 @@ BUILD_DIR := build
 DOCS_PDF := $(DOCS:%.adoc=%.pdf)
 DOCS_HTML := $(DOCS:%.adoc=%.html)
 
+PDF_THEME := docs-resources/themes/riscv-spec.yml
+
 XTRA_ADOC_OPTS :=
 ASCIIDOCTOR_PDF := asciidoctor-pdf
 ASCIIDOCTOR_HTML := asciidoctor
@@ -42,7 +44,7 @@ OPTIONS := --trace \
            -a revremark=${REVMARK} \
            -a revdate=${DATE} \
            -a pdf-fontsdir=docs-resources/fonts \
-           -a pdf-theme=docs-resources/themes/riscv-pdf.yml \
+           -a pdf-theme=${PDF_THEME} \
            $(XTRA_ADOC_OPTS) \
 		   -D build \
            --failure-level=ERROR
