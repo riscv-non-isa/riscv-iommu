@@ -10,13 +10,13 @@
 // the IOMMU. At reset, the register shall contain the IOMMU supported features.
 // Hypervisor may provide an SW emulated IOMMU to allow the guest to manage
 // the VS-stage page tables for fine grained control on memory accessed by guest
-// controlled devices. 
+// controlled devices.
 // A hypervisor that provides such an emulated IOMMU to the guest may retain
-// control of the G-stage page tables and clear the `SvNx4` fields of the 
+// control of the G-stage page tables and clear the `SvNx4` fields of the
 // emulated `capabilities` register.
 // A hypervisor that provides such an emulated IOMMU to the guest may retain
 // control of the MSI page tables used to direct MSI to guest interrupt files in
-// an IMSIC or to a memory-resident-interrupt-file and clear the `MSI_FLAT` and 
+// an IMSIC or to a memory-resident-interrupt-file and clear the `MSI_FLAT` and
 // `MSI_MRIF` fields of the emulated `capabilities` register.
 typedef union {
     struct {
@@ -120,10 +120,10 @@ typedef union {
         uint64_t iommu_mode: 4;    // The IOMMU may be configured to be in following
                                    // modes:
                                    // !Value  !Name      ! Description
-                                   // !0      ! `Off`    ! No inbound memory 
+                                   // !0      ! `Off`    ! No inbound memory
                                    //                      transactions are allowed
                                    //                      by the IOMMU.
-                                   // !1      ! `Bare`   ! No translation or 
+                                   // !1      ! `Bare`   ! No translation or
                                    //                      protection. All inbound
                                    //                      memory accesses are passed
                                    //                      through.
@@ -135,23 +135,23 @@ typedef union {
                                    //                      device-directory-table
                                    // !5-13   ! reserved ! Reserved for standard use.
                                    // !14-15  ! custom   ! Designated for custom use.
-        uint64_t busy    : 1;      // A write to `ddtp` may require the IOMMU to 
-                                   // perform many operations that may not occur 
+        uint64_t busy    : 1;      // A write to `ddtp` may require the IOMMU to
+                                   // perform many operations that may not occur
                                    // synchronously to the write. When a write is
                                    // observed by the `ddtp`, the `busy` bit is set
                                    // to 1. When the `busy` bit is 1, behavior of
-                                   // additional writes to the `ddtp` is 
+                                   // additional writes to the `ddtp` is
                                    // implementation defined. Some implementations
                                    // may ignore the second write and others may
                                    // perform the actions determined by the second
                                    // write. Software must verify that the `busy`
                                    // bit is 0 before writing to the `ddtp`.
-    
-                                   // If the `busy` bit reads 0 then the IOMMU has 
-                                   // completed the operations associated with the 
+
+                                   // If the `busy` bit reads 0 then the IOMMU has
+                                   // completed the operations associated with the
                                    // previous write to `ddtp`.
-    
-                                   // An IOMMU that can complete these operations 
+
+                                   // An IOMMU that can complete these operations
                                    // synchronously may hard-wire this bit to 0.
         uint64_t reserved0: 5;     // reserved for standard use.
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
@@ -166,19 +166,19 @@ typedef union {
     struct {
         uint64_t log2szm1: 5;      // The `LOG2SZ-1` field holds the number of
                                    // entries in command-queue as a log to base 2
-                                   // minus 1. 
+                                   // minus 1.
                                    // A value of 0 indicates a queue of 2 entries.
-                                   // Each IOMMU command is 16-bytes. 
+                                   // Each IOMMU command is 16-bytes.
                                    // If the command-queue has 256 or fewer entries
-                                   // then the base address of the queue is always 
+                                   // then the base address of the queue is always
                                    // aligned to 4-KiB. If the command-queue has more
-                                   // than 256 entries then the command-queue 
+                                   // than 256 entries then the command-queue
                                    // base address must be naturally aligned to
-                                   // `2^LOG2SZ^ x 16`. 
+                                   // `2^LOG2SZ^ x 16`.
         uint64_t reserved0: 5;     // Reserved for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory command-queue used by software to
-                                   // queue commands to the IOMMU. 
+                                   // queue commands to the IOMMU.
         uint64_t reserved1: 10;    // Reserved for standard use
     };
     uint64_t raw;
@@ -198,8 +198,8 @@ typedef union {
     struct {
         uint32_t index;            // Holds the `index` into the command-queue where
                                    // software queues the next command for IOMMU.  Only
-                                   // `LOG2SZ:0` bits are writable when the queue is 
-                                   // in enabled state (i.e., `cqsr.cqon == 1`). 
+                                   // `LOG2SZ:0` bits are writable when the queue is
+                                   // in enabled state (i.e., `cqsr.cqon == 1`).
     };
     uint32_t raw;
 } cqt_t;
@@ -210,12 +210,12 @@ typedef union {
         uint64_t log2szm1: 5;      // The `LOG2SZ-1` field holds the number of
                                    // entries in fault-queue as a log-to-base-2
                                    // minus 1. A value of 0 indicates a queue of 2
-                                   // entries. Each fault record is 32-bytes. 
+                                   // entries. Each fault record is 32-bytes.
                                    // If the fault-queue has 128 or fewer entries then
-                                   // the base address of the queue is always aligned 
-                                   // to 4-KiB. If the fault-queue has more than 128  
-                                   // entries then the fault-queue base address must  
-                                   // be naturally aligned to `2^LOG2SZ^ x 32`. 
+                                   // the base address of the queue is always aligned
+                                   // to 4-KiB. If the fault-queue has more than 128
+                                   // entries then the fault-queue base address must
+                                   // be naturally aligned to `2^LOG2SZ^ x 32`.
         uint64_t reserved0: 5;     // Reserved for standard use
         uint64_t ppn     : 44;     // Holds the `PPN` of the root page of the
                                    // in-memory fault-queue used by IOMMU to queue
@@ -236,7 +236,7 @@ typedef union {
     };
     uint32_t raw;
 } fqh_t;
-// This 32-bits register (RO) holds the index into the fault-queue where the 
+// This 32-bits register (RO) holds the index into the fault-queue where the
 // IOMMU queues the next fault record.
 typedef union {
     struct {
@@ -252,8 +252,8 @@ typedef union {
     struct {
         uint64_t log2szm1: 5;      // The `LOG2SZ-1` field holds the number of entries
                                    // in page-request-queue as a log-to-base-2 minus 1.
-                                   // A value of 0 indicates a queue of 2 entries. 
-                                   // Each page-request is 16-bytes. If the 
+                                   // A value of 0 indicates a queue of 2 entries.
+                                   // Each page-request is 16-bytes. If the
                                    // page-request-queue has 256 or fewer entries
                                    // then the base address of the queue is always
                                    // aligned to 4-KiB.
@@ -287,92 +287,92 @@ typedef union {
 // This 32-bits register (RW) is used to control the operations and report the
 // status of the command-queue.
 typedef union {
-    struct { 
+    struct {
         uint32_t cqen    :1;       // The command-queue-enable bit enables the command-
                                    // queue when set to 1. Changing `cqen` from 0 to 1
                                    // sets the `cqh` and `cqt` to 0. The command-queue
                                    // may take some time to be active following setting
                                    // the `cqen` to 1. When the command queue is active,
                                    // the `cqon` bit reads 1.
-                                   // 
-                                   // When `cqen` is changed from 1 to 0, the command 
-                                   // queue may stay active till the commands already 
-                                   // fetched from the command-queue are being processed 
-                                   // and/or there are outstanding implicit loads from 
-                                   // the command-queue.  When the command-queue turns 
-                                   // off, the `cqon` bit reads 0, `cqh` is set to 0, 
-                                   // `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`, 
+                                   //
+                                   // When `cqen` is changed from 1 to 0, the command
+                                   // queue may stay active till the commands already
+                                   // fetched from the command-queue are being processed
+                                   // and/or there are outstanding implicit loads from
+                                   // the command-queue.  When the command-queue turns
+                                   // off, the `cqon` bit reads 0, `cqh` is set to 0,
+                                   // `cqt` is set to 0 and the `cqcsr` bits `cmd_ill`,
                                    // `cmd_to`, `cqmf`, `fence_w_ip` are set to 0.
-                                   // 
-                                   // When the `cqon` bit reads 0, the IOMMU guarantees 
-                                   // that no implicit memory accesses to the command 
-                                   // queue are in-flight and the command-queue will not 
+                                   //
+                                   // When the `cqon` bit reads 0, the IOMMU guarantees
+                                   // that no implicit memory accesses to the command
+                                   // queue are in-flight and the command-queue will not
                                    // generate new implicit loads to the queue memory.
-        uint32_t cie     :1;       // Command-queue-interrupt-enable bit enables 
-                                   // generation of interrupts from command-queue when 
+        uint32_t cie     :1;       // Command-queue-interrupt-enable bit enables
+                                   // generation of interrupts from command-queue when
                                    // set to 1.
         uint32_t rsvd0   :6;       // Reserved for standard use
         uint32_t cqmf    :1;       // If command-queue access leads to a memory fault then
-                                   // the command-queue-memory-fault bit is set to 1 and 
-                                   // the command-queue stalls until this bit is cleared. 
-                                   // When `cqmf` is set to 1, an interrupt is generated 
-                                   // if an interrupt is not already pending 
-                                   // (i.e., `ipsr.cip == 1`) and not masked 
-                                   // (i.e. `cqsr.cie == 0`). To re-enable command 
-                                   // processing, software should clear this bit by 
-                                   // writing 1. 
-        uint32_t cmd_to  :1;       // If the execution of a command leads to a 
-                                   // timeout (e.g. a command to invalidate device ATC 
-                                   // may timeout waiting for a completion), then the 
-                                   // command-queue sets the `cmd_to` bit and stops 
+                                   // the command-queue-memory-fault bit is set to 1 and
+                                   // the command-queue stalls until this bit is cleared.
+                                   // When `cqmf` is set to 1, an interrupt is generated
+                                   // if an interrupt is not already pending
+                                   // (i.e., `ipsr.cip == 1`) and not masked
+                                   // (i.e. `cqsr.cie == 0`). To re-enable command
+                                   // processing, software should clear this bit by
+                                   // writing 1.
+        uint32_t cmd_to  :1;       // If the execution of a command leads to a
+                                   // timeout (e.g. a command to invalidate device ATC
+                                   // may timeout waiting for a completion), then the
+                                   // command-queue sets the `cmd_to` bit and stops
                                    // processing from the command-queue. When `cmd_to` is
-                                   // set to 1 an interrupt is generated if an interrupt 
-                                   // is not already pending (i.e., `ipsr.cip == 1`) and 
-                                   // not masked (i.e. `cqsr.cie == 0`). To re-enable 
-                                   // command processing software should clear this bit 
-                                   // by writing 1. 
+                                   // set to 1 an interrupt is generated if an interrupt
+                                   // is not already pending (i.e., `ipsr.cip == 1`) and
+                                   // not masked (i.e. `cqsr.cie == 0`). To re-enable
+                                   // command processing software should clear this bit
+                                   // by writing 1.
         uint32_t cmd_ill :1;       // If an illegal or unsupported command is fetched and
-                                   // decoded by the command-queue then the command-queue 
+                                   // decoded by the command-queue then the command-queue
                                    // sets the `cmd_ill` bit and stops processing from the
-                                   // command-queue. When `cmd_ill` is set to 1, 
-                                   // an interrupt is generated if not already pending 
-                                   // (i.e. `ipsr.cip == 1`) and not masked 
-                                   // (i.e.  `cqsr.cie == 0`). To re-enable command 
-                                   // processing software should clear this bit by 
-                                   // writing 1. 
-        uint32_t fence_w_ip :1;    // An IOMMU that supports only wired interrupts sets 
-                                   // `fence_w_ip` bit is set to indicate completion of a 
-                                   // `IOFENCE.C` command. An interrupt on setting 
-                                   // `fence_w_ip` if not already pending 
-                                   // (i.e. `ipsr.cip == 1`) and not masked 
-                                   // (i.e. `cqsr.cie == 0`) and `fence_w_ip` is 0. 
+                                   // command-queue. When `cmd_ill` is set to 1,
+                                   // an interrupt is generated if not already pending
+                                   // (i.e. `ipsr.cip == 1`) and not masked
+                                   // (i.e.  `cqsr.cie == 0`). To re-enable command
+                                   // processing software should clear this bit by
+                                   // writing 1.
+        uint32_t fence_w_ip :1;    // An IOMMU that supports only wired interrupts sets
+                                   // `fence_w_ip` bit is set to indicate completion of a
+                                   // `IOFENCE.C` command. An interrupt on setting
+                                   // `fence_w_ip` if not already pending
+                                   // (i.e. `ipsr.cip == 1`) and not masked
+                                   // (i.e. `cqsr.cie == 0`) and `fence_w_ip` is 0.
                                    // To re-enable interrupts on `IOFENCE.C` completion
                                    // software should clear this bit by writing 1.
-                                   // This bit is reserved if the IOMMU uses MSI. 
+                                   // This bit is reserved if the IOMMU uses MSI.
         uint32_t rsvd1   :4;       // Reserved for standard use
         uint32_t cqon    :1;       // The command-queue is active if `cqon` is 1.
-                                   // IOMMU behavior on changing cqb when busy is 1 or 
-                                   // `cqon` is 1 is implementation defined. The software 
-                                   // recommended sequence to change `cqb` is to first 
-                                   // disable the command-queue by clearing cqen and 
-                                   // waiting for both `busy` and `cqon` to be 0 before 
+                                   // IOMMU behavior on changing cqb when busy is 1 or
+                                   // `cqon` is 1 is implementation defined. The software
+                                   // recommended sequence to change `cqb` is to first
+                                   // disable the command-queue by clearing cqen and
+                                   // waiting for both `busy` and `cqon` to be 0 before
                                    // changing the `cqb`.
         uint32_t busy    :1;       // A write to `cqcsr` may require the IOMMU to perform
-                                   // many operations that may not occur synchronously 
-                                   // to the write. When a write is observed by the 
+                                   // many operations that may not occur synchronously
+                                   // to the write. When a write is observed by the
                                    // `cqcsr`, the `busy` bit is set to 1.
                                    //
-                                   // When the `busy` bit is 1, behavior of additional 
-                                   // writes to the `cqcsr` is implementation defined. 
+                                   // When the `busy` bit is 1, behavior of additional
+                                   // writes to the `cqcsr` is implementation defined.
                                    // Some implementations may ignore the second write and
-                                   // others may perform the actions determined by the 
+                                   // others may perform the actions determined by the
                                    // second write.
                                    //
-                                   // Software must verify that the busy bit is 0 before 
-                                   // writing to the `cqcsr`. An IOMMU that can complete 
+                                   // Software must verify that the busy bit is 0 before
+                                   // writing to the `cqcsr`. An IOMMU that can complete
                                    // controls synchronously may hard-wire this bit to 0.
                                    //
-                                   // An IOMMU that can complete these operations 
+                                   // An IOMMU that can complete these operations
                                    // synchronously may hard-wire this bit to 0.
         uint32_t rsvd2   :10;      // Reserved for standard use
         uint32_t custom  :4;       // _Designated for custom use._
@@ -471,9 +471,9 @@ typedef union {
     uint64_t raw;
 } icvec_t;
 
-// The tr_req_iova is a 64-bit WARL register used to 
+// The tr_req_iova is a 64-bit WARL register used to
 // implement a translation-request interface for
-// debug. This register is present when 
+// debug. This register is present when
 // capabilities.DBG == 1.
 typedef union {
     struct {
@@ -482,41 +482,41 @@ typedef union {
     };
     uint64_t raw;
 } tr_req_iova_t;
-// The tr_req_ctrl is a 64-bit WARL register used to 
+// The tr_req_ctrl is a 64-bit WARL register used to
 // implement a translation-request interface for
-// debug. This register is present when 
+// debug. This register is present when
 // capabilities.DBG == 1.
 typedef union {
     struct {
-        uint64_t go_busy:1;    // This bit is set to indicate a valid request 
-                               // has been setup in the tr_req_iova/tr_req_ctrl 
+        uint64_t go_busy:1;    // This bit is set to indicate a valid request
+                               // has been setup in the tr_req_iova/tr_req_ctrl
                                // registers for the IOMMU to translate.
-                               // The IOMMU indicates completion of the requested 
-                               // translation by clearing this bit to 0. On 
-                               // completion, the results of the translation are 
+                               // The IOMMU indicates completion of the requested
+                               // translation by clearing this bit to 0. On
+                               // completion, the results of the translation are
                                // in tr_response register.
 
-        uint64_t Priv:1;       // When set to 1 the requests needs Privileged Mode 
+        uint64_t Priv:1;       // When set to 1 the requests needs Privileged Mode
                                // access for this translation.
-        uint64_t Exe:1;        // When set to 1 the request needs execute access 
+        uint64_t Exe:1;        // When set to 1 the request needs execute access
                                // for this translation.
-        uint64_t NW:1;         // When set to 1 the request only needs read-only 
+        uint64_t NW:1;         // When set to 1 the request only needs read-only
                                // access for this translation.
         uint64_t reserved0:8;  // Reserved for standard use
-        uint64_t PID:20;       // When PV is 1 this field provides the process_id for 
+        uint64_t PID:20;       // When PV is 1 this field provides the process_id for
                                // this translation request.
         uint64_t PV:1;         // When set to 1 the PID field of the register is valid.
         uint64_t reserved:3;   // Reserved for standard use
         uint64_t custom:4;     // Designated for custom use
-        uint64_t DID:24;       // This field provides the device_id for this 
+        uint64_t DID:24;       // This field provides the device_id for this
                                // translation request.
     };
     uint64_t raw;
 } tr_req_ctrl_t;
 
-// The tr_response is a 64-bit RO register used to hold 
-// the results of a translation requested using the 
-// translation-request interface. This register is present 
+// The tr_response is a 64-bit RO register used to hold
+// the results of a translation requested using the
+// translation-request interface. This register is present
 // when capabilities.DBG == 1
 typedef union {
     struct {
@@ -542,7 +542,7 @@ typedef union {
                                // If the S bit is 0, then the size of the translation is 4 KiB - a page.
                                // If the S bit is 1, then the translation resulted in a super-page, and
                                // the size of the super-page is encoded in the PPN itself. If scanning
-                               // from bit position 0 to bit position 43, the first bit with a value 
+                               // from bit position 0 to bit position 43, the first bit with a value
                                // of 0 at position X, then the super-page size is 2X+1 * 4 KiB.
                                // If X is not 0, then all bits at position 0 through X-1 are each
                                // encoded with a value of 1.

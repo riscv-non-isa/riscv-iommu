@@ -29,14 +29,14 @@ typedef struct {
     // PPN and size
     uint64_t PPN;
     uint8_t  S;
-    uint32_t lru; 
+    uint32_t lru;
     uint8_t  valid;
 } tlb_t;
 // Device directory cache
 typedef struct {
     device_context_t DC;
     uint32_t         DID;
-    uint32_t         lru; 
+    uint32_t         lru;
     uint8_t          valid;
 } ddt_cache_t;
 // Process directory cache
@@ -44,7 +44,7 @@ typedef struct {
     process_context_t PC;
     uint32_t          DID;
     uint32_t          PID;
-    uint32_t          lru; 
+    uint32_t          lru;
     uint8_t           valid;
 } pdt_cache_t;
 
@@ -68,21 +68,20 @@ extern uint8_t
 lookup_ioatc_iotlb(
     uint64_t iova, uint8_t check_access_perms,
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
-    uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
+    uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID,
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
     pte_t *vs_pte, gpte_t *g_pte);
 
-extern uint8_t 
+extern uint8_t
 lookup_ioatc_dc(uint32_t device_id, device_context_t *DC);
 
-extern void 
+extern void
 cache_ioatc_dc(uint32_t device_id, device_context_t *DC);
 
-extern uint8_t 
+extern uint8_t
 lookup_ioatc_pc(uint32_t device_id, uint32_t process_id, process_context_t *PC);
 
 extern void
 cache_ioatc_pc(uint32_t device_id, uint32_t process_id, process_context_t *PC);
 
 #endif // __IOMMU_ATC_H__
-

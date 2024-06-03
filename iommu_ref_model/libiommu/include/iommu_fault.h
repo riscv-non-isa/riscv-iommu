@@ -7,7 +7,7 @@
 
 // The TTYP field reports inbound transaction type
 // Fault record `TTYP` field encodings
-// |TTYP   | Description 
+// |TTYP   | Description
 // |0      | None. Fault not caused by an inbound transaction.
 // |1      | Untranslated read for execute transaction
 // |2      | Untranslated read transaction
@@ -17,7 +17,7 @@
 // |6      | Translated read transaction
 // |7      | Translated write/AMO transaction
 // |8      | PCIe ATS Translation Request
-// |9      | Message Request 
+// |9      | Message Request
 // |10 - 31| Reserved
 // |31 - 63| Reserved for custom use
 #define TTYPE_NONE                                0

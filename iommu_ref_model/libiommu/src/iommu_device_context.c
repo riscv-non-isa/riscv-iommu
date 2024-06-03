@@ -8,7 +8,7 @@ uint8_t do_device_context_configuration_checks(device_context_t *DC);
 
 uint8_t
 locate_device_context(
-    device_context_t *DC, uint32_t device_id, 
+    device_context_t *DC, uint32_t device_id,
     uint8_t pid_valid, uint32_t process_id, uint32_t *cause) {
     uint64_t a;
     uint8_t i, LEVELS, status, DC_SIZE;
@@ -62,8 +62,8 @@ locate_device_context(
     //ddtp--->+--+ +->+--+ +->+--+  ddtp--->+--+ +->+--+  ddtp--->+--+
     //
 
-    // The DDT used to locate the DC may be configured to be a 1, 2, or 3 level 
-    // radix-table depending on the maximum width of the device_id supported. 
+    // The DDT used to locate the DC may be configured to be a 1, 2, or 3 level
+    // radix-table depending on the maximum width of the device_id supported.
     // The partitioning of the device_id to obtain the device directory indexes
     // (DDI) to traverse the DDT radix-tree table are as follows:
     // If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
@@ -87,7 +87,7 @@ locate_device_context(
     if ( lookup_ioatc_dc(device_id, DC) == IOATC_HIT )
         return 0;
 
-    // The process to locate the Device-context for transaction 
+    // The process to locate the Device-context for transaction
     // using its `device_id` is as follows:
     // 1. Let `a` be `ddtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
     //    `ddtp.iommu_mode` is `3LVL`, `LEVELS` is three. When `ddtp.iommu_mode` is
@@ -175,7 +175,7 @@ step_8:
     cache_ioatc_dc(device_id, DC);
     return 0;
 }
-uint8_t 
+uint8_t
 do_device_context_configuration_checks(
     device_context_t *DC) {
 
@@ -226,14 +226,14 @@ do_device_context_configuration_checks(
     //    a. `capabilities.PD20` is 0 and `DC.fsc.pdtp.MODE` is `PD20`
     //    b. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
     //    c. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
-    if ( (DC->tc.PDTV == 1) && 
+    if ( (DC->tc.PDTV == 1) &&
          ((DC->fsc.pdtp.MODE != PDTP_Bare) &&
           (DC->fsc.pdtp.MODE != PD20) &&
           (DC->fsc.pdtp.MODE != PD17) &&
           (DC->fsc.pdtp.MODE != PD8)) ) {
         return 1;
     }
-    if ( (DC->tc.PDTV == 1) && 
+    if ( (DC->tc.PDTV == 1) &&
          (((DC->fsc.pdtp.MODE == PD20) && (g_reg_file.capabilities.pd20 == 0)) ||
           ((DC->fsc.pdtp.MODE == PD17) && (g_reg_file.capabilities.pd17 == 0)) ||
           ((DC->fsc.pdtp.MODE == PD8) && (g_reg_file.capabilities.pd8 == 0))) ) {
@@ -241,14 +241,14 @@ do_device_context_configuration_checks(
     }
     // 9. `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` encoding is not valid
     //    encoding as determined by <<IOSATP_MODE_ENC>>
-    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 0) && 
+    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 0) &&
          (DC->fsc.iosatp.MODE != IOSATP_Bare) &&
          (DC->fsc.iosatp.MODE != IOSATP_Sv39) &&
          (DC->fsc.iosatp.MODE != IOSATP_Sv48) &&
          (DC->fsc.iosatp.MODE != IOSATP_Sv57) ) {
         return 1;
     }
-    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 1) && 
+    if ( (DC->tc.PDTV == 0) && (DC->tc.SXL == 1) &&
          (DC->fsc.iosatp.MODE != IOSATP_Bare) &&
          (DC->fsc.iosatp.MODE != IOSATP_Sv32) ) {
         return 1;
@@ -258,7 +258,7 @@ do_device_context_configuration_checks(
     //    .. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
     //    .. `capabilities.Sv48` is 0 and `DC.fsc.iosatp.MODE` is `Sv48`
     //    .. `capabilities.Sv57` is 0 and `DC.fsc.iosatp.MODE` is `Sv57`
-    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 0) && 
+    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 0) &&
          (((DC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
           ((DC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
           ((DC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0))) ) {
@@ -267,7 +267,7 @@ do_device_context_configuration_checks(
     //11. `DC.tc.PDTV` is 0 and and `DC.tc.SXL` is 1 `DC.fsc.iosatp.MODE` is not one of the
     //    supported modes
     //    .. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
-    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 1) && 
+    if ( (DC->tc.PDTV == 0) &&  (DC->tc.SXL == 1) &&
          ((DC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ) {
         return 1;
     }
@@ -277,14 +277,14 @@ do_device_context_configuration_checks(
     }
     //13. `DC.iohgatp.MODE` encoding is not a valid encoding as determined
     //    by <<IOHGATP_MODE_ENC>>
-    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 0) && 
+    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 0) &&
          (DC->iohgatp.MODE != IOHGATP_Bare) &&
          (DC->iohgatp.MODE != IOHGATP_Sv39x4) &&
          (DC->iohgatp.MODE != IOHGATP_Sv48x4) &&
          (DC->iohgatp.MODE != IOHGATP_Sv57x4) ) {
         return 1;
     }
-    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 1) && 
+    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 1) &&
          (DC->iohgatp.MODE != IOHGATP_Bare) &&
          (DC->iohgatp.MODE != IOHGATP_Sv32x4) ) {
         return 1;
@@ -293,7 +293,7 @@ do_device_context_configuration_checks(
     //    a. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
     //    b. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
     //    c. `capabilities.Sv57x4` is 0 and `DC.iohgatp.MODE` is `Sv57x4`
-    if ( (g_reg_file.fctl.gxl == 0) && 
+    if ( (g_reg_file.fctl.gxl == 0) &&
          (((DC->iohgatp.MODE == IOHGATP_Sv39x4) && (g_reg_file.capabilities.Sv39x4 == 0)) ||
           ((DC->iohgatp.MODE == IOHGATP_Sv48x4) && (g_reg_file.capabilities.Sv48x4 == 0)) ||
           ((DC->iohgatp.MODE == IOHGATP_Sv57x4) && (g_reg_file.capabilities.Sv57x4 == 0))) ) {
@@ -301,13 +301,13 @@ do_device_context_configuration_checks(
     }
     //15. `fctl.GXL` is 1 and `DC.iohgatp.MODE` is not a supported mode
     //    a. `capabilities.Sv32x4` is 0 and `DC.iohgatp.MODE` is `Sv32x4`
-    if ( (g_reg_file.fctl.gxl == 1) && 
+    if ( (g_reg_file.fctl.gxl == 1) &&
          ((DC->iohgatp.MODE == IOHGATP_Sv32x4) && (g_reg_file.capabilities.Sv32x4 == 0)) ) {
         return 1;
     }
     //16. `capabilities.MSI_FLAT` is 1 and `DC.msiptp.MODE` is not `Bare`
     //    and not `Flat`
-    if ( (g_reg_file.capabilities.msi_flat == 1) && 
+    if ( (g_reg_file.capabilities.msi_flat == 1) &&
          ((DC->msiptp.MODE != MSIPTP_Off) && (DC->msiptp.MODE != MSIPTP_Flat)) ) {
         return 1;
     }

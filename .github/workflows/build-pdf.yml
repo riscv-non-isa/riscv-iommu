@@ -1,25 +1,27 @@
+---
 name: Create Specification Document
 
 # The workflow is triggered by pull request, push to main, and manual dispatch.
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version, e.g. X.Y.Z:'
+      revision_mark:
+        description: "Set revision mark as Draft, Release or Stable:"
         required: true
-        type: string
-      revision_mark: 
-          description: 'Set revision mark as Draft, Release or Stable:'
-          required: true
-          type: string
-          default: 'Draft'
+        type: choice
+        options:
+          - Development
+          - Stable
+          - Frozen
+          - Ratified
+        default: Development
       prerelease:
-        description: 'Tag as a pre-release?'
+        description: Tag as a pre-release?
         required: false
         type: boolean
         default: true
       draft:
-        description: 'Create release as a draft?'
+        description: Create release as a draft?
         required: false
         type: boolean
         default: false
@@ -33,40 +35,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the repository
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        submodules: 'recursive'
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    # Step 2: Pull the latest RISC-V Docs container image
-    - name: Pull Container
-      run: docker pull riscvintl/riscv-docs-base-container-image:latest
+      - name: Get next version
+        uses: reecetech/version-increment@2024.4.4
+        id: version
+        with:
+          scheme: semver
+          increment: patch
 
-    # Step 3: Build Files
-    - name: Build Files
-      run: make
-      env:
-        VERSION: v${{ github.event.inputs.version }}
-        REVMARK: ${{ github.event.inputs.revision_mark }}
+      # Pull the latest RISC-V Docs container image
+      - name: Pull Container
+        run: docker pull riscvintl/riscv-docs-base-container-image:latest
 
-    # Step 4: Upload the built PDF files as a single artifact
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        path: ${{ github.workspace }}/*.pdf
-        retention-days: 30
+      # Override VERSION and REVMARK for manual workflow dispatch
+      - name: Update environment variables
+        run: |
+          echo "VERSION=v${{ steps.version.outputs.version }}" >> "$GITHUB_ENV"
+          echo "REVMARK=${{ github.event.inputs.revision_mark }}" >> "$GITHUB_ENV"
+        if: github.event_name == 'workflow_dispatch'
 
-    # Create Release
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ github.workspace }}/*.pdf
-        tag_name: v${{ github.event.inputs.version }}
-        name: Release ${{ github.event.inputs.version }}
-        draft: ${{ github.event.inputs.draft }}
-        prerelease: ${{ github.event.inputs.prerelease }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GHTOKEN }}
-      if: github.event_name == 'workflow_dispatch' 
-      # This condition ensures this step only runs for workflow_dispatch events.
+      # Build Files
+      - name: Build Files
+        run: make
+
+      # Upload the built PDF files as a single artifact
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build Artifacts
+          path: ${{ github.workspace }}/build/*.pdf
+          retention-days: 30
+
+      # Create Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.workspace }}/build/*.pdf
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHTOKEN }}
+        if: github.event_name == 'workflow_dispatch'
+        # This condition ensures this step only runs for workflow_dispatch events.

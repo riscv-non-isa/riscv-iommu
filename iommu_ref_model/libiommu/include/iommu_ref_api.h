@@ -14,8 +14,8 @@ extern void write_register(uint16_t offset, uint8_t num_bytes, uint64_t data);
 
 #define FILL_IOATC_ATS_T2GPA  0x01
 #define FILL_IOATC_ATS_ALWAYS 0x02
-extern int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
-                       uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
+extern int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
+                       uint8_t num_vec_bits, uint8_t reset_iommu_mode,
                        uint8_t max_iommu_mode, uint32_t max_devid_mask,
                        uint8_t gxl_writeable, uint8_t fctl_be_writeable,
                        uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities,

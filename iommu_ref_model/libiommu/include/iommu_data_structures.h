@@ -27,7 +27,7 @@ typedef union {
         // invalid requests. A "Page Request" message received from a device is responded to
         // with a "Page Request Group Response" message. Normally, a software handler
         // generates this response message. However, under some conditions the IOMMU itself
-        // may generate a response. 
+        // may generate a response.
         uint64_t EN_PRI:1;
 
         // If the `EN_ATS` bit is 1 and the `T2GPA` bit is set to 1 the IOMMU returns a GPA
@@ -37,7 +37,7 @@ typedef union {
         // in subsequent translated memory access transactions. Usually translated requests
         // use a SPA and need no further translation to be performed by the IOMMU. However
         // when `T2GPA` is 1, translated requests from a device use a GPA and are
-        // translated by the IOMMU using the G-stage page table to a SPA. The `T2GPA` 
+        // translated by the IOMMU using the G-stage page table to a SPA. The `T2GPA`
         // control enables a hypervisor to contain DMA from a device, even if the device
         // misuses the ATS capability and attempts to access memory that is not associated
         // with the VM.
@@ -69,8 +69,8 @@ typedef union {
         // "Page Request" had a PASID.
         uint64_t PRPR:1;
 
-        // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO is 1. 
-        // When capabilities.AMO is 0, these bits are reserved. If GADE is 1, the IOMMU 
+        // The IOMMU supports the 1 setting of GADE and SADE bits if capabilities.AMO is 1.
+        // When capabilities.AMO is 0, these bits are reserved. If GADE is 1, the IOMMU
         // updates A and D bits in G-stage PTEs atomically. If GADE is 0, the IOMMU causes
         // a guest-page-fault corresponding to the original access type if A bit is 0 or if
         // the memory access is a store and the D bit is 0.
@@ -157,9 +157,9 @@ typedef union {
 // IO SATP
 typedef union {
     struct {
-        uint64_t PPN:44; 
-        uint64_t reserved:16; 
-        uint64_t MODE:4; 
+        uint64_t PPN:44;
+        uint64_t reserved:16;
+        uint64_t MODE:4;
     };
     uint64_t raw;
 } iosatp_t;
@@ -199,8 +199,8 @@ typedef union {
     // the guest OS to directly edit the PDT to associate a virtual-address space
     // identified by a VS-stage page table with a `process_id`.
     struct {
-        uint64_t PPN:44; 
-        uint64_t reserved:16; 
+        uint64_t PPN:44;
+        uint64_t reserved:16;
         // Encoding of `pdtp.MODE` field
         // |Value | Name     | Description
         // | 0    | `Bare`   | No translation or protection. First stage translation is
@@ -216,7 +216,7 @@ typedef union {
         // | 4-13 | --       | Reserved
         // |14-15 | --       | Custome
 
-        uint64_t MODE:4; 
+        uint64_t MODE:4;
     } pdtp;
 
     uint64_t raw;
@@ -236,22 +236,22 @@ typedef union {
 #define MSIPTP_Flat 1
 typedef union {
     struct {
-        uint64_t PPN:44; 
+        uint64_t PPN:44;
         uint64_t reserved:16;
-        uint64_t MODE:4; 
+        uint64_t MODE:4;
     };
     uint64_t raw;
 } msiptp_t;
 
-// The MSI address mask (msi_addr_mask) and pattern (msi_addr_pattern) fields are used to 
+// The MSI address mask (msi_addr_mask) and pattern (msi_addr_pattern) fields are used to
 // recognize certain memory writes from the device as being MSIs and to identify the 4-KiB
 // pages of virtual interrupt files in the guest physical address space of the relevant VM.
-// An incoming 32-bit write made by a device is recognized as an MSI write to a virtual 
-// interrupt file if the destination guest physical page matches the supplied address 
-// pattern in all bit positions that are zeros in the supplied address mask. In detail, a 
+// An incoming 32-bit write made by a device is recognized as an MSI write to a virtual
+// interrupt file if the destination guest physical page matches the supplied address
+// pattern in all bit positions that are zeros in the supplied address mask. In detail, a
 // write to guest physical address A is recognized as an MSI to a virtual interrupt file if:
 // (A >> 12) & ~msi_addr_mask = (msi_addr_pattern & ~msi_addr_mask)
-// where >> 12 represents shifting right by 12 bits, an ampersand (&) represents bitwise 
+// where >> 12 represents shifting right by 12 bits, an ampersand (&) represents bitwise
 // logical AND, and ~msi_addr_mask is the bitwise logical complement of the address mask.
 typedef union {
     struct {
@@ -269,7 +269,7 @@ typedef union {
 } msi_addr_pattern_t;
 
 // In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
-// 
+//
 // Base-format device-context
 //   bits:    63:0:'Translation-control (tc)'
 //   bits:  127:64:'IO Hypervisor guest address translation and protection (iohgatp)'
@@ -352,7 +352,7 @@ typedef union {
     uint64_t raw;
 } pc_fsc_t;
 
-// A valid (`V==1`) non-leaf PDT entry holds the PPN of the 
+// A valid (`V==1`) non-leaf PDT entry holds the PPN of the
 // next-level PDT.
 typedef union {
     struct {

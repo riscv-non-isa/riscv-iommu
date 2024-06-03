@@ -20,10 +20,10 @@ uint8_t g_max_iommu_mode;
 uint8_t g_fill_ats_trans_in_ioatc;
 uint32_t g_max_devid_mask;
 
-uint8_t 
+uint8_t
 is_access_valid(
     uint16_t offset, uint8_t num_bytes) {
-    // The IOMMU behavior for register accesses where the 
+    // The IOMMU behavior for register accesses where the
     // address is not aligned to the size of the access or
     // if the access spans multiple registers is undefined
     if ( (num_bytes != 4 && num_bytes != 8) ||       // only 4B & 8B registers in IOMMU
@@ -34,7 +34,7 @@ is_access_valid(
     }
     return 1;
 }
-uint32_t 
+uint32_t
 get_iocountovf() {
     iocountovf_t iocountovf_temp;
     uint8_t i;
@@ -45,7 +45,7 @@ get_iocountovf() {
     return iocountovf_temp.raw;
 }
 
-uint64_t 
+uint64_t
 read_register(
     uint16_t offset, uint8_t num_bytes) {
 
@@ -61,7 +61,7 @@ read_register(
     return ( num_bytes == 4 ) ? g_reg_file.regs4[offset/4] :
                                 g_reg_file.regs8[offset/8];
 }
-void 
+void
 write_register(
     uint16_t offset, uint8_t num_bytes, uint64_t data) {
 
@@ -85,7 +85,7 @@ write_register(
     iohpmevt_t iohpmevt_temp;
     msi_addr_t msi_addr_temp;
     msi_vec_ctrl_t msi_vec_ctrl_temp;
-    hb_to_iommu_req_t req; 
+    hb_to_iommu_req_t req;
     iommu_to_hb_rsp_t rsp;
     uint64_t pa_mask  = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     uint64_t ppn_mask = pa_mask >> 12;
@@ -95,10 +95,10 @@ write_register(
         return;
     }
 
-    // If its a 4B write to a 8B register then merge the new 
+    // If its a 4B write to a 8B register then merge the new
     // write data with current data in register file
     if ( (g_offset_to_size[offset] == 8) && (num_bytes == 4) ) {
-        // read the old 8B  
+        // read the old 8B
         data8 = g_reg_file.regs8[(offset & ~0x7)/8];
         if ( (offset & 0x7) != 0 ) {
             // write to high half - replace high half
@@ -131,22 +131,22 @@ write_register(
     icvec_temp.raw = data4;
     msi_addr_temp.raw = data8;
     msi_vec_ctrl_temp.raw = data4;
-     
+
     switch (offset) {
         case CAPABILITIES_OFFSET:
             // This register is read only
             return;
         case FCTRL_OFFSET:
-            // This register must be readable in any 
+            // This register must be readable in any
             // implementation. An implementation may allow one or more
-            // fields in the register to be writable to support enabling 
+            // fields in the register to be writable to support enabling
             // or disabling the feature controlled by that field.
-            // If software enables or disables a feature when 
+            // If software enables or disables a feature when
             // the IOMMU is not OFF (i.e. ddtp.iommu_mode == Off)
             // then the IOMMU behavior is UNSPECIFIED.
-            // If software enables or disables a feature when the 
+            // If software enables or disables a feature when the
             // IOMMU in-memory queues are enabled (i.e.
-            // cqcsr.cqon/cqen == 1, fqcsr.fqon/cqen == 1, or 
+            // cqcsr.cqon/cqen == 1, fqcsr.fqon/cqen == 1, or
             // pqcsr.pqon/pqen == 1) then the IOMMU
             // behavior is UNSPECIFIED.
             // FCTRL is writeable if IOMMU is bi-endian
@@ -178,7 +178,7 @@ write_register(
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write
             // A write to ddtp may require the IOMMU to perform
-            // many operations that may not occur synchronously to 
+            // many operations that may not occur synchronously to
             // the write. When a write is observed by the ddtp, the
             // busy bit is set to 1. When the busy bit is 1, behavior of
             // additional writes to the ddtp is implementation
@@ -193,7 +193,7 @@ write_register(
             // synchronously may hard-wire this bit to 0
             if ( g_reg_file.ddtp.busy )
                 return;
-            // If a illegal value written to ddtp.iommu_mode then 
+            // If a illegal value written to ddtp.iommu_mode then
             // retain the current legal value
             if ( ((ddtp_temp.iommu_mode == Off) ||
                   (ddtp_temp.iommu_mode == DDT_Bare) ||
@@ -225,7 +225,7 @@ write_register(
             // This register is read only
             break;
         case CQT_OFFSET:
-            g_reg_file.cqt.index = cqt_temp.index & 
+            g_reg_file.cqt.index = cqt_temp.index &
                 ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
             break;
         case FQB_OFFSET:
@@ -248,7 +248,7 @@ write_register(
             g_reg_file.fqh.index = 0;
             break;
         case FQH_OFFSET:
-            g_reg_file.fqh.index = fqh_temp.index & 
+            g_reg_file.fqh.index = fqh_temp.index &
                 ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1);
             break;
         case FQT_OFFSET:
@@ -280,7 +280,7 @@ write_register(
             // This register is read-only 0 if capabilities.ATS is 0.
             if ( g_reg_file.capabilities.ats == 0 )
                 break;
-            g_reg_file.pqh.index = pqh_temp.index & 
+            g_reg_file.pqh.index = pqh_temp.index &
                 ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1);
             break;
         case PQT_OFFSET:
@@ -288,21 +288,21 @@ write_register(
             break;
         case CQCSR_OFFSET:
             // A write to `cqcsr` may require the IOMMU to perform
-            // many operations that may not occur synchronously 
-            // to the write. When a write is observed by the 
+            // many operations that may not occur synchronously
+            // to the write. When a write is observed by the
             // `cqcsr`, the `busy` bit is set to 1.
 
-            // When the `busy` bit is 1, behavior of additional 
-            // writes to the `cqcsr` is implementation defined. 
+            // When the `busy` bit is 1, behavior of additional
+            // writes to the `cqcsr` is implementation defined.
             // Some implementations may ignore the second write and
-            // others may perform the actions determined by the 
+            // others may perform the actions determined by the
             // second write.
 
-            // Software must verify that the busy bit is 0 before 
-            // writing to the `cqcsr`. An IOMMU that can complete 
+            // Software must verify that the busy bit is 0 before
+            // writing to the `cqcsr`. An IOMMU that can complete
             // controls synchronously may hard-wire this bit to 0.
 
-            // An IOMMU that can complete these operations 
+            // An IOMMU that can complete these operations
             // synchronously may hard-wire this bit to 0.
             // The reference model discards the write
             if ( g_reg_file.cqcsr.busy )
@@ -317,16 +317,16 @@ write_register(
             // following setting the `cqen` to 1. During
             // this delay the `busy` bit is 1. When the command
             // queue is active, the `cqon` bit reads 1.
-            // When `cqen` is changed from 1 to 0, the command 
-            // queue may stay active till the commands already 
-            // fetched from the command-queue are being processed 
-            // and/or there are outstanding implicit loads from 
-            // the command-queue.  When the command-queue turns 
+            // When `cqen` is changed from 1 to 0, the command
+            // queue may stay active till the commands already
+            // fetched from the command-queue are being processed
+            // and/or there are outstanding implicit loads from
+            // the command-queue.  When the command-queue turns
             // off, the `cqon` bit reads 0.
-            // When the `cqon` bit reads 0, the IOMMU guarantees 
-            // that no implicit memory accesses to the command 
-            // queue are in-flight and the command-queue will not 
-            // generate new implicit loads to the queue memory. 
+            // When the `cqon` bit reads 0, the IOMMU guarantees
+            // that no implicit memory accesses to the command
+            // queue are in-flight and the command-queue will not
+            // generate new implicit loads to the queue memory.
             if ( g_reg_file.cqcsr.cqen != cqcsr_temp.cqen ) {
                 // cqen going from 0->1 or 1->0
                 if ( cqcsr_temp.cqen == 1 ) {
@@ -345,8 +345,8 @@ write_register(
                     g_reg_file.cqcsr.cqen = 0;
                 }
             }
-            // Command-queue-interrupt-enable bit enables 
-            // generation of interrupts from command-queue when 
+            // Command-queue-interrupt-enable bit enables
+            // generation of interrupts from command-queue when
             // set to 1.
             g_reg_file.cqcsr.cie = cqcsr_temp.cie;
 
@@ -360,19 +360,19 @@ write_register(
             g_reg_file.cqcsr.busy = 0;
             return;
         case FQCSR_OFFSET:
-            // Write to `fqcsr` may require the IOMMU to perform 
-            // many operations that may not occur synchronously to 
+            // Write to `fqcsr` may require the IOMMU to perform
+            // many operations that may not occur synchronously to
             // the write.
-            // When a write is observed by the fqcsr, the `busy` 
-            // bit is set to 1. When the `busy` bit is 1, behavior 
-            // of additional writes to the `fqcsr` are 
-            // implementation defined. Some implementations may 
-            // ignore the second write and others may perform the 
+            // When a write is observed by the fqcsr, the `busy`
+            // bit is set to 1. When the `busy` bit is 1, behavior
+            // of additional writes to the `fqcsr` are
+            // implementation defined. Some implementations may
+            // ignore the second write and others may perform the
             // actions determined by the second write.
-            // Software should ensure that the `busy` bit is 0 
-            // before writing to the `fqcsr`. 
-            // An IOMMU that can complete controls synchronously 
-            // may hard-wire this bit to 0. 
+            // Software should ensure that the `busy` bit is 0
+            // before writing to the `fqcsr`.
+            // An IOMMU that can complete controls synchronously
+            // may hard-wire this bit to 0.
             if ( g_reg_file.fqcsr.busy )
                 return;
             // First set the busy bit
@@ -408,8 +408,8 @@ write_register(
                     g_reg_file.fqcsr.fqen = 0;
                 }
             }
-            // Fault-queue-interrupt-enable bit enables 
-            // generation of interrupts from command-queue when 
+            // Fault-queue-interrupt-enable bit enables
+            // generation of interrupts from command-queue when
             // set to 1.
             g_reg_file.fqcsr.fie = fqcsr_temp.fie;
             // Update the RW1C bits - clear if written to 1
@@ -421,19 +421,19 @@ write_register(
             g_reg_file.fqcsr.busy = 0;
             break;
         case PQCSR_OFFSET:
-            // Write to `pqcsr` may require the IOMMU to perform 
-            // many operations that may not occur synchronously to 
+            // Write to `pqcsr` may require the IOMMU to perform
+            // many operations that may not occur synchronously to
             // the write.
-            // When a write is observed by the `pqcsr`, the `busy` 
-            // bit is set to 1. When the `busy` bit is 1, behavior 
-            // of additional writes to the `fqcsr` are 
-            // implementation defined. Some implementations may 
-            // ignore the second write and others may perform the 
+            // When a write is observed by the `pqcsr`, the `busy`
+            // bit is set to 1. When the `busy` bit is 1, behavior
+            // of additional writes to the `fqcsr` are
+            // implementation defined. Some implementations may
+            // ignore the second write and others may perform the
             // actions determined by the second write.
-            // Software should ensure that the `busy` bit is 0 
-            // before writing to the `fqcsr`. 
-            // An IOMMU that can complete controls synchronously 
-            // may hard-wire this bit to 0. 
+            // Software should ensure that the `busy` bit is 0
+            // before writing to the `fqcsr`.
+            // An IOMMU that can complete controls synchronously
+            // may hard-wire this bit to 0.
             if ( g_reg_file.pqcsr.busy ) {
                 return;
             }
@@ -475,8 +475,8 @@ write_register(
                     g_reg_file.pqcsr.pqen = 0;
                 }
             }
-            // page-request-queue-interrupt-enable bit enables 
-            // generation of interrupts from page-request-queue when 
+            // page-request-queue-interrupt-enable bit enables
+            // generation of interrupts from page-request-queue when
             // set to 1.
             g_reg_file.pqcsr.pie = pqcsr_temp.pie;
             // Update the RW1C bits - clear if written to 1
@@ -488,11 +488,11 @@ write_register(
             g_reg_file.pqcsr.busy = 0;
             break;
         case IPSR_OFFSET:
-            // This 32-bits register (RW1C) reports the pending 
-            // interrupts which require software service. Each 
+            // This 32-bits register (RW1C) reports the pending
+            // interrupts which require software service. Each
             // interrupt-pending bit in the register corresponds to
-            // a interrupt source in the IOMMU. When an 
-            // interrupt-pending bit in the register is set to 1 the 
+            // a interrupt source in the IOMMU. When an
+            // interrupt-pending bit in the register is set to 1 the
             // IOMMU will not signal another interrupt from that source till
             // software clears that interrupt-pending bit by writing 1 to clear it.
             // Update the RW1C bits - clear if written to 1
@@ -500,7 +500,7 @@ write_register(
             // the bit from 1->0. If the conditions to set that bit are still present
             // (See <<IPSR_FIELDS>>) or if they occur after the bit is cleared then that
             // bit transitions again from 0->1.
-            // Clear cip and pend interrupt again if there are unacknowledge 
+            // Clear cip and pend interrupt again if there are unacknowledge
             // interrupts from CQ and if CQ interrupts are enabled
             if ( ipsr_temp.cip == 1 )
                 g_reg_file.ipsr.cip = 0;
@@ -508,12 +508,12 @@ write_register(
                 if ( (g_reg_file.cqcsr.cmd_to ||
                       g_reg_file.cqcsr.cmd_ill ||
                       g_reg_file.cqcsr.cqmf ||
-                      g_reg_file.cqcsr.fence_w_ip) && 
+                      g_reg_file.cqcsr.fence_w_ip) &&
                      (g_reg_file.cqcsr.cie == 1) ) {
                     generate_interrupt(COMMAND_QUEUE);
                 }
             }
-            // Clear fip and pend interrupt again If there are unacknowledge 
+            // Clear fip and pend interrupt again If there are unacknowledge
             // interrupts from FQ and if FQ interrupts are enabled
             if ( ipsr_temp.fip == 1 )
                 g_reg_file.ipsr.fip = 0;
@@ -525,7 +525,7 @@ write_register(
                 }
             }
 
-            // Clear pip and pend interrupt again If there are unacknowledge 
+            // Clear pip and pend interrupt again If there are unacknowledge
             // interrupts from PQ and if PQ interrupts are enabled
             if ( ipsr_temp.pip == 1 )
                 g_reg_file.ipsr.pip = 0;
@@ -552,7 +552,7 @@ write_register(
         case IOHPMCYCLES_OFFSET:
             // This register is read-only 0 if capabilities.HPM is 0
             if ( g_reg_file.capabilities.hpm == 1 ) {
-                g_reg_file.iohpmcycles.counter = 
+                g_reg_file.iohpmcycles.counter =
                     iohpmcycles_temp.counter &
                     ((g_hpmctr_bits > 63) ? ((1UL << 63) - 1) : ((1UL << g_hpmctr_bits) - 1));
                 g_reg_file.iohpmcycles.of = iohpmcycles_temp.of;
@@ -590,7 +590,7 @@ write_register(
         case IOHPMCTR30_OFFSET:
         case IOHPMCTR31_OFFSET:
             // These register are read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 ) { 
+            if ( g_reg_file.capabilities.hpm == 1 ) {
                 ctr_num = ((offset - IOHPMCTR1_OFFSET)/8) + 1;
                 // Writes discarded to non implemented HPM counters
                 if ( ctr_num <= (g_num_hpm - 1) )  {
@@ -632,7 +632,7 @@ write_register(
         case IOHPMEVT30_OFFSET:
         case IOHPMEVT31_OFFSET:
             // These register are read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 ) { 
+            if ( g_reg_file.capabilities.hpm == 1 ) {
                 ctr_num = ((offset - IOHPMEVT1_OFFSET)/8);
                 iohpmevt_temp.eventID &= g_eventID_mask;
                 // Writes discarded to non implemented HPM counters
@@ -649,9 +649,9 @@ write_register(
             // * IOMMU configurations such as ddtp.iommu_mode, etc. are modified.
             // The reference model ignores writes
             // The `tr_req_iova` is a 64-bit WARL register used to implement a
-            // translation-request interface for debug. This register is present when 
+            // translation-request interface for debug. This register is present when
             // `capabilities.DBG == 1`.
-            if ( g_reg_file.capabilities.dbg == 1 ) { 
+            if ( g_reg_file.capabilities.dbg == 1 ) {
                 if ( g_reg_file.tr_req_ctrl.go_busy == 0 ) {
                     g_reg_file.tr_req_iova.raw = data8 & ~0xFFF;
                 }
@@ -663,9 +663,9 @@ write_register(
             // * IOMMU configurations such as ddtp.iommu_mode, etc. are modified.
             // The reference model ignores writes
             // The `tr_req_ctrl` is a 64-bit WARL register used to implement a
-            // translation-request interface for debug. This register is present when 
+            // translation-request interface for debug. This register is present when
             // `capabilities.DBG == 1`.
-            if ( g_reg_file.capabilities.dbg == 1 ) { 
+            if ( g_reg_file.capabilities.dbg == 1 ) {
                 if ( g_reg_file.tr_req_ctrl.go_busy == 0 ) {
                     g_reg_file.tr_req_ctrl.raw = data8;
                     g_reg_file.tr_req_ctrl.reserved = 0;
@@ -702,19 +702,19 @@ write_register(
             // (`pmiv`) is the vector number assigned to the
             // performance-monitoring-interrupt. This field is
             // read-only 0 if `capabilities.HPM` is 0.
-            if ( g_reg_file.capabilities.hpm == 0 ) { 
+            if ( g_reg_file.capabilities.hpm == 0 ) {
                 icvec_temp.pmiv = 0;
             }
             // The page-request-queue-interrupt-vector (`piv`)
             // is the vector number assigned to the
             // page-request-queue-interrupt. This field is
             // read-only 0 if `capabilities.ATS` is 0.
-            if ( g_reg_file.capabilities.ats == 0 ) { 
+            if ( g_reg_file.capabilities.ats == 0 ) {
                 icvec_temp.piv = 0;
             }
-            // If an implementation only supports a single vector then all 
-            // bits of this register may be hardwired to 0 (WARL). Likewise 
-            // if only two vectors are supported then only bit 0 for each 
+            // If an implementation only supports a single vector then all
+            // bits of this register may be hardwired to 0 (WARL). Likewise
+            // if only two vectors are supported then only bit 0 for each
             // cause could be writable.
             g_reg_file.icvec.pmiv = icvec_temp.pmiv & ((1UL << g_num_vec_bits) - 1);
             g_reg_file.icvec.piv  = icvec_temp.piv & ((1UL << g_num_vec_bits) - 1);
@@ -737,18 +737,18 @@ write_register(
         case MSI_ADDR_13_OFFSET:
         case MSI_ADDR_14_OFFSET:
         case MSI_ADDR_15_OFFSET:
-            // IOMMU that supports MSI implements a MSI configuration table 
-            // that is indexed by the vector from icvec to determine a MSI table entry. 
-            // Each MSI table entry for interrupt vector x has three registers msi_addr_x, 
-            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field 
-            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
-            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
-            // are read-only 0 if the IOMMU does not support MSI 
+            // IOMMU that supports MSI implements a MSI configuration table
+            // that is indexed by the vector from icvec to determine a MSI table entry.
+            // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
+            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
+            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
+            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
+            // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
             if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) ) 
+            if ( x >= (1UL << g_num_vec_bits) )
                 break;
             msi_addr_temp.addr = msi_addr_temp.addr & (pa_mask >> 2);
             g_reg_file.msi_cfg_tbl[x].msi_addr.addr = msi_addr_temp.addr;
@@ -769,18 +769,18 @@ write_register(
         case MSI_DATA_13_OFFSET:
         case MSI_DATA_14_OFFSET:
         case MSI_DATA_15_OFFSET:
-            // IOMMU that supports MSI implements a MSI configuration table 
-            // that is indexed by the vector from icvec to determine a MSI table entry. 
-            // Each MSI table entry for interrupt vector x has three registers msi_addr_x, 
-            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field 
-            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
-            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
-            // are read-only 0 if the IOMMU does not support MSI 
+            // IOMMU that supports MSI implements a MSI configuration table
+            // that is indexed by the vector from icvec to determine a MSI table entry.
+            // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
+            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
+            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
+            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
+            // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
             if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) ) 
+            if ( x >= (1UL << g_num_vec_bits) )
                 break;
             g_reg_file.msi_cfg_tbl[x].msi_data = data4;
             break;
@@ -800,27 +800,27 @@ write_register(
         case MSI_VEC_CTRL_13_OFFSET:
         case MSI_VEC_CTRL_14_OFFSET:
         case MSI_VEC_CTRL_15_OFFSET:
-            // IOMMU that supports MSI implements a MSI configuration table 
-            // that is indexed by the vector from icvec to determine a MSI table entry. 
-            // Each MSI table entry for interrupt vector x has three registers msi_addr_x, 
-            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field 
-            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4 
-            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers 
-            // are read-only 0 if the IOMMU does not support MSI 
+            // IOMMU that supports MSI implements a MSI configuration table
+            // that is indexed by the vector from icvec to determine a MSI table entry.
+            // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
+            // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
+            // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
+            // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
+            // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
             if ( g_reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) ) 
+            if ( x >= (1UL << g_num_vec_bits) )
                 break;
             g_reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m = msi_vec_ctrl_temp.m;
             break;
     }
     return;
 }
-int 
-reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, 
-            uint8_t num_vec_bits, uint8_t reset_iommu_mode, 
+int
+reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
+            uint8_t num_vec_bits, uint8_t reset_iommu_mode,
             uint8_t max_iommu_mode, uint32_t max_devid_mask,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
             uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities,
@@ -831,20 +831,20 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     if ( capabilities.pas > 56 )
         return -1;
     // Only one of MSI, WSI, or BOTH supported
-    if ( capabilities.igs != MSI && 
-         capabilities.igs != WSI && 
+    if ( capabilities.igs != MSI &&
+         capabilities.igs != WSI &&
          capabilities.igs != IGS_BOTH )
         return -1;
     // If IGS_BOTH is not supported then WSI must be 0
     // if MSI is only supported mode else it must be 1
-    if ( capabilities.igs != IGS_BOTH && 
+    if ( capabilities.igs != IGS_BOTH &&
          ((capabilities.igs == MSI && fctl.wsi != 0) ||
           (capabilities.igs == WSI && fctl.wsi == 0)) )
         return -1;
     // Only 15-bit event ID supported
     // Mask must be 0 when hpm not supported
     if ( g_eventID_mask != 0 && capabilities.hpm == 0 )
-        return -1; 
+        return -1;
     // vectors is a number between 1 and 15
     if ( num_vec_bits > 4 )
         return -1;
@@ -857,7 +857,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     if ( (hpmctr_bits < 1 || hpmctr_bits > 64)  &&
          (capabilities.hpm == 1) )
         return -1;
-    if ( hpmctr_bits != 0 && capabilities.hpm == 0 ) 
+    if ( hpmctr_bits != 0 && capabilities.hpm == 0 )
         return -1;
     // Reset value for ddtp.iommu_mode field must be either Off or Bare
     if ( reset_iommu_mode != Off && reset_iommu_mode != DDT_Bare )
@@ -873,9 +873,9 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_max_iommu_mode = max_iommu_mode;
     g_max_devid_mask = max_devid_mask;
     g_fill_ats_trans_in_ioatc = fill_ats_trans_in_ioatc;
-    
+
     // Initialize registers that have resets to 0
-    // The reset default value is 0 for the following registers. 
+    // The reset default value is 0 for the following registers.
     // Section 4.2 - Reset value is implementation-defined for all
     // other registers and/or fields.
     // - fctl
@@ -892,7 +892,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
     g_reg_file.capabilities = capabilities;
     g_reg_file.fctl = fctl;
 
-    // Reset value for ddtp.iommu_mode field must be either Off or Bare. 
+    // Reset value for ddtp.iommu_mode field must be either Off or Bare.
     // The reset value for ddtp.busy field must be 0.
     g_reg_file.ddtp.iommu_mode = reset_iommu_mode;
 

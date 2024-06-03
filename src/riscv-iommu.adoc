@@ -1,21 +1,20 @@
-[[header]]
+= RISC-V IOMMU Architecture Specification
+include::../docs-resources/global-config.adoc[]
+:docgroup: IOMMU Task Group
 :description: RISC-V IOMMU Architecture Specification
-:company: RISC-V.org
 :revdate: 06/2023
 :revnumber: 1.0
 :revremark: This document is Ratified. See http://riscv.org/spec-state for details.
-:url-riscv: http://riscv.org
-:doctype: book
 :preface-title: Preamble
 :colophon:
 :appendix-caption: Appendix
-:imagesdir: images
-:title-logo-image: image:risc-v_logo.svg[pdfwidth=3.25in,align=center]
+:imagesdir: ../docs-resources/images
+:title-logo-image: image:risc-v_logo.png["RISC-V International Logo",pdfwidth=3.25in,align=center]
 // Settings:
 :experimental:
 :reproducible:
 :imagesoutdir: images
-:bibtex-file: iommu.bib
+:bibtex-file: src/iommu.bib
 :bibtex-order: appearance
 :bibtex-style: ieee
 :icons: font
@@ -34,10 +33,19 @@ endif::[]
 :footnote:
 :xrefstyle: short
 
-= RISC-V IOMMU Architecture Specification
-IOMMU Task Group
+// Preamble - Begin
+[preface]
+== List of figures
+list-of::image[hide_empty_section=true, enhanced_rendering=true]
 
-// Preamble
+[preface]
+== List of tables
+list-of::table[hide_empty_section=true, enhanced_rendering=true]
+
+[preface]
+== List of listings
+list-of::listing[hide_empty_section=true, enhanced_rendering=true]
+
 [WARNING]
 .This document is link:http://riscv.org/spec-state[Ratified].
 ====
@@ -47,8 +55,8 @@ follow-on new extension. Ratified extensions are never revised.
 
 [preface]
 == Copyright and license information
-This specification is licensed under the Creative Commons 
-Attribution 4.0 International License (CC-BY 4.0). The full 
+This specification is licensed under the Creative Commons
+Attribution 4.0 International License (CC-BY 4.0). The full
 license text is available at
 https://creativecommons.org/licenses/by/4.0/.
 
@@ -56,6 +64,9 @@ Copyright 2023 by RISC-V International.
 
 [preface]
 include::contributors.adoc[]
+// Preamble - End
+
+:imagesdir: images
 include::iommu_intro.adoc[]
 include::iommu_data_structures.adoc[]
 include::iommu_in_memory_queues.adoc[]

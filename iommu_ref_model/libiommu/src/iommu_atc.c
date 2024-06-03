@@ -16,10 +16,10 @@ cache_ioatc_dc(
     uint32_t device_id, device_context_t *DC) {
     uint8_t i, replace;
     uint32_t lru = 0xFFFFFFFF;
-    
+
     for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
         if ( ddt_cache[i].valid == 0 ) {
-            replace = i; 
+            replace = i;
             break;
         }
     }
@@ -56,10 +56,10 @@ cache_ioatc_pc(
     uint32_t device_id, uint32_t process_id, process_context_t *PC) {
     uint8_t i, replace = 0;
     uint32_t lru = 0xFFFFFFFF;
-    
+
     for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
         if ( pdt_cache[i].valid == 0 ) {
-            replace = i; 
+            replace = i;
             break;
         }
     }
@@ -82,7 +82,7 @@ lookup_ioatc_pc(
     uint32_t device_id, uint32_t process_id, process_context_t *PC) {
     uint8_t i;
     for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
-        if ( pdt_cache[i].valid == 1 && 
+        if ( pdt_cache[i].valid == 1 &&
              pdt_cache[i].DID == device_id &&
              pdt_cache[i].PID == process_id ) {
             *PC = pdt_cache[i].PC;
@@ -103,7 +103,7 @@ cache_ioatc_iotlb(
 
     for ( i = 0; i < TLB_SIZE; i++ ) {
         if ( tlb[i].valid == 0 ) {
-            replace = i; 
+            replace = i;
             break;
         }
     }
@@ -146,7 +146,7 @@ uint8_t
 lookup_ioatc_iotlb(
     uint64_t iova, uint8_t check_access_perms,
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
-    uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID, 
+    uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID,
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
     pte_t *vs_pte, gpte_t *g_pte) {
 
@@ -155,8 +155,8 @@ lookup_ioatc_iotlb(
 
     hit = 0xFF;
     for ( i = 0; i < TLB_SIZE; i++ ) {
-        if ( tlb[i].valid == 1 && 
-             tlb[i].GV == GV && tlb[i].GSCID == GSCID && 
+        if ( tlb[i].valid == 1 &&
+             tlb[i].GV == GV && tlb[i].GSCID == GSCID &&
              tlb[i].PSCV == PSCV && tlb[i].PSCID == PSCID &&
              match_address_range(vpn, tlb[i].vpn, tlb[i].S) ) {
             hit = i;
@@ -182,12 +182,12 @@ lookup_ioatc_iotlb(
     if ( (is_exec  && (tlb[hit].G_X == 0)) ||
          (is_read  && (tlb[hit].G_R == 0)) ||
          (is_write && (tlb[hit].G_W == 0)) ) {
-        // More commonly, implementations contain address-translation caches that 
-        // map guest virtual addresses directly to supervisor physical addresses, 
-        // removing a level of indirection. 
+        // More commonly, implementations contain address-translation caches that
+        // map guest virtual addresses directly to supervisor physical addresses,
+        // removing a level of indirection.
         // If a G-stage permission fault is detected then such caches may not have
-        // GPA to report in the iotval2. A common technique is to treat it as a 
-        // TLB miss and trigger a page walk such that the GPA can be reported if 
+        // GPA to report in the iotval2. A common technique is to treat it as a
+        // TLB miss and trigger a page walk such that the GPA can be reported if
         // the fault is actually detected again by the G-stage page tables
         tlb[hit].valid = 0;
         return IOATC_MISS;
