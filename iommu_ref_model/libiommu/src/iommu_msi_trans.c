@@ -18,9 +18,9 @@ extract(uint64_t data, uint64_t mask) {
 }
 uint8_t
 msi_address_translation(
-    uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
+    uint64_t gpa, uint8_t is_exec, device_context_t *DC,
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
-    uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
+    uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
     uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms ) {
 
     uint64_t A, m, I;
@@ -29,7 +29,7 @@ msi_address_translation(
 
     *iotval2 = 0;
     *is_msi = 0;
-    
+
     if ( DC->msiptp.MODE == MSIPTP_Off )
         return 0;
 
@@ -40,16 +40,16 @@ msi_address_translation(
     //    using the process outlined in <<GET_DC>>.
     // 3. Determine if the address `A` is an access to a virtual interrupt file as
     //    specified in <<MSI_ID>>
-    *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask) == 
+    *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask) ==
                ((DC->msi_addr_pattern.pattern & ~DC->msi_addr_mask.mask)));
 
     // 4. If the address is not determined to be that of a virtual interrupt file then
     //    stop this process and instead use the regular translation data structures to
     //    do the address translation.
-    if ( *is_msi == 0 ) 
+    if ( *is_msi == 0 )
         return 0;
 
-    // 5. Extract an interrupt file number `I` from `A` as 
+    // 5. Extract an interrupt file number `I` from `A` as
     //    `I = extract(A >> 12, DC.msi_addr_mask)`. The bit extract function `extract(x, y)`
     //    discards all bits from `x` whose matching bits in the same positions in the
     //    mask `y` are zeros, and packs the remaining bits from `x` contiguously at the
@@ -105,7 +105,7 @@ msi_address_translation(
 
     //13. If `msipte.M == 3` the PTE is translate R/W mode PTE and the translation
     //    process is as follows:
-    //    a. If any bits or encoding that are reserved for future standard use are 
+    //    a. If any bits or encoding that are reserved for future standard use are
     //       set within msipte, stop and report "MSI PTE misconfigured" (cause = 263).
     //    b. Compute the translated address as `msipte.PPN << 12 | A[11:0]`.
     if ( msipte.M == 3 ) {

@@ -6,7 +6,7 @@
 #include "iommu.h"
 uint8_t
 second_stage_address_translation(
-    uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
+    uint64_t gpa, uint8_t check_access_perms, uint32_t DID,
     uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
@@ -32,19 +32,19 @@ second_stage_address_translation(
         gpte->N = 0;
         gpte->PBMT = PMA;
         // Indicate G-stage page size as largest possible page size
-        if ( g_reg_file.capabilities.Sv57x4 == 1 ) 
+        if ( g_reg_file.capabilities.Sv57x4 == 1 )
             *gst_page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
-        else if ( g_reg_file.capabilities.Sv48x4 == 1 ) 
+        else if ( g_reg_file.capabilities.Sv48x4 == 1 )
             *gst_page_sz = 512UL * 512UL * 512UL * PAGESIZE;
-        else if ( g_reg_file.capabilities.Sv39x4 == 1 ) 
+        else if ( g_reg_file.capabilities.Sv39x4 == 1 )
             *gst_page_sz = 512UL * 512UL * PAGESIZE;
-        else if ( g_reg_file.capabilities.Sv32x4 == 1 ) 
+        else if ( g_reg_file.capabilities.Sv32x4 == 1 )
             *gst_page_sz = 2UL * 512UL * PAGESIZE;
         goto step_8;
     }
 
-    // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32, 
-    //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register 
+    // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32,
+    //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register
     //    must be active, i.e., the effective privilege mode must be S-mode or U-mode.
     if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1 ) {
         vpn[0] = get_bits(21, 12, gpa);
@@ -88,14 +88,14 @@ second_stage_address_translation(
         //   set beyond bit 33.
         gpa_upper_bits = get_bits(63, 34, gpa);
     }
-    // Address bits 63:MAX_GPA must all be zeros, or else a 
+    // Address bits 63:MAX_GPA must all be zeros, or else a
     // guest-page-fault exception occurs.
     if ( gpa_upper_bits != 0 ) return GST_PAGE_FAULT;
 
     i = LEVELS - 1;
 
     // The root page table as determined by `iohgatp.PPN` is 16 KiB and must be aligned
-    // to a 16-KiB boundary.  If the root page table is not aligned to 16 KiB as 
+    // to a 16-KiB boundary.  If the root page table is not aligned to 16 KiB as
     // required, then all entries in that G-stage root page table appear to an IOMMU as
     // `UNSPECIFIED` and any address an IOMMU may compute and use for accessing an
     // entry in the root page table is also `UNSPECIFIED`.
@@ -105,9 +105,9 @@ step_2:
     // Count G stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
 
-    // 2. Let gpte be the value of the PTE at address a+gpa.vpn[i]×PTESIZE. (For 
+    // 2. Let gpte be the value of the PTE at address a+gpa.vpn[i]×PTESIZE. (For
     //    Sv32x4 PTESIZE=4. and for all other modes PTESIZE=8). If accessing pte
-    //    violates a PMA or PMP check, raise an access-fault exception 
+    //    violates a PMA or PMP check, raise an access-fault exception
     //    corresponding to the original access type.
     //    If the address is beyond the maximum physical address width of the machine
     //    then an access fault occurs
@@ -117,10 +117,10 @@ step_2:
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
-    // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or 
+    // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or
     //    encodings that are reserved for future standard use are set within pte,
     //    stop and raise a page-fault exception to the original access type.
-    if ( (gpte->V == 0) || (gpte->R == 0 && gpte->W == 1) || 
+    if ( (gpte->V == 0) || (gpte->R == 0 && gpte->W == 1) ||
          ((gpte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (gpte->PBMT == 3) ||
          (gpte->reserved != 0) )
@@ -128,10 +128,10 @@ step_2:
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
     // algorithm in Section 4.3.2, except that:
-    // a. If the encoding in pte is valid according to Table 5.1, then instead of 
-    //    returning the original value of pte, implicit reads of a NAPOT PTE 
-    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced 
-    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved 
+    // a. If the encoding in pte is valid according to Table 5.1, then instead of
+    //    returning the original value of pte, implicit reads of a NAPOT PTE
+    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced
+    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved
     //    according to Table 5.1, then a page-fault exception must be raised.
     //    i     pte.ppn[i]     Description                   pte.napot bits
     //    0    x xxxx xxx1      Reserved                           −
@@ -141,16 +141,16 @@ step_2:
     //    0    x xxxx 0xxx      Reserved                           −
     //    ≥ 1  x xxxx xxxx      Reserved                           −
     // b. Implicit reads of NAPOT page table entries may create address-translation
-    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which 
-    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
-    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
+    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which
+    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0],
+    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for
     //    the address space identified in satp as loaded by step 0.
     if ( i != 0 && gpte->N ) return GST_PAGE_FAULT;
 
-    // 4. Otherwise, the PTE is valid. If gpte.r = 1 or gpte.x = 1, go to step 5. 
-    //    Otherwise, this PTE is a pointer to the next level of the page table. 
-    //    Let i = i − 1. If i < 0, stop and raise a page-fault exception 
-    //    corresponding to the original access type. Otherwise, let 
+    // 4. Otherwise, the PTE is valid. If gpte.r = 1 or gpte.x = 1, go to step 5.
+    //    Otherwise, this PTE is a pointer to the next level of the page table.
+    //    Let i = i − 1. If i < 0, stop and raise a page-fault exception
+    //    corresponding to the original access type. Otherwise, let
     //    a = gpte.ppn × PAGESIZE and go to step 2.
     if ( gpte->R == 1 || gpte->X == 1 ) goto step_5;
 
@@ -160,22 +160,22 @@ step_2:
     goto step_2;
 
 step_5:
-    // 5. A leaf PTE has been found. Determine if the requested memory access 
-    //    is allowed by the pte.r, pte.w, pte.x, and pte.u bits, given the current 
-    //    privilege mode and the value of the SUM and MXR fields of the mstatus 
-    //    register. If not, stop and raise a page-fault exception corresponding to 
+    // 5. A leaf PTE has been found. Determine if the requested memory access
+    //    is allowed by the pte.r, pte.w, pte.x, and pte.u bits, given the current
+    //    privilege mode and the value of the SUM and MXR fields of the mstatus
+    //    register. If not, stop and raise a page-fault exception corresponding to
     //    the original access type.
     // g-stage page table specifc notes:
-    //    when checking the U bit, the current privilege mode is always taken 
+    //    when checking the U bit, the current privilege mode is always taken
     //    to be U-mode; - impiies that U must be always 1 to be legal
     // For PCIe ATS Translation Requests:
-    //   If the translation could be successfully completed but the requested 
-    //   permissions are not present (Execute requested but no execute permission; 
-    //   no-write not requested and no write permission; no read permission) then a 
+    //   If the translation could be successfully completed but the requested
+    //   permissions are not present (Execute requested but no execute permission;
+    //   no-write not requested and no write permission; no read permission) then a
     //   Success response is returned with the denied permission (R, W or X) set to 0
-    //   and the other permission bits set to value determined from the page tables. 
-    //   The X permission is granted only if the R permission is also granted. 
-    //   Execute-only translations are not compatible with PCIe ATS as PCIe requires 
+    //   and the other permission bits set to value determined from the page tables.
+    //   The X permission is granted only if the R permission is also granted.
+    //   Execute-only translations are not compatible with PCIe ATS as PCIe requires
     //   read permission to be granted if the execute permission is granted.
     //   No faults are caused here - the denied permissions will be reported back in
     //   the ATS completion
@@ -211,8 +211,8 @@ step_5:
         ppn[3] = get_bits(45, 37, gpte->raw);
         ppn[4] = get_bits(53, 46, gpte->raw);
     }
-    // 6. If i > 0 and gpte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; 
-    // stop and raise a page-fault exception corresponding to the original 
+    // 6. If i > 0 and gpte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage;
+    // stop and raise a page-fault exception corresponding to the original
     // access type.
     *gst_page_sz = PAGESIZE;
     if ( i > 0 ) {
@@ -225,17 +225,17 @@ step_5:
                     *gst_page_sz *= 512UL; // 1GiB
             case 1: if ( ppn[0] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 2MiB
-                    if ( iohgatp.MODE == IOHGATP_Sv32x4 && 
+                    if ( iohgatp.MODE == IOHGATP_Sv32x4 &&
                          g_reg_file.fctl.gxl == 1 ) {
                         *gst_page_sz *= 2UL; // 4MiB
                     }
         }
     }
 
-    // a. If the encoding in pte is valid according to Table 5.1, then instead of 
-    //    returning the original value of pte, implicit reads of a NAPOT PTE 
-    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced 
-    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved 
+    // a. If the encoding in pte is valid according to Table 5.1, then instead of
+    //    returning the original value of pte, implicit reads of a NAPOT PTE
+    //    return a copy of pte in which pte.ppn[pte.napot bits − 1 : 0] is replaced
+    //    by vpn[i][pte.napot bits − 1 : 0]. If the encoding in pte is reserved
     //    according to Table 5.1, then a page-fault exception must be raised.
     //    i     pte.ppn[i]     Description                   pte.napot bits
     //    0    x xxxx xxx1      Reserved                           −
@@ -247,7 +247,7 @@ step_5:
     if ( i == 0 && gpte->N && ((gpte->PPN & 0xF) != 0x8) )
         return GST_PAGE_FAULT;
 
-    // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0, 
+    // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0,
     //    If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
     //    `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
     //    access type if A bit is 0 or if the memory access is a store and the D bit is 0.
@@ -257,7 +257,7 @@ step_5:
     //    Perform the following steps atomically:
     //    – Compare pte to the value of the PTE at address a + va.vpn[i] × PTESIZE.
     //    – If the values match, set pte.a to 1 and, if the original memory access is a store,
-    //      also set pte.d to 1. 
+    //      also set pte.d to 1.
     //    – If the comparison fails, return to step 2
     if ( (gpte->A == 1) && ( (gpte->D == 1) || (is_write == 0) || (gpte->W == 0) ) ) goto step_8;
 
@@ -294,11 +294,11 @@ step_8:
     // 8. The translation is successful.
 
     // b. Implicit reads of NAPOT page table entries may create address-translation
-    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which 
-    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0], 
-    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for 
+    //    cache entries mapping a + va.vpn[j] × PTESIZE to a copy of pte in which
+    //    pte.ppn[pte.napot bits − 1 : 0] is replaced by vpn[0][pte.napot bits − 1 : 0],
+    //    for any or all j such that j[8 : napot bits] = i[8 : napot bits], all for
     //    the address space identified in satp as loaded by step 0.
-    if ( gpte->N ) 
+    if ( gpte->N )
         gpte->PPN = (gpte->PPN & ~0xF) | ((gpa / PAGESIZE) & 0xF);
 
     // The translated physical address is given as follows:

@@ -7,7 +7,7 @@
 
 uint8_t
 locate_process_context(
-    process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id, 
+    process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id,
     uint32_t *cause, uint64_t *iotval2, uint8_t TTYP) {
     uint64_t a, gst_page_sz;
     uint8_t i, LEVELS, status, gst_fault;
@@ -15,14 +15,14 @@ locate_process_context(
     pdte_t pdte;
     uint16_t PDI[3];
 
-    // The device-context provides the PDT root page PPN (pdtp.ppn). 
+    // The device-context provides the PDT root page PPN (pdtp.ppn).
     // When DC.iohgatp.mode is not Bare, pdtp.PPN as well as pdte.PPN
     // are Guest Physical Addresses (GPA) which must be translated into
-    // System Physical Addresses (SPA) using the G-stage page table 
+    // System Physical Addresses (SPA) using the G-stage page table
     // determined by DC.iohgatp.
 
-    // The PDT may be configured to be a 1, 2, or 3 level radix table 
-    // depending on the maximum width of the process_id supported for 
+    // The PDT may be configured to be a 1, 2, or 3 level radix table
+    // depending on the maximum width of the process_id supported for
     // that device. The partitioning of the process_id to obtain the process
     // directory indices (PDI) to traverse the PDT radix-tree table are as follows:
     PDI[0] = get_bits(7,   0, process_id);
@@ -54,15 +54,15 @@ locate_process_context(
     //         |  | |  |  | |  |  |          |  | |  |  |         |  |
     // pdtp--->+--+ +->+--+ +->+--+  pdtp--->+--+ +->+--+ pdtp--->+--+
 
-    // The process to locate the Process-context for a transaction 
+    // The process to locate the Process-context for a transaction
     // using its process_id is as follows:
 
     // Determine if there is a cached device context
     if ( lookup_ioatc_pc(device_id, process_id, PC) == IOATC_HIT )
         return 0;
 
-    // 1. Let a be pdtp.PPN x 2^12 and let i = LEVELS - 1. When pdtp.MODE 
-    //    is PD20, LEVELS is three. When pdtp.MODE is PD17, LEVELS is two. 
+    // 1. Let a be pdtp.PPN x 2^12 and let i = LEVELS - 1. When pdtp.MODE
+    //    is PD20, LEVELS is three. When pdtp.MODE is PD17, LEVELS is two.
     //    When pdtp.MODE is PD8, LEVELS is one.
     a = DC->fsc.pdtp.PPN * PAGESIZE;
     if ( DC->fsc.pdtp.MODE == PD20 ) LEVELS = 3;
@@ -73,12 +73,12 @@ locate_process_context(
 step_2:
     a = a + ((i == 0) ? (PDI[i] * 16) : (PDI[i] * 8));
     // 2. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
-    //    to translate `a` to a SPA as an implicit memory access. If faults 
+    //    to translate `a` to a SPA as an implicit memory access. If faults
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
     //    is used in subsequent steps.
     if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, 1, 0, 0, 1, process_id,
-                           0, 0, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1), 
+                           0, 0, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
                            DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SXL, &a,
                            &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) {
@@ -162,7 +162,7 @@ step_9:
     }
     //11. If any bits or encoding that are reserved for future standard use are set
     //     within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-    if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 || 
+    if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 ||
          PC->fsc.iosatp.reserved != 0 ||
          ((PC->fsc.iosatp.MODE != IOSATP_Bare) &&
           (PC->fsc.iosatp.MODE != IOSATP_Sv32) &&
@@ -171,7 +171,7 @@ step_9:
           (PC->fsc.iosatp.MODE != IOSATP_Sv57)) ) {
         *cause = 267;     // PDT entry not misconfigured
         return 1;
-    } 
+    }
     //12. If any of the following conditions are true then stop and report
     //     "PDT entry misconfigured" (cause = 267).
     //    a. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
@@ -189,5 +189,3 @@ step_9:
     cache_ioatc_pc(device_id, process_id, PC);
     return 0;
 }
-
-

@@ -5,7 +5,7 @@
 
 #include "iommu.h"
 
-void 
+void
 iommu_translate_iova(
     hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg) {
 
@@ -85,11 +85,11 @@ iommu_translate_iova(
     //    a. Transaction type is a Translated request (read, write/AMO, read-for-execute)
     //       or is a PCIe ATS Translation request.
     if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
-        if ( req->tr.at == ADDR_TYPE_TRANSLATED || 
+        if ( req->tr.at == ADDR_TYPE_TRANSLATED ||
              req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) {
-            cause = 260; // "Transaction type disallowed" 
+            cause = 260; // "Transaction type disallowed"
             goto stop_and_report_fault;
-        } 
+        }
         pa = req->tr.iova;
         page_sz = PAGESIZE;
         vs_pte.X = vs_pte.W = vs_pte.R = 1;
@@ -120,14 +120,14 @@ iommu_translate_iova(
     //    a. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
     //    b. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
     if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL && DDI[2] != 0 ) {
-        cause = 260; // "Transaction type disallowed" 
+        cause = 260; // "Transaction type disallowed"
         goto stop_and_report_fault;
-    } 
-        
+    }
+
     if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
-        cause = 260; // "Transaction type disallowed" 
+        cause = 260; // "Transaction type disallowed"
         goto stop_and_report_fault;
-    } 
+    }
 
     // 6. Use `device_id` to then locate the device-context (`DC`) as specified in
     //    section 2.4.1 of IOMMU specification.
@@ -144,29 +144,29 @@ iommu_translate_iova(
     //   * Transaction has a valid `process_id` and `DC.tc.PDTV` is 1 and the
     //     `process_id` is wider than supported by `pdtp.MODE`.
     //   * Transaction type is not supported by the IOMMU.
-    if ( DC.tc.EN_ATS == 0 && ( req->tr.at == ADDR_TYPE_TRANSLATED || 
+    if ( DC.tc.EN_ATS == 0 && ( req->tr.at == ADDR_TYPE_TRANSLATED ||
                                 req->tr.at == ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST) ) {
-        cause = 260; // "Transaction type disallowed" 
+        cause = 260; // "Transaction type disallowed"
         goto stop_and_report_fault;
-    } 
+    }
 
     if ( req->pid_valid && DC.tc.PDTV == 0 ) {
-        cause = 260; // "Transaction type disallowed" 
+        cause = 260; // "Transaction type disallowed"
         goto stop_and_report_fault;
-    } 
+    }
 
     if ( req->pid_valid && DC.tc.PDTV == 1 ) {
         if ( DC.fsc.pdtp.MODE == PD17 && req->process_id > ((1UL << 17) - 1) ) {
-            cause = 260; // "Transaction type disallowed" 
+            cause = 260; // "Transaction type disallowed"
             goto stop_and_report_fault;
         }
         if ( DC.fsc.pdtp.MODE == PD8 && (req->process_id > ((1UL << 8) - 1)) ) {
-            cause = 260; // "Transaction type disallowed" 
+            cause = 260; // "Transaction type disallowed"
             goto stop_and_report_fault;
         }
     }
 
-    // 8. If request is a Translated request and DC.tc.T2GPA is 0 then the translation 
+    // 8. If request is a Translated request and DC.tc.T2GPA is 0 then the translation
     //    process is complete.  Go to step 21
     if ( (req->tr.at == ADDR_TYPE_TRANSLATED) && (DC.tc.T2GPA == 0) ) {
         pa = req->tr.iova;
@@ -178,7 +178,7 @@ iommu_translate_iova(
         goto step_20;
     }
 
-    // 9. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA. 
+    // 9. If request is a Translated request and DC.tc.T2GPA is 1 then the IOVA is a GPA.
     //    Go to step 17 with following page table information:
     //    ◦ Let A bit the IOVA (the IOVA is a GPA)
     //    ◦ Let iosatp.MODE be Bare
@@ -191,12 +191,12 @@ iommu_translate_iova(
         goto step_17;
     }
 
-    //10. If `DC.tc.pdtv` is set to 0 then go to step 16 with the following 
+    //10. If `DC.tc.pdtv` is set to 0 then go to step 16 with the following
     //    page table information:
     //    * Let `iosatp.MODE` be value in `DC.fsc.MODE` field
     //    * Let `iosatp.PPN` be value in `DC.fsc.PPN` field
     //    * Let `PSCID` be value in `DC.ta.PSCID` field
-    //    * Let `iohgatp` be value in `DC.iohgatp` field 
+    //    * Let `iohgatp` be value in `DC.iohgatp` field
     //    * If a G-stage page table is not active in the device-context
     //      (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
     //      it is a VS-stage page table.
@@ -238,11 +238,11 @@ iommu_translate_iova(
     if ( locate_process_context(&PC, &DC, req->device_id, req->process_id, &cause, &iotval2, TTYP) )
         goto stop_and_report_fault;
 
-    // 15. if any of the following conditions hold then stop and report 
-    //     "Transaction type disallowed" (cause = 260).  
+    // 15. if any of the following conditions hold then stop and report
+    //     "Transaction type disallowed" (cause = 260).
     //     a. The transaction requests supervisor privilege but PC.ta.ENS is not set.
     if ( PC.ta.ENS == 0 && req->pid_valid && req->priv_req ) {
-        cause = 260; // "Transaction type disallowed" 
+        cause = 260; // "Transaction type disallowed"
         goto stop_and_report_fault;
     }
 
@@ -250,7 +250,7 @@ iommu_translate_iova(
     //     * Let `iosatp.MODE` be value in `PC.fsc.MODE` field
     //     * Let `iosatp.PPN` be value in `PC.fsc.PPN` field
     //     * Let `PSCID` be value in `PC.ta.PSCID` field
-    //     * Let `iohgatp` be value in `DC.iohgatp` field 
+    //     * Let `iohgatp` be value in `DC.iohgatp` field
     //     * If a G-stage page table is not active in the device-context
     //       (`DC.iohgatp.mode` is `Bare`) then `iosatp` is a a S-stage page-table else
     //       it is a VS-stage page table.
@@ -275,7 +275,7 @@ step_17:
     PID   = req->process_id;
     check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
     if ( (ioatc_status = lookup_ioatc_iotlb(req->tr.iova, check_access_perms, priv, is_read, is_write,
-                  is_exec, SUM, PSCV, PSCID, GV, GSCID, &cause, &pa, &page_sz, 
+                  is_exec, SUM, PSCV, PSCID, GV, GSCID, &cause, &pa, &page_sz,
                   &vs_pte, &g_pte)) == IOATC_FAULT )
         goto stop_and_report_fault;
 
@@ -289,7 +289,7 @@ step_17:
                                         GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
                                         &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
         goto stop_and_report_fault;
-    
+
     // 18. If MSI address translations using MSI page tables is enabled
     //     (i.e., `DC.msiptp.MODE != Off`) then the MSI address translation process
     //     specified in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be
@@ -306,7 +306,7 @@ step_17:
     //     cite:[PRIV] to translate the GPA `A` to determine the SPA accessed by the
     //     transaction. If a fault is detected by the address translation process then
     //     stop and report the fault.
-    if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID, 
+    if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID,
                           is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
                           iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
@@ -315,7 +315,7 @@ step_17:
     }
 
 skip_gpa_trans:
-    // The page-based memory types (PBMT), if Svpbmt is supported, obtained 
+    // The page-based memory types (PBMT), if Svpbmt is supported, obtained
     // from the IOMMU address translation page tables. When two-stage address
     // translation is performed the IOMMU provides the page-based memory type
     // as resolved between the G-stage and VS-stage page table
@@ -339,12 +339,12 @@ skip_gpa_trans:
         // For Untranslated Requests cache the translations for future re-use
         cache_ioatc_iotlb(napot_iova, GV, PSCV, iohgatp.GSCID, PSCID,
                           &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
-    } 
+    }
     if ( (TTYP == PCIE_ATS_TRANSLATION_REQUEST) &&
-         ((DC.tc.T2GPA == 1 && ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_T2GPA) != 0) ) || 
+         ((DC.tc.T2GPA == 1 && ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_T2GPA) != 0) ) ||
           ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_ALWAYS) != 0)) ) {
-        // If in T2GPA mode, cache the final GPA->SPA translation as 
-        // the translated requests may hit on this 
+        // If in T2GPA mode, cache the final GPA->SPA translation as
+        // the translated requests may hit on this
         // If T2GPA is 0, then cache the IOVA->SPA translation if
         // IOMMU has been configured to do so
         cache_ioatc_iotlb((DC.tc.T2GPA == 1) ? napot_gpa : napot_iova,
@@ -376,13 +376,13 @@ step_20:
         //   the value in "Privilege Mode Requested" field as the permissions provided
         //   correspond to those the privilege mode indicate in the request.
         // If Priv is Set, R, W, and Exe refer to permissions granted to entities operating
-        // in Privileged Mode in the requesting Function. If Priv is Clear, R, W, and Exe 
+        // in Privileged Mode in the requesting Function. If Priv is Clear, R, W, and Exe
         // refer to permissions granted to entities operating in Non-Privileged Mode in the
         // requesting Function.
-        // Note: Since the Priv bit is Set only when the requesting Function Sets the 
-        // Privileged Mode Requested bit, Functions that never set that bit should always 
+        // Note: Since the Priv bit is Set only when the requesting Function Sets the
+        // Privileged Mode Requested bit, Functions that never set that bit should always
         // receive the Priv bit Clear and thus don’t need to cache it.
-        // An ATC that receives a translation with R=W=0b for one privilege level may not 
+        // An ATC that receives a translation with R=W=0b for one privilege level may not
         // assume anything about what it might receive for the other privilege level.
         // * N field of the ATS translation completion is always set to 0. The device may
         //   use other means to determine if the No-snoop flag should be set in the
@@ -398,13 +398,13 @@ step_20:
         // * The AMA field is by default set to 000b. The IOMMU may support an
         //   implementation specific method to provide other encodings.
         // If S is Set, then the translation applies to a range that is larger than
-        // 4096 bytes. If S = 1b, then bit 12 of the Translated Address is used to 
-        // indicate whether or not the range is larger than 8192 bytes. If bit 12 
+        // 4096 bytes. If S = 1b, then bit 12 of the Translated Address is used to
+        // indicate whether or not the range is larger than 8192 bytes. If bit 12
         // is 0b, then the range size is 8192 bytes, but it is larger than 8192 bytes
-        // if Set. If S = 1b and bit 12 = 1b, then bit 13 is used to determine if 
-        // the range is la than 16384 bytes or not. If bit 13 is 0b, then the range 
-        // size is 16384 bytes, but it is larger than 16384 bytes if Set.  Low-order 
-        // address bits are consumed in sequence to indicate the size of the range 
+        // if Set. If S = 1b and bit 12 = 1b, then bit 13 is used to determine if
+        // the range is la than 16384 bytes or not. If bit 13 is 0b, then the range
+        // size is 16384 bytes, but it is larger than 16384 bytes if Set.  Low-order
+        // address bits are consumed in sequence to indicate the size of the range
         // associated with the translation.
         //                            Address Bits                            |S |Translation
         //                                                                    |  | Range Size
@@ -415,21 +415,21 @@ step_20:
         //   x     x  x  x  x  x  x  x  x  x  x  x  0  1  1  1  1  1  1  1  1 |1 |  2M
         //   x     x  x  x  x  x  x  x  x  x  x  0  1  1  1  1  1  1  1  1  1 |1 |  4M
         //   x     0  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1 |1 |  1G
-        // If the translation could be successfully completed but the requested 
-        // permissions are not present (Execute requested but no execute permission; 
-        // no-write not requested and no write permission; no read permission) then a 
+        // If the translation could be successfully completed but the requested
+        // permissions are not present (Execute requested but no execute permission;
+        // no-write not requested and no write permission; no read permission) then a
         // Success response is returned with the denied permission (R, W or X) set to 0
-        // and the other permission bits set to value determined from the page tables. 
+        // and the other permission bits set to value determined from the page tables.
         // The X permission is granted only if the R permission is also granted
-        // and execute permission was requested. 
-        // Execute-only translations are not compatible with PCIe ATS as PCIe requires 
+        // and execute permission was requested.
+        // Execute-only translations are not compatible with PCIe ATS as PCIe requires
         // read permission to be granted if the execute permission is granted.
-        // When a Success response is generated for a ATS translation request, no fault 
-        // records are reported to software through the fault/event reporting mechanism; 
-        // even when the response indicates no access was granted or some permissions 
+        // When a Success response is generated for a ATS translation request, no fault
+        // records are reported to software through the fault/event reporting mechanism;
+        // even when the response indicates no access was granted or some permissions
         // were denied.
-        // If the translation request has an address determined to be an MSI address 
-        // using the rules defined by the Section 2.1.3.6 but the MSI PTE is configured 
+        // If the translation request has an address determined to be an MSI address
+        // using the rules defined by the Section 2.1.3.6 but the MSI PTE is configured
         // in MRIF mode then a Success response is generated with R, W, and U bit set to
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
@@ -453,12 +453,12 @@ return_completer_abort:
     rsp_msg->status = COMPLETER_ABORT;
     return;
 
-data_corruption:    
+data_corruption:
     cause = 274;                 // First/second-stage PT data corruption
     goto stop_and_report_fault;
 
-access_fault:    
-    // Stop and raise a access-fault exception corresponding 
+access_fault:
+    // Stop and raise a access-fault exception corresponding
     // to the original access type.
     if ( is_exec ) cause = 1;       // Instruction access fault
     else if ( is_read ) cause = 5;  // Read access fault
@@ -466,7 +466,7 @@ access_fault:
     goto stop_and_report_fault;
 
 guest_page_fault:
-    // Stop and raise a page-fault exception corresponding 
+    // Stop and raise a page-fault exception corresponding
     // to the original access type.
     if ( is_exec ) cause = 20;      // Instruction guest page fault
     else if ( is_read ) cause = 21; // Read guest page fault

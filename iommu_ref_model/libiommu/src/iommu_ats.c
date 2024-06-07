@@ -9,7 +9,7 @@ extern uint8_t g_iofence_wait_pending_inv;
 
 uint8_t
 allocate_itag(
-    uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag) { 
+    uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag) {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
         if ( itag_tracker[i].busy == 0 ) break;
@@ -29,7 +29,7 @@ uint8_t
 any_ats_invalidation_requests_pending() {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].busy == 1 ) 
+        if ( itag_tracker[i].busy == 1 )
             return 1;
     return 0;
 }
@@ -40,7 +40,7 @@ do_pending_iofence_inval_reqs() {
     itags_busy = 0;
     // Check if there are more pending invalidations
     for ( i = 0; i < MAX_ITAGS; i++ ) {
-        if ( itag_tracker[i].busy == 1 ) 
+        if ( itag_tracker[i].busy == 1 )
             itags_busy = 1;
     }
     // No more pending invalidations - continue any pending IOFENCE.C
@@ -65,14 +65,14 @@ handle_invalidation_completion(
     cc = get_bits(34, 32, inv_cc->PAYLOAD);
     for ( i = 0; i < MAX_ITAGS; i++ ) {
         if ( itag_vector & (1UL << i) ) {
-            if ( itag_tracker[i].busy == 0 ) 
+            if ( itag_tracker[i].busy == 0 )
                 return 1; // Unexpected completion
             if ( (itag_tracker[i].DSV == 1) &&
                  (inv_cc->DSV != 1 || inv_cc->DSEG != itag_tracker[i].DSEG) )
                 return 1; // Unexpected completion
             if ( itag_tracker[i].RID != inv_cc->RID )
                 return 1; // Unexpected completion
-            itag_tracker[i].num_rsp_rcvd = 
+            itag_tracker[i].num_rsp_rcvd =
                 (itag_tracker[i].num_rsp_rcvd + 1) & 0x07;
             if ( itag_tracker[i].num_rsp_rcvd == cc )  {
                 itag_tracker[i].busy = 0;
@@ -162,9 +162,9 @@ handle_page_request(
     }
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
     // locates the device-context to determine if ATS and PRI are enabled for
-    // the requestor. 
+    // the requestor.
     if ( locate_device_context(&DC, device_id, pr->PV, pr->PID, &cause) ) {
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0, 
+        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = RESPONSE_FAILURE;
         goto send_prgr;
@@ -179,17 +179,17 @@ handle_page_request(
         response_code = INVALID_REQUEST;
         goto send_prgr;
     }
-    // If ATS and PRI are enabled, i.e. EN_ATS and EN_PRI are both set to 1, 
-    // the IOMMU queues the message into an in-memory queue called the page 
-    // request-queue (PQ) (See Section 3.3). 
+    // If ATS and PRI are enabled, i.e. EN_ATS and EN_PRI are both set to 1,
+    // the IOMMU queues the message into an in-memory queue called the page
+    // request-queue (PQ) (See Section 3.3).
     // When PRI is enabled for a device, the IOMMU may still be unable to report
-    // "Page Request" or "Stop Marker" messages through the PQ due to error 
-    // conditions such as the queue being disabled, queue being full, or the 
+    // "Page Request" or "Stop Marker" messages through the PQ due to error
+    // conditions such as the queue being disabled, queue being full, or the
     // IOMMU encountering access faults when attempting to access queue memory.
 
-    // The page-request-queue enable bit enables the 
-    // page-request-queue when set to 1. 
-    // The page-request-queue is active if pqon reads 1. 
+    // The page-request-queue enable bit enables the
+    // page-request-queue when set to 1.
+    // The page-request-queue is active if pqon reads 1.
     // The IOMMU may respond to “Page Request” messages received
     // when page-request-queue is off or in the process of being turned
     // off, as specified in Section 2.8.
@@ -199,7 +199,7 @@ handle_page_request(
     }
 
     // The pqmf bit is set to 1 if the IOMMU encounters an access fault
-    // when storing a page-request to the page-request queue. 
+    // when storing a page-request to the page-request queue.
     // The "Page Request" message that caused the pqmf or pqof error and
     // all subsequent page-request messages are discarded till software
     // clears the pqof and/or pqmf bits by writing 1 to it.
@@ -227,37 +227,37 @@ handle_page_request(
         goto send_prgr;
     }
 
-    // Page-request queue is an in-memory queue data structure used to report 
-    // PCIe ATS “Page Request” and "Stop Marker" messages to software. The base 
-    // PPN of this in-memory queue and the size of the queue is configured into 
-    // a memory-mapped register called page-request queue base (pqb). Each Page 
-    // Request record is 16 bytes.  The tail of the queue resides in a IOMMU 
-    // controlled read-only memory-mapped register called pqt.  The pqt holds an 
-    // index into the queue where the next page-request message will be written 
+    // Page-request queue is an in-memory queue data structure used to report
+    // PCIe ATS “Page Request” and "Stop Marker" messages to software. The base
+    // PPN of this in-memory queue and the size of the queue is configured into
+    // a memory-mapped register called page-request queue base (pqb). Each Page
+    // Request record is 16 bytes.  The tail of the queue resides in a IOMMU
+    // controlled read-only memory-mapped register called pqt.  The pqt holds an
+    // index into the queue where the next page-request message will be written
     // by the IOMMU. Subsequent to writing the message, the IOMMU advances the pqt by 1.
-    // The head of the queue resides in a software controlled read/write memory-mapped 
-    // register called pqh. The pqh holds an index into the queue where the next 
-    // page-request message will be received by software. Subsequent to processing 
-    // the message(s) software advances the pqh by the count of the number of messages 
+    // The head of the queue resides in a software controlled read/write memory-mapped
+    // register called pqh. The pqh holds an index into the queue where the next
+    // page-request message will be received by software. Subsequent to processing
+    // the message(s) software advances the pqh by the count of the number of messages
     // processed.
     // If pqh == pqt, the page-request queue is empty.
     // If pqt == (pqh - 1) the page-request queue is full.
-    // The IOMMU may be unable to report "Page Request" messages through the queue 
-    // due to error conditions such as the queue being disabled, queue being full, or 
-    // the IOMMU encountering access faults when attempting to access queue memory. A 
-    // memory-mapped page-request queue control and status register (pqcsr) is used to 
-    // hold information about such faults. On a page queue full condition the 
-    // page-request-queue overflow (pqof) bit is set in pqcsr. If the IOMMU encountered 
-    // a fault in accessing the queue memory, page-request-queue memory access fault 
+    // The IOMMU may be unable to report "Page Request" messages through the queue
+    // due to error conditions such as the queue being disabled, queue being full, or
+    // the IOMMU encountering access faults when attempting to access queue memory. A
+    // memory-mapped page-request queue control and status register (pqcsr) is used to
+    // hold information about such faults. On a page queue full condition the
+    // page-request-queue overflow (pqof) bit is set in pqcsr. If the IOMMU encountered
+    // a fault in accessing the queue memory, page-request-queue memory access fault
     // (pqmf) bit in pqcsr. While either error bits are set in pqcsr, the IOMMU discards
     // all subsequent "Page Request" messages; including the message that caused the error
-    // bits to be set. "Page request" messages that do not require a response, i.e. those 
+    // bits to be set. "Page request" messages that do not require a response, i.e. those
     // with the "Last Request in PRG" field is 0, are silently discarded. "Page request"
-    // messages that require a response, i.e. those with "Last Request in PRG" field set 
-    // to 1 and are not Stop Marker messages, may be auto-completed by an IOMMU generated 
+    // messages that require a response, i.e. those with "Last Request in PRG" field set
+    // to 1 and are not Stop Marker messages, may be auto-completed by an IOMMU generated
     // “Page Request Group Response” message as specified in Section 2.8.
     // When an error bit is in the pqcsr changes state from 0 to 1 or when a new message
-    // is produced in the queue, page-request-queue interrupt pending (pip) bit is set 
+    // is produced in the queue, page-request-queue interrupt pending (pip) bit is set
     // in the pqcsr
     pqh = g_reg_file.pqh.index;
     pqt = g_reg_file.pqt.index;
@@ -291,21 +291,21 @@ handle_page_request(
     return;
 
 send_prgr:
-    // If EN_PRI is set to 0, or EN_ATS is set to 0, or if the IOMMU is unable to 
-    // locate the DC to determine the EN_PRI configuration, or the request could not 
+    // If EN_PRI is set to 0, or EN_ATS is set to 0, or if the IOMMU is unable to
+    // locate the DC to determine the EN_PRI configuration, or the request could not
     // be queued into PQ then the IOMMU behavior depends on the type of "Page Request".
-    // * If the "Page Request" does not require a response, i.e. the "Last Request in 
-    //   PRG" field of the message is set to 0, then such message are silently discarded. 
-    //   "Stop Marker" messages do not require a response and are always silently 
-    //   discarded on such errors.  
-    // * If the "Page Request" needs a response, then the IOMMU itself may generate a 
+    // * If the "Page Request" does not require a response, i.e. the "Last Request in
+    //   PRG" field of the message is set to 0, then such message are silently discarded.
+    //   "Stop Marker" messages do not require a response and are always silently
+    //   discarded on such errors.
+    // * If the "Page Request" needs a response, then the IOMMU itself may generate a
     //   "Page Request Group Response" message to the device.
     // The payload of a "Page Request" is as follows
     //           +0         |      +1         |      +2         |      +3        |
     //    | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0|
     // 08h|                  Page Address [63:32]                                |
     // 0Ch|      Page Address [31:12]                  | PRGI              |L W R|
-    // When the IOMMU generates the response, the status field of the response depends 
+    // When the IOMMU generates the response, the status field of the response depends
     // on the cause of the error.
     // The status is set to Response Failure if the following faults are encountered:
     // * All inbound transactions disallowed (cause = 256)
@@ -316,8 +316,8 @@ send_prgr:
     // * Page-request queue encountered a memory access fault (pqcsr.pqmf == 1)
     // The status is set to Invalid Request if the following faults are encountered:
     // * Transaction type disallowed (cause = 260)
-    // The status is set to Success if no other faults were encountered but the 
-    // "Page Request" could not be queued due to the page-request queue being full 
+    // The status is set to Success if no other faults were encountered but the
+    // "Page Request" could not be queued due to the page-request queue being full
     // (pqh == pqt - 1) or had a overflow (pqcsr.pqof == 1).
     R    = get_bits(0,  0, pr->PAYLOAD);
     W    = get_bits(1,  1, pr->PAYLOAD);
@@ -334,11 +334,11 @@ send_prgr:
     prgr.PRIV = 0;
     prgr.EXEC_REQ = 0;
 
-    // For IOMMU generated "Page Request Group Response" messages that have status 
-    // Invalid Request or Success, the PRG-response-PASID-required (PRPR) bit when 
+    // For IOMMU generated "Page Request Group Response" messages that have status
+    // Invalid Request or Success, the PRG-response-PASID-required (PRPR) bit when
     // set to 1 indicates that the IOMMU response message should include a PASID if
-    // the associated "Page Request" had a PASID.  For IOMMU generated "Page Request 
-    // Group Response" with response code set to Response Failure, if the "Page Request" 
+    // the associated "Page Request" had a PASID.  For IOMMU generated "Page Request
+    // Group Response" with response code set to Response Failure, if the "Page Request"
     // had a PASID then response is generated with a PASID.
     if ( response_code == INVALID_REQUEST || response_code == SUCCESS ) {
         if ( PRPR == 1 ) {
@@ -358,10 +358,9 @@ send_prgr:
     // 0Ch|      Destination device ID        |  Resp  |RSVD | PRGI              |
     //    |                                   |  Code                            |
     // 08h|                  Reserved                                            |
-    prgr.PAYLOAD = ((uint64_t)pr->RID << 48UL) | 
-                   ((uint64_t)response_code << 44UL) | 
+    prgr.PAYLOAD = ((uint64_t)pr->RID << 48UL) |
+                   ((uint64_t)response_code << 44UL) |
                    ((uint64_t)PRGI << 32UL);
     send_msg_iommu_to_hb(&prgr);
     return;
 }
-

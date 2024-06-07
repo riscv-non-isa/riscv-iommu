@@ -12,8 +12,8 @@ add_dev_context(
     uint8_t i, LEVELS, DC_SIZE;
     ddte_t ddte;
     uint16_t DDI[3];
-    // The DDT used to locate the DC may be configured to be a 1, 2, or 3 level 
-    // radix-table depending on the maximum width of the device_id supported. 
+    // The DDT used to locate the DC may be configured to be a 1, 2, or 3 level
+    // radix-table depending on the maximum width of the device_id supported.
     // The partitioning of the device_id to obtain the device directory indexes
     // (DDI) to traverse the DDT radix-tree table are as follows:
     if ( g_reg_file.capabilities.msi_flat == 0 ) {

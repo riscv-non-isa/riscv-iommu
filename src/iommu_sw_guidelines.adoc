@@ -418,14 +418,10 @@ To disable ATS and/or PRI:
 . Disable ATS and/or PRI at the device
 . Set `EN_ATS` and/or `EN_PRI` to 0 in the device-context. If `EN_ATS` is set to
   0 then set `EN_PRI` and `T2GPA` to 0. If `EN_PRI` is set to 0 then set `PRPR`
-  to 0. 
+  to 0.
 . Queue commands to the IOMMU to invalidate all cached first/second-stage page
   table entries, DDT entries, MSI PT entries (if required), and PDT entries
   (if required).
 . Queue commands to the IOMMU to invalidate DevATC by generating Invalidation
   Request messages.
 . Enable DMA operations in the device.
-
-
-
-

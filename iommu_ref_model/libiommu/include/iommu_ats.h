@@ -48,19 +48,19 @@ typedef struct {
 //0000b      |Success  |All pages within the associated PRG were successfully made resident.
 //-----------+---------+--------------------------------------------------------------------
 //0001b      |Invalid  |One or more pages within the associated PRG do not exist or requests
-//           |Request  |access privilege(s) that cannot be granted. Unless the page mapping 
+//           |Request  |access privilege(s) that cannot be granted. Unless the page mapping
 //           |         |associated with the Function is altered, re-issuance of the associated
-//           |         |request will never result in success.  
+//           |         |request will never result in success.
 //-----------+---------+--------------------------------------------------------------------
-//1110b:0010b|Unused   |Unused Response Code values. A Function receiving such a message shall 
-//           |         |process it as if the message contained a Response Code of 
+//1110b:0010b|Unused   |Unused Response Code values. A Function receiving such a message shall
+//           |         |process it as if the message contained a Response Code of
 //           |         |Response Failure.
 //-----------+---------+--------------------------------------------------------------------
-//1111b      | Response|One or more pages within the associated request group have 
-//           | Failure |encountered/caused a catastrophic error.  This response disables the 
-//           |         |Page Request Interface at the Function. Any pending page requests for 
-//           |         |other PRGs will be satisfied at the convenience of the host. The 
-//           |         |Function shall ignore any subsequent PRG Response Messages, pending 
+//1111b      | Response|One or more pages within the associated request group have
+//           | Failure |encountered/caused a catastrophic error.  This response disables the
+//           |         |Page Request Interface at the Function. Any pending page requests for
+//           |         |other PRGs will be satisfied at the convenience of the host. The
+//           |         |Function shall ignore any subsequent PRG Response Messages, pending
 //           |         |re-enablement of the Page Request Interface.
 //-----------+---------+--------------------------------------------------------------------
 #define SUCCESS          0x0UL

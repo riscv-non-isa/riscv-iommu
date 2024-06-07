@@ -1433,7 +1433,7 @@ group of entries.
 |First-stage page table
  (when second-stage is
   not Bare)             |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
-|First-stage page table   
+|First-stage page table
  (when second-stage is
   Bare)                 |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
 |Second-stage page table|`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>

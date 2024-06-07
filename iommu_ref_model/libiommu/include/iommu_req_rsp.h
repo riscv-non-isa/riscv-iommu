@@ -9,9 +9,9 @@ typedef enum {
     // 00 - Untranslated  - IOMMU may treat the address as either virtual or physical.
     // 01 - Trans. Req.   - The IOMMU will return the translation of the address
     //                      contained in the address field of the request as a read
-    //                      completion. 
-    // 10 - Translated    - The address in the transaction has been translated by an IOMMU. 
-    //                      If the Function associated with the device_id is allowed to 
+    //                      completion.
+    // 10 - Translated    - The address in the transaction has been translated by an IOMMU.
+    //                      If the Function associated with the device_id is allowed to
     //                      present physical addresses to the system memory, then the IOMMU
     //                      might not translate this address. If the Function is not allowed
     //                      to present physical addresses, then the TA may treat this as an UR.
@@ -48,22 +48,22 @@ typedef enum {
     // This Completion Status has a nominal meaning of “success”.
     SUCCESS = 0,
 
-    // A status that applies to a posted or non-posted Request 
-    // that specifies some action or access to some space that 
-    // is not supported by the Completer. 
+    // A status that applies to a posted or non-posted Request
+    // that specifies some action or access to some space that
+    // is not supported by the Completer.
     // OR
-    // A status indication returned with a Completion for a 
+    // A status indication returned with a Completion for a
     // non-posted Request that suffered an Unsupported Request
     // at the Completer.
     UNSUPPORTED_REQUEST = 1,
 
-    // A status that applies to a posted or non-posted Request 
-    // that the Completer is permanently unable to complete 
-    // successfully, due to a violation of the Completer’s 
+    // A status that applies to a posted or non-posted Request
+    // that the Completer is permanently unable to complete
+    // successfully, due to a violation of the Completer’s
     // programming model or to an unrecoverable error associated
     // with the Completer.
     // OR
-    // A status indication returned with a Completion for a 
+    // A status indication returned with a Completion for a
     // non-posted Request that suffered a Completer Abort at the
     // Completer.
     COMPLETER_ABORT = 4

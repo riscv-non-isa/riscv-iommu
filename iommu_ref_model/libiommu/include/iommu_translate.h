@@ -81,13 +81,13 @@ typedef union {
 } msipte_t;
 
 
-extern uint8_t 
-locate_device_context(device_context_t *DC, uint32_t device_id, uint8_t pid_valid, 
+extern uint8_t
+locate_device_context(device_context_t *DC, uint32_t device_id, uint8_t pid_valid,
                       uint32_t process_id, uint32_t *cause);
 
-extern uint8_t 
-locate_process_context(process_context_t *PC, device_context_t *DC, 
-                       uint32_t device_id, uint32_t process_id, uint32_t *cause, 
+extern uint8_t
+locate_process_context(process_context_t *PC, device_context_t *DC,
+                       uint32_t device_id, uint32_t process_id, uint32_t *cause,
                        uint64_t *iotval2, uint8_t TTYP);
 
 extern uint8_t
@@ -97,12 +97,12 @@ two_stage_address_translation(
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
-    uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
+    uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
     uint64_t *page_sz, pte_t *vs_pte);
 
 extern uint8_t
 second_stage_address_translation(
-    uint64_t gpa, uint8_t check_access_perms, uint32_t DID, 
+    uint64_t gpa, uint8_t check_access_perms, uint32_t DID,
     uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
@@ -110,9 +110,9 @@ second_stage_address_translation(
 
 extern uint8_t
 msi_address_translation(
-    uint64_t gpa, uint8_t is_exec, device_context_t *DC, 
+    uint64_t gpa, uint8_t is_exec, device_context_t *DC,
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
-    uint32_t *cause, uint64_t *iotval2, uint64_t *pa, 
+    uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
     uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms );
 
 #endif // __IOMMU_TRANSLATE_H__

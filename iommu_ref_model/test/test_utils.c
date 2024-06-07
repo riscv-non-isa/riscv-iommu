@@ -30,9 +30,9 @@ get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp) {
         free_gppn = free_gppn & ~(num_gppn -1);
     }
     next_free_gpage[iohgatp.GSCID] = free_gppn + num_gppn;
-    return free_gppn; 
+    return free_gppn;
 }
-int8_t 
+int8_t
 enable_cq(
     uint32_t nppn) {
     cqb_t cqb;
@@ -71,7 +71,7 @@ enable_cq(
     return 0;
 }
 
-int8_t 
+int8_t
 enable_fq(
     uint32_t nppn) {
     fqb_t fqb;
@@ -107,7 +107,7 @@ enable_fq(
     return 0;
 }
 
-int8_t 
+int8_t
 enable_disable_pq(
     uint32_t nppn, uint8_t enable_disable) {
     pqb_t pqb;
@@ -166,7 +166,7 @@ enable_iommu(
     ddtp.raw = 0;
     ddtp.ppn = get_free_ppn(1);
     // Clear the page
-    for ( i = 0; i < 512; i++ ) 
+    for ( i = 0; i < 512; i++ )
         write_memory((char *)&zero, (ddtp.ppn * PAGESIZE) | (i * 8), 8);
 
     ddtp.iommu_mode = iommu_mode;
@@ -174,7 +174,7 @@ enable_iommu(
     do {
         ddtp.raw = read_register(DDTP_OFFSET, 8);
     } while ( ddtp.busy == 1 );
-    if ( iommu_mode != Off ) { 
+    if ( iommu_mode != Off ) {
         g_reg_file.ddtp.busy = 1;
         ddtp.iommu_mode = Off;
         write_register(DDTP_OFFSET, 8, ddtp.raw);
@@ -184,7 +184,7 @@ enable_iommu(
     }
     return 0;
 }
-void 
+void
 send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
     uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
     uint32_t length, uint8_t read_writeAMO,
@@ -205,7 +205,7 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     return;
 }
 int8_t
-check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t EXEC, 
+check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t EXEC,
                  uint16_t reserved0, uint8_t reserved1, uint64_t PLOAD)
 {
     page_rec_t page_rec;
@@ -215,20 +215,20 @@ check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t E
     pqh.raw = read_register(PQH_OFFSET, 4);
     pqb.raw = read_register(PQB_OFFSET, 8);
     read_memory(((pqb.ppn * PAGESIZE) | (pqh.index * 16)), 16, (char *)&page_rec);
-    if ( page_rec.DID != DID ) return -1; 
-    if ( page_rec.PID != PID ) return -1; 
-    if ( page_rec.PV != PV ) return -1; 
-    if ( page_rec.PRIV != PRIV ) return -1; 
-    if ( page_rec.EXEC != EXEC ) return -1; 
-    if ( page_rec.reserved0 != reserved0 ) return -1; 
-    if ( page_rec.reserved1 != reserved1 ) return -1; 
-    if ( page_rec.PAYLOAD != PLOAD ) return -1; 
+    if ( page_rec.DID != DID ) return -1;
+    if ( page_rec.PID != PID ) return -1;
+    if ( page_rec.PV != PV ) return -1;
+    if ( page_rec.PRIV != PRIV ) return -1;
+    if ( page_rec.EXEC != EXEC ) return -1;
+    if ( page_rec.reserved0 != reserved0 ) return -1;
+    if ( page_rec.reserved1 != reserved1 ) return -1;
+    if ( page_rec.PAYLOAD != PLOAD ) return -1;
     write_register(PQH_OFFSET, 4, pqh.raw + 1);
     return 0;
 }
 int8_t
 check_msg_faults(
-    uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV, 
+    uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV,
     uint32_t exp_DID, uint64_t exp_iotval) {
     fault_rec_t fault_rec;
     fqb_t fqb;
@@ -272,7 +272,7 @@ check_rsp_and_faults(
     hb_to_iommu_req_t *req,
     iommu_to_hb_rsp_t *rsp,
     status_t status,
-    uint16_t cause, 
+    uint16_t cause,
     uint64_t exp_iotval2) {
 
     fault_rec_t fault_rec;
@@ -337,11 +337,11 @@ check_rsp_and_faults(
     return 0;
 }
 uint64_t
-add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa, 
-           uint8_t dtf, uint8_t prpr, 
+add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,
+           uint8_t dtf, uint8_t prpr,
            uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
            uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
-           uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask, 
+           uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask,
            uint64_t msi_addr_pattern) {
     device_context_t DC;
     char zero[16384];
@@ -422,7 +422,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     }
     return add_dev_context(&DC, device_id);
 }
-void 
+void
 iotinval(
     uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address) {
     command_t cmd;
@@ -452,7 +452,7 @@ iotinval(
     process_commands();
     return;
 }
-void 
+void
 ats_command(
     uint8_t f3, uint8_t DSV, uint8_t PV, uint32_t PID, uint8_t DSEG, uint16_t RID, uint64_t payload) {
     command_t cmd;
@@ -483,7 +483,7 @@ ats_command(
     process_commands();
     return;
 }
-void 
+void
 generic_any(
     command_t cmd) {
     cqb_t cqb;
@@ -501,8 +501,8 @@ generic_any(
     process_commands();
     return;
 }
-    
-void 
+
+void
 iodir(
     uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID) {
     command_t cmd;
@@ -570,5 +570,5 @@ get_free_ppn(
     free_ppn = next_free_page;
     next_free_page += num_ppn;
     memset(&memory[free_ppn * PAGESIZE], 0, num_ppn * PAGESIZE);
-    return free_ppn; 
+    return free_ppn;
 }

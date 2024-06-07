@@ -352,7 +352,7 @@ performs memory accesses using those addresses, an IOMMU is responsible for
 translating those guest physical addresses into supervisor physical addresses,
 referencing address-translation data structures supplied by the hypervisor.
 
-<<fig:dma-translation-direct-device-assignment>> illustrates the concept. 
+<<fig:dma-translation-direct-device-assignment>> illustrates the concept.
 The device D1 is directly assigned to VM-1 and device D2 is directly assigned
 to VM-2. The VMM configures a second-stage page table to be used for each device
 and restricts the memory that can be accessed by D1 to VM-1 associated memory
@@ -438,7 +438,7 @@ a GPA using the first-stage page tables managed by the guest OS and the GPA
 translated to a SPA using the second-stage page tables managed by the
 hypervisor.
 
-<<fig:iommu-for-guest-os>> illustrates the concept. 
+<<fig:iommu-for-guest-os>> illustrates the concept.
 
 The IOMMU is configured to perform address translation using a first-stage
 and second-stage page table for device D1. The second-stage is typically used by
@@ -687,4 +687,3 @@ features:
 
 Features supported by the IOMMU may be discovered using the `capabilities`
 register <<CAP>>.
-
