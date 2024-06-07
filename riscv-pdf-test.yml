@@ -1,0 +1,192 @@
+extends: default
+
+# Font configuration
+font:
+  catalog:
+    merge: true
+    sans-serif: 'GEM_FONTS_DIR/mplus1p-regular-fallback.ttf'
+    body:
+      normal: 'Petrona-Light.ttf'
+      bold: 'Petrona-Medium.ttf'
+      italic: 'Petrona-LightItalic.ttf'
+      bold_italic: 'Petrona-MediumItalic.ttf'
+      header_thin: 'Petrona-Thin.ttf'
+    headings:
+      normal: 'Montserrat-Regular.ttf'
+      italic: 'Montserrat-Italic.ttf'
+      bold: 'Montserrat-Medium.ttf'
+      light: 'Montserrat-Light.ttf'
+    code:
+      normal: 'JetBrainsMono-Regular.ttf'
+      bold: 'JetBrainsMono-Bold.ttf'
+      italic: 'JetBrainsMono-Italic.ttf'
+      bold_italic: 'JetBrainsMono-BoldItalic.ttf'
+    M+ 1mn:
+      normal: 'mplus-1mn-regular.ttf'
+      bold: 'mplus-1mn-bold.ttf'
+      italic: 'mplus-1mn-light.ttf'
+      bold_italic: 'mplus-1mn-medium.ttf'
+    M+ 1p Fallback:
+      normal: 'mplus-1p-regular-fallback.ttf'
+      bold: 'mplus-1p-regular-fallback.ttf'
+      italic: 'mplus-1p-regular-fallback.ttf'
+      bold_italic: 'mplus-1p-regular-fallback.ttf'
+    Droid Fallback:
+      normal: 'droid-sans-fallback.ttf'
+      italic: 'droid-sans-fallback.ttf'
+      bold: 'droid-sans-fallback.ttf'
+      bold_italic: 'droid-sans-fallback.ttf'
+  fallbacks:
+    - 'M+ 1p Fallback'
+    - 'Droid Fallback'
+  svg:
+    fallback-font-family: 'M+ 1mn'
+
+# Page settings
+page:
+  background_color: 'ffffff'
+  layout: 'portrait'
+  margin: ['0.5in', '0.67in', '0.67in', '0.67in']
+  margin_inner: '0.75in'
+  margin_outer: '0.59in'
+  size: 'A4'
+
+# Base settings
+base:
+  font-family: 'body'
+  font_size: 11.5
+  line_height_length: 12
+  font_style: 'normal'
+  font_size_large: 'round($base_font_size * 1.25)'
+  font_size_small: 'round($base_font_size * 0.85)'
+  font_size_min: '$base_font_size * 0.75'
+  border_radius: 3
+  border_width: 0.25
+  border_color: 'EEEEEE'
+
+# Vertical and horizontal rhythm and spacing
+vertical_rhythm: '$base_line_height_length'
+horizontal_rhythm: '$base_line_height_length'
+vertical_spacing: '$vertical_rhythm'
+
+# Link settings
+link:
+  font_color: '428bca'
+
+# Codespan settings
+codespan:
+  font-color: 0
+  font_family: 'JetBrains Mono'
+
+# Blockquote settings
+blockquote:
+  font_family: 'body'
+  font_style: 'italic'
+
+# Figure settings
+figure:
+  align: 'left'
+  caption:
+    align: 'left'
+    indent: '2em'
+
+# Prose settings
+prose:
+  margin_top: '$block_margin_top'
+  margin_bottom: '$block_margin_bottom'
+
+# Thematic break settings
+thematic_break:
+  border_color: '$base_border_color'
+  border_style: 'solid'
+  border_width: '$base_border_width'
+  margin_top: '$vertical_rhythm * 0.5'
+  margin_bottom: '$vertical_rhythm * 1.5'
+
+# Description list settings
+description_list:
+  term_font_style: 'bold'
+  term_spacing: '$vertical_rhythm / 4'
+  description_indent: '$horizontal_rhythm * 1.25'
+
+# List settings
+list:
+  indent: '$horizontal_rhythm * 1.5'
+  item_spacing: '$vertical_rhythm / 2'
+  bullet:
+    font_size: 'round($base_font_size * 1.5)'
+    content: '•'
+
+# Table settings
+table:
+  background_color: '$page_background_color'
+  font-size: 9
+  head_font_style: 'bold'
+  body_stripe_background_color: 'd7d7d7'
+  foot_background_color: 'f0f0f0'
+  border_color: 'dddddd'
+  border_width: '$base_border_width'
+  cell_padding: 3
+  caption:
+    end: 'top'
+    align: 'left'
+    indent: '2em'
+    text-align: 'left'
+    max-width: 'none'
+
+# Table of Contents settings
+toc:
+  indent: '$horizontal_rhythm'
+  line_height: 1.4
+  dot_leader:
+    content: '.'  # Set the dot leader character to a period
+    font_color: 'a9a9a9'
+    font_style: 'bold'
+  h2_font_style: 'bold'
+
+# Header settings
+header:
+  font_size: '$base_font_size_small'
+  border_color: 'dddddd'
+  border_width: 0.35
+  height: '$base_line_height_length * 2.6'
+  line_height: 1
+  padding: ['$base_line_height_length / 1', 1, 0.5, 1]
+  vertical_align: 'margin_inside'
+  recto:
+    right:
+      content: '{section-or-chapter-title} | Page {page-number}'
+  verso:
+    left:
+      content: '{section-or-chapter-title} | Page {page-number}'
+
+# Footer settings
+footer:
+  font_size: '$base_font_size_small'
+  border_color: 'dddddd'
+  border_width: 0.35
+  height: '$base_line_height_length * 2.6'
+  line_height: 1
+  padding: ['$base_line_height_length / 1', 1, 0.5, 1]
+  vertical_align: 'top'
+  recto:
+    right:
+      content: '{document-title} | © RISC-V International'
+  verso:
+    left:
+      content: '$footer_recto_right_content'
+
+# List of figures settings
+lof:
+  label_width: '3em'  # Adjust the width for figure labels
+  align: left
+  caption:
+    indent: '4em'  # Ensure captions align consistently
+
+# List of tables settings
+lot:
+  label_width: '3em'  # Adjust the width for table labels
+  align: left
+  caption:
+    indent: '4em'  # Ensure captions align consistently
+
