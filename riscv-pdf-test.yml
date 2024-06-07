@@ -246,6 +246,12 @@ list:
   #marker_font_color: 404040
   # NOTE outline_list_item_spacing applies to list items that do not have complex content
   item_spacing: $vertical_rhythm / 2
+ulist:
+  marker:
+    font_size: $base_font_size / 2
+    disc:
+      content: "\u2022"
+      font_color: 00ff00
 figure:
   caption:
     end: bottom
