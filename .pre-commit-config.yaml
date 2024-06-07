@@ -7,8 +7,10 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
+        exclude: \.svg$
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        exclude: \.svg$
 
   - repo: local
     hooks:
