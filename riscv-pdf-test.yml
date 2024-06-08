@@ -248,9 +248,7 @@ list:
   item_spacing: $vertical_rhythm / 2
 ulist:
   marker:
-    font_size: $base_font_size
-    disc:
-      content: "\u2022"
+    font_size: 14.5
 figure:
   caption:
     end: bottom
