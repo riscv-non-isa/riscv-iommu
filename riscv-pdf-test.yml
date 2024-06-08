@@ -248,10 +248,9 @@ list:
   item_spacing: $vertical_rhythm / 2
 ulist:
   marker:
-    font_size: $base_font_size / 2
+    font_size: $base_font_size
     disc:
       content: "\u2022"
-      font_color: 00ff00
 figure:
   caption:
     end: bottom
