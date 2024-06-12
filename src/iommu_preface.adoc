@@ -40,6 +40,7 @@ and corrections, have been made since version 1.0.0:
 * Shadow stack encodings introduced by Zicfiss are reserved for IOMMU use.
 * Listed the fault codes reported for faults detected by Page Request.
 * Updated Fig 31 to remove the unused Destination ID field for ATS.PRGR
+* Included a software guideline for IOMMU emulation.
 
 These changes were made through PR#243 cite:[PR243].
 
