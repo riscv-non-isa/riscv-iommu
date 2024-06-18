@@ -264,11 +264,11 @@ list:
 ulist:
   marker:
     disc:
-      content: "\u2022"
+      content: "\u25CF"
     circle:
-      content: "\u2022"
+      content: "\u25CF"
     square:
-      content: "\u2022"
+      content: "\u25CF"
     font-family: JetBrainsMono
 # List of figures settings
 lof:
