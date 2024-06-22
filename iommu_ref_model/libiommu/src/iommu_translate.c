@@ -276,7 +276,7 @@ step_17:
     check_access_perms = ( TTYP != PCIE_ATS_TRANSLATION_REQUEST ) ? 1 : 0;
     if ( (ioatc_status = lookup_ioatc_iotlb(req->tr.iova, check_access_perms, priv, is_read, is_write,
                   is_exec, SUM, PSCV, PSCID, GV, GSCID, &cause, &pa, &page_sz,
-                  &vs_pte, &g_pte)) == IOATC_FAULT )
+                  &vs_pte, &g_pte, &is_msi)) == IOATC_FAULT )
         goto stop_and_report_fault;
 
     // Hit in IOATC - complete translation.
@@ -332,15 +332,26 @@ skip_gpa_trans:
 
     // Cache the translation in the IOATC
     // In the IOTLB the IOVA & PPN is stored in the NAPOT format
+    // While IOMMUs are expected typically to cache MSI PTEs that are configured
+    // in basic translate mode (M = 3), they might not cache PTEs configured in
+    // MRIF mode (M = 1). Two reasons together justify not caching MSI PTEs in
+    // MRIF mode: First, the information and actions required to store an MSI to
+    // an MRIF are far different than normal address translation; and second, by
+    // their nature, MSIs to MRIFs should occur less frequently. Hence, an IOMMU might
+    // perform MRIF-mode processing solely as an extension of cache-miss page table
+    // walks, leaving its address translation cache oblivious to MRIF-mode MSI PTEs.
     napot_ppn = (((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_iova = (((req->tr.iova & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_gpa = (((gpa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
-    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED ) {
+    if ( req->tr.at == ADDR_TYPE_UNTRANSLATED &&
+         (is_msi == 0 || (is_msi == 1 && is_mrif == 0)) ) {
         // For Untranslated Requests cache the translations for future re-use
         cache_ioatc_iotlb(napot_iova, GV, PSCV, iohgatp.GSCID, PSCID,
-                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
+                          &vs_pte, &g_pte, napot_ppn,
+                          ((page_sz > PAGESIZE) ? 1 : 0), is_msi);
     }
     if ( (TTYP == PCIE_ATS_TRANSLATION_REQUEST) &&
+         (is_msi == 0 || (is_msi == 1 && is_mrif == 0)) &&
          ((DC.tc.T2GPA == 1 && ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_T2GPA) != 0) ) ||
           ((g_fill_ats_trans_in_ioatc & FILL_IOATC_ATS_ALWAYS) != 0)) ) {
         // If in T2GPA mode, cache the final GPA->SPA translation as
@@ -350,7 +361,7 @@ skip_gpa_trans:
         cache_ioatc_iotlb((DC.tc.T2GPA == 1) ? napot_gpa : napot_iova,
                                      GV, (DC.tc.T2GPA == 1) ? 0 : PSCV,
                           iohgatp.GSCID, (DC.tc.T2GPA == 1) ? 0 : PSCID,
-                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0));
+                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0), is_msi);
         // Return the GPA as translation response if T2GPA is 1
         pa = (DC.tc.T2GPA == 1) ? gpa : pa;
     }

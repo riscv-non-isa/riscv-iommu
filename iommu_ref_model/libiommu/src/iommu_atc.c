@@ -96,7 +96,7 @@ lookup_ioatc_pc(
 void
 cache_ioatc_iotlb(
     uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
-    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S) {
+    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t IS_MSI) {
 
     uint8_t i, replace = 0;
     uint32_t lru = 0xFFFFFFFF;
@@ -137,6 +137,9 @@ cache_ioatc_iotlb(
     // PPN and size
     tlb[replace].PPN   = PPN;
     tlb[replace].S     = S;
+    // Whether MSI
+    tlb[replace].IS_MSI = IS_MSI;
+
     tlb[replace].valid = 1;
     return;
 }
@@ -148,7 +151,7 @@ lookup_ioatc_iotlb(
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID,
     uint32_t *cause, uint64_t *resp_pa, uint64_t *page_sz,
-    pte_t *vs_pte, gpte_t *g_pte) {
+    pte_t *vs_pte, gpte_t *g_pte, uint8_t *is_msi) {
 
     uint8_t i, hit;
     uint64_t vpn = iova / PAGESIZE;
@@ -211,6 +214,8 @@ lookup_ioatc_iotlb(
     vs_pte->G = tlb[hit].G;
     vs_pte->U = tlb[hit].U;
     vs_pte->PBMT = tlb[hit].PBMT;
+
+    *is_msi = tlb[hit].IS_MSI;
     return IOATC_HIT;
 
 page_fault:
