@@ -280,7 +280,11 @@ step_17:
         goto stop_and_report_fault;
 
     // Hit in IOATC - complete translation.
-    if ( ioatc_status == IOATC_HIT ) goto step_20;
+    if ( ioatc_status == IOATC_HIT ) {
+        // MRIF translations are not cached in the ATC
+        is_mrif = 0;
+        goto step_20;
+    }
 
     // Count misses in TLB
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, IOATC_TLB_MISS);
