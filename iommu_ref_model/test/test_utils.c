@@ -179,8 +179,8 @@ enable_iommu(
         ddtp.iommu_mode = Off;
         write_register(DDTP_OFFSET, 8, ddtp.raw);
         ddtp.raw = read_register(DDTP_OFFSET, 8);
-        if ( ddtp.iommu_mode != iommu_mode ) return  -1;
         g_reg_file.ddtp.busy = 0;
+        if ( ddtp.iommu_mode != iommu_mode ) return  -1;
     }
     return 0;
 }
