@@ -916,6 +916,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
         g_offset_to_size[i] = 0xFF;
 
     g_offset_to_size[CAPABILITIES_OFFSET] = 8;
+    g_offset_to_size[CAPABILITIES_OFFSET + 4] = 8;
     g_offset_to_size[FCTRL_OFFSET] = 4;
     g_offset_to_size[DDTP_OFFSET] = 8;
     g_offset_to_size[DDTP_OFFSET + 4] = 8;
