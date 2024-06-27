@@ -209,6 +209,8 @@ main(void) {
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
 
+    fail_if( ( enable_iommu(DDT_2LVL) == 0 ) );
+    fail_if( ( enable_iommu(Off) < 0 ) );
     fail_if( ( enable_iommu(DDT_2LVL) < 0 ) );
     send_translation_request(0x012345, 0, 0x99, 0, 0, 0, 0,
                              UNTRANSLATED_REQUEST, 0, 1, READ, &req, &rsp);
@@ -268,6 +270,7 @@ main(void) {
     END_TEST();
 
     // Enable IOMMU
+    fail_if( ( enable_iommu(Off) < 0 ) );
     fail_if( ( enable_iommu(DDT_3LVL) < 0 ) );
 
     START_TEST("Non-leaf DDTE invalid");
@@ -3871,6 +3874,7 @@ main(void) {
                 write_register(CQCSR_OFFSET, 4, cqcsr.raw);
                 fqcsr.fqen = 1;
                 write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+                fail_if( ( enable_iommu(Off) < 0 ) );
                 fail_if( ( enable_iommu(DDT_3LVL) < 0 ) );
                 offset += 4;
                 break;
@@ -4133,9 +4137,9 @@ main(void) {
     write_register(FQCSR_OFFSET, 8, 0);
     fail_if( ( temp1 != read_register(FQCSR_OFFSET, 4) ) );
     temp1 = read_register(FQCSR_OFFSET, 8);
-    fail_if( ( temp1 != 0xFFFFFFFFFFFFFFFF ) );
+    fail_if( ( temp1 != 0) );
     temp1 = read_register(FQCSR_OFFSET, 3);
-    fail_if( ( temp1 != 0xFFFFFFFFFFFFFFFF ) );
+    fail_if( ( temp1 != 0) );
 
     // DIsable ATS only registers
     g_reg_file.capabilities.ats = 0;

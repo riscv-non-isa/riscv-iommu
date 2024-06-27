@@ -25,7 +25,9 @@ is_access_valid(
     uint16_t offset, uint8_t num_bytes) {
     // The IOMMU behavior for register accesses where the
     // address is not aligned to the size of the access or
-    // if the access spans multiple registers is undefined
+    // if the access spans multiple registers is UNSPECIFIED
+    // model behavior is to discard the write and return all 0s
+    // for reads.
     if ( (num_bytes != 4 && num_bytes != 8) ||       // only 4B & 8B registers in IOMMU
          (offset >= 4096) ||                         // Offset must be <= 4095
          ((offset & (num_bytes - 1)) != 0) ||        // Offset must be aligned to size
@@ -51,7 +53,7 @@ read_register(
 
     // If access is not valid then return -1
     if ( !is_access_valid(offset, num_bytes) )
-        return 0xFFFFFFFFFFFFFFFF;
+        return 0x0;
 
     // Counter overflows are to be gathered from all counters
     if ( offset == IOCNTOVF_OFFSET )
@@ -195,14 +197,23 @@ write_register(
                 return;
             // If a illegal value written to ddtp.iommu_mode then
             // retain the current legal value
-            if ( ((ddtp_temp.iommu_mode == Off) ||
-                  (ddtp_temp.iommu_mode == DDT_Bare) ||
-                  (ddtp_temp.iommu_mode == DDT_1LVL) ||
-                  (ddtp_temp.iommu_mode == DDT_2LVL) ||
-                  (ddtp_temp.iommu_mode == DDT_3LVL)) &&
-                  (ddtp_temp.iommu_mode <= g_max_iommu_mode) )
+            // The IOMMU behavior of writing iommu_mode to 1LVL, 2LVL,
+            // or 3LVL, when the previous value of the iommu_mode is
+            // not Off or Bare is UNSPECIFIED - model behavior is to
+            // ignore the write
+            if ( (((ddtp_temp.iommu_mode == Off) ||
+                   (ddtp_temp.iommu_mode == DDT_Bare) ||
+                   (ddtp_temp.iommu_mode == DDT_1LVL) ||
+                   (ddtp_temp.iommu_mode == DDT_2LVL) ||
+                   (ddtp_temp.iommu_mode == DDT_3LVL)) &&
+                   (ddtp_temp.iommu_mode <= g_max_iommu_mode)) &&
+                 (g_reg_file.ddtp.iommu_mode == Off ||
+                  g_reg_file.ddtp.iommu_mode == DDT_Bare ||
+                  ddtp_temp.iommu_mode == Off ||
+                  ddtp_temp.iommu_mode == DDT_Bare) ) {
                 g_reg_file.ddtp.iommu_mode = ddtp_temp.iommu_mode;
-            g_reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
+                g_reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
+            }
             break;
         case CQB_OFFSET:
             // The command-queue is active if cqon is 1. IOMMU behavior on
@@ -685,11 +696,13 @@ write_register(
 
                         iommu_translate_iova(&req, &rsp);
 
+                        // The value in PBMT, S< and PPN are UNSPECIFIED if
+                        // fault is 1. Model sets them to 0.
                         g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
+                        g_reg_file.tr_response.PBMT  = (rsp.status == SUCCESS) ? rsp.trsp.PBMT : 0 ;
+                        g_reg_file.tr_response.S     = (rsp.status == SUCCESS) ? rsp.trsp.S : 0 ;
+                        g_reg_file.tr_response.PPN   = (rsp.status == SUCCESS) ? rsp.trsp.PPN : 0;
                         g_reg_file.tr_response.reserved0 = 0;
-                        g_reg_file.tr_response.PBMT = rsp.trsp.PBMT;
-                        g_reg_file.tr_response.S = rsp.trsp.S;
-                        g_reg_file.tr_response.PPN = rsp.trsp.PPN;
                         g_reg_file.tr_response.reserved1 = 0;
                         g_reg_file.tr_response.custom = 0;
                         g_reg_file.tr_req_ctrl.go_busy = 0;
