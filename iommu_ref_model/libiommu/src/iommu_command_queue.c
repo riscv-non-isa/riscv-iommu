@@ -482,12 +482,6 @@ do_iofence_c(
     if ( PR == 1 || PW == 1 )
         iommu_to_hb_do_global_observability_sync(PR, PW);
 
-    // The wired-signaled-interrupt (WSI) bit when set to 1 causes a wired-interrupt from the command
-    // queue to be generated on completion of IOFENCE.C. This bit is reserved if the IOMMU supports MSI
-    if ( g_reg_file.cqcsr.fence_w_ip == 0 && WSI_BIT == 1 ) {
-        g_reg_file.cqcsr.fence_w_ip = 1;
-        generate_interrupt(COMMAND_QUEUE);
-    }
     // The AV command operand indicates if ADDR[63:2] operand and DATA operands are valid.
     // If AV=1, the IOMMU writes DATA to memory at a 4-byte aligned address ADDR[63:2] * 4 as
     // a 4-byte store.
@@ -500,6 +494,12 @@ do_iofence_c(
             }
             return 1;
         }
+    }
+    // The wired-signaled-interrupt (WSI) bit when set to 1 causes a wired-interrupt from the command
+    // queue to be generated on completion of IOFENCE.C. This bit is reserved if the IOMMU supports MSI
+    if ( g_reg_file.cqcsr.fence_w_ip == 0 && WSI_BIT == 1 ) {
+        g_reg_file.cqcsr.fence_w_ip = 1;
+        generate_interrupt(COMMAND_QUEUE);
     }
     return 0;
 }
