@@ -513,6 +513,12 @@ do_pending_iofence() {
         g_reg_file.cqh.index =
             (g_reg_file.cqh.index + 1) & ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
     }
+    // If IOFENCE is not pending and CQ was requested to be
+    // turned off then turn it off now
+    if ( g_iofence_wait_pending_inv == 0 ) {
+        g_reg_file.cqcsr.cqon = g_reg_file.cqcsr.cqen;
+        g_reg_file.cqcsr.busy = 0;
+    }
     return;
 }
 void

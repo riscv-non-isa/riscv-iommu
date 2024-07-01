@@ -19,6 +19,7 @@ uint8_t g_fctl_be_writeable;
 uint8_t g_max_iommu_mode;
 uint8_t g_fill_ats_trans_in_ioatc;
 uint32_t g_max_devid_mask;
+extern uint8_t g_iofence_wait_pending_inv;
 
 uint8_t
 is_access_valid(
@@ -352,8 +353,12 @@ write_register(
                 }
                 if ( cqcsr_temp.cqen == 0 ) {
                     // mark queue as being off
-                    g_reg_file.cqcsr.cqon = 0;
                     g_reg_file.cqcsr.cqen = 0;
+                    // If IOFENCE is waiting then CQ stays active
+                    // through the wait
+                    if ( g_iofence_wait_pending_inv == 0 ) {
+                        g_reg_file.cqcsr.cqon = 0;
+                    }
                 }
             }
             // Command-queue-interrupt-enable bit enables
@@ -367,8 +372,10 @@ write_register(
             if ( cqcsr_temp.cmd_ill == 1 )    g_reg_file.cqcsr.cmd_ill = 0;
             if ( cqcsr_temp.fence_w_ip == 1 ) g_reg_file.cqcsr.fence_w_ip = 0;
 
-            // Clear the busy bit
-            g_reg_file.cqcsr.busy = 0;
+            // Clear the busy bit. The busy bit may stay active
+            // if an IOFENCE is pending
+            if ( g_reg_file.cqcsr.cqen == g_reg_file.cqcsr.cqon )
+                g_reg_file.cqcsr.busy = 0;
             return;
         case FQCSR_OFFSET:
             // Write to `fqcsr` may require the IOMMU to perform

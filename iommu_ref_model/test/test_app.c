@@ -3324,6 +3324,60 @@ main(void) {
     // Complete next two
     inv_cc.PAYLOAD = (0x1234UL << 48UL) | (1UL << 32UL) | 0x00000003UL;
     fail_if( ( handle_invalidation_completion(&inv_cc) != 0 ) );
+
+    // Test turning off command queue while IOFENCE is pending
+    // send one - itag should be 0
+    exp_msg.MSGCODE = INVAL_REQ_MSG_CODE;
+    exp_msg.TAG = 0;
+    exp_msg.RID = 0x1234;
+    exp_msg.PV = 0;
+    exp_msg.PID = 0;
+    exp_msg.PRIV = 0;
+    exp_msg.EXEC_REQ = 0;
+    exp_msg.DSV = 1;
+    exp_msg.DSEG = 0x43;
+    exp_msg.PAYLOAD = 0x1234000000000000;
+    message_received = 0;
+    ats_command(INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);
+    fail_if( ( message_received == 0 ) );
+    fail_if( ( exp_msg_received == 0 ) );
+
+    // Fence it - fence should block
+    iofence_PPN = get_free_ppn(1);
+    iofence_data = 0x1234567812345678;
+    write_memory((char *)&iofence_data, (iofence_PPN * PAGESIZE), 8);
+    pr_go_requested = 0;
+    pw_go_requested = 0;
+    iofence(IOFENCE_C, 1, 1, 1, 0, (iofence_PPN * PAGESIZE), 0xDEADBEEF);
+    // Fence should not complete
+    read_memory((iofence_PPN * PAGESIZE), 8, (char *)&iofence_data);
+    fail_if( ( iofence_data != 0x1234567812345678 )  );
+    fail_if( ( pr_go_requested == 1) );
+    fail_if( ( pw_go_requested == 1) );
+
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    fail_if( ( cqcsr.cqon != 1 ) );
+    fail_if( ( cqcsr.cqen != 0 ) );
+    fail_if( ( cqcsr.busy != 1 ) );
+
+    // Make it timeout
+    do_ats_timer_expiry(0x00000001);
+
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    fail_if( ( cqcsr.cqon != 0 ) );
+    fail_if( ( cqcsr.cqen != 0 ) );
+    fail_if( ( cqcsr.busy != 0 ) );
+
+    cqcsr.cqen = 1;
+    cqcsr.cmd_to = 1;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    i = read_register(CQH_OFFSET, 4);
+    write_register(CQT_OFFSET, 4, i);
     END_TEST();
 
     START_TEST("MSI write-through mode");
