@@ -50,6 +50,7 @@ process_commands(
     // Sometimes the command queue may stall due to unavailability of internal
     // resources - e.g. ITAG trackers
     if ( (g_reg_file.cqcsr.cqon == 0) ||
+         (g_reg_file.cqcsr.cqen == 0) ||
          (g_reg_file.cqcsr.cqmf != 0) ||
          (g_reg_file.cqcsr.cmd_ill != 0) ||
          (g_reg_file.cqcsr.cmd_to != 0) ||
