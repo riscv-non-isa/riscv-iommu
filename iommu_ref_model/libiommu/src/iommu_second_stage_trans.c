@@ -154,6 +154,14 @@ step_2:
     //    a = gpte.ppn × PAGESIZE and go to step 2.
     if ( gpte->R == 1 || gpte->X == 1 ) goto step_5;
 
+    // For non-leaf PTEs, bits 62–61 are reserved for future standard use. Until
+    // their use is defined by a standard extension, they must be cleared by
+    // software for forward compatibility, or else a page-fault exception is raised.
+    if ( gpte->PBMT != 0 ) return GST_PAGE_FAULT;
+
+    // For non-leaf PTEs, the D, A, and U bits are reserved for future standard use.
+    if ( gpte->D != 0 || gpte->A != 0 || gpte->U != 0) return GST_PAGE_FAULT;
+
     i = i - 1;
     if ( i < 0 ) return GST_PAGE_FAULT;
     a = gpte->PPN * PAGESIZE;

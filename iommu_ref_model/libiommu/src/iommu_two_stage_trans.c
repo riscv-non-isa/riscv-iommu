@@ -185,6 +185,9 @@ step_2:
     // software for forward compatibility, or else a page-fault exception is raised.
     if ( pte->PBMT != 0 ) goto page_fault;
 
+    // For non-leaf PTEs, the D, A, and U bits are reserved for future standard use.
+    if ( pte->D != 0 || pte->A != 0 || pte->U != 0) goto page_fault;
+
     i = i - 1;
     if ( i < 0 ) goto page_fault;
     a = pte->PPN * PAGESIZE;
