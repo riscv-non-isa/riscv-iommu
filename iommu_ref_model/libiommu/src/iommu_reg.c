@@ -12,7 +12,7 @@ uint8_t g_offset_to_size[4096];
 // Global parameters of the design
 uint8_t g_num_hpm;
 uint8_t g_hpmctr_bits;
-uint8_t g_eventID_mask;
+uint8_t g_eventID_limit;
 uint8_t g_num_vec_bits;
 uint8_t g_gxl_writeable;
 uint8_t g_fctl_be_writeable;
@@ -652,10 +652,12 @@ write_register(
             // These register are read-only 0 if capabilities.HPM is 0
             if ( g_reg_file.capabilities.hpm == 1 ) {
                 ctr_num = ((offset - IOHPMEVT1_OFFSET)/8);
-                iohpmevt_temp.eventID &= g_eventID_mask;
                 // Writes discarded to non implemented HPM counters
                 if ( ctr_num < (g_num_hpm - 1) )  {
                     // These registers are 64-bit WARL counter registers
+                    iohpmevt_temp.eventID = 
+                        (iohpmevt_temp.eventID > g_eventID_limit) ?
+                        g_reg_file.iohpmevt[ctr_num].eventID: iohpmevt_temp.eventID;
                     g_reg_file.iohpmevt[ctr_num].raw = iohpmevt_temp.raw;
                 }
             }
@@ -839,7 +841,7 @@ write_register(
     return;
 }
 int
-reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
+reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
             uint8_t num_vec_bits, uint8_t reset_iommu_mode,
             uint8_t max_iommu_mode, uint32_t max_devid_mask,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
@@ -862,8 +864,8 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
           (capabilities.igs == WSI && fctl.wsi == 0)) )
         return -1;
     // Only 15-bit event ID supported
-    // Mask must be 0 when hpm not supported
-    if ( g_eventID_mask != 0 && capabilities.hpm == 0 )
+    // Limit must be 0 when hpm not supported
+    if ( g_eventID_limit != 0 && capabilities.hpm == 0 )
         return -1;
     // vectors is a number between 1 and 15
     if ( num_vec_bits > 4 )
@@ -884,7 +886,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask,
         return -1;
 #endif
 
-    g_eventID_mask = eventID_mask;
+    g_eventID_limit = eventID_limit;
     g_num_vec_bits = num_vec_bits;
     g_num_hpm = num_hpm;
     g_hpmctr_bits = hpmctr_bits;
