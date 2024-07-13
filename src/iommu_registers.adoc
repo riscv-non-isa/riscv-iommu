@@ -81,7 +81,8 @@ the register returns 0 and writes to that offset are ignored.
                                      control>>            | if `capabilities.DBG==0`
 |616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
                                      response>>           | if `capabilities.DBG==0`
-|624   |Reserved        |64  |Reserved for future use
+|624   |`iommu_qosid`   |4   |<<IOQOSID,IOMMU QoS ID >>   | if `capabilities.QOSID==0`
+|628   |Reserved        |60  |Reserved for future use
                               (`WPRI`)                    |
 |688   |custom          |72  |Designated for custom use
                               (`WARL`)                    |
@@ -153,7 +154,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'PD8'},
   {bits: 1, name: 'PD17'},
   {bits: 1, name: 'PD20'},
-  {bits: 15, name: 'reserved'},
+  {bits: 1, name: 'QOSID'},
+  {bits: 14, name: 'reserved'},
   {bits: 8, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
@@ -223,7 +225,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |38    |`PD8`      |RO        | One level PDT with 8-bit process_id supported.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
-|55:41 | reserved  |RO        | Reserved for standard use.
+|41    |`QOSID`    |RO        | Associating QoS IDs with requests is supported.
+|55:42 | reserved  |RO        | Reserved for standard use.
 |63:56 |custom     |RO        | Designated for custom use.
 |===
 
@@ -1616,6 +1619,45 @@ allowed to report a 4 KiB translation corresponding to the requested
 `vpn` or report a translation size that is smaller than the superpage
 size configured in the page tables.
 ====
+
+[[IOQOSID]]
+=== IOMMU QoS ID (`iommu_qosid`)
+
+The `iommu_qosid` register fields are defined as follows:
+
+.`iommu_qosid` register fields
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 12, name: 'RCID'},
+  {bits:  4, name: 'WPRI'},
+  {bits: 12, name: 'MCID'},
+  {bits:  4, name: 'WPRI'},
+], config:{lanes: 1, hspace:1024}}
+....
+
+[width=100%]
+[%header, cols="^1,2,^1,5"]
+|===
+|Bits  |Field      |Attribute | Description
+|11:0  |`RCID`     |WARL      | `RCID` for IOMMU-initiated requests.
+|15:12 |reserved   |WPRI      | Reserved for standard use.
+|27:16 |`MCID`     |WARL      | `MCID` for IOMMU-initiated requests.
+|31:28 |reserved   |WPRI      | Reserved for standard use.
+|===
+
+IOMMU-initiated requests for accessing the following data structures use the
+value programmed in the `RCID` and `MCID` fields of the `iommu_qosid` register.
+
+* Device directory table (`DDT`)
+* Fault queue (`FQ`)
+* Command queue (`CQ`)
+* Page-request queue (`PQ`)
+* IOMMU-initiated MSI (Message-signaled interrupts)
+
+When `ddtp.iommu_mode == Bare`, all device-originated requests are
+associated with the QoS IDs configured in the `iommu_qosid` register.
 
 [[ICVEC]]
 === Interrupt-cause-to-vector register (`icvec`)
