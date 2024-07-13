@@ -655,7 +655,7 @@ write_register(
                 // Writes discarded to non implemented HPM counters
                 if ( ctr_num < (g_num_hpm - 1) )  {
                     // These registers are 64-bit WARL counter registers
-                    iohpmevt_temp.eventID = 
+                    iohpmevt_temp.eventID =
                         (iohpmevt_temp.eventID > g_eventID_limit) ?
                         g_reg_file.iohpmevt[ctr_num].eventID: iohpmevt_temp.eventID;
                     g_reg_file.iohpmevt[ctr_num].raw = iohpmevt_temp.raw;
