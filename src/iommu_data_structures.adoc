@@ -484,6 +484,7 @@ the PTEs from the first page table or the second page table. These are the only
 expected behaviors.
 ====
 
+[[DC_TA]]
 ===== Translation attributes (`ta`)
 
 .Translation attributes (`ta`) field
@@ -492,7 +493,9 @@ expected behaviors.
 {reg: [
   {bits: 12, name: 'reserved'},
   {bits: 20, name: 'PSCID'},
-  {bits: 32, name: 'reserved'},
+  {bits: 8, name: 'reserved'},
+  {bits: 12, name: 'RCID'},
+  {bits: 12, name: 'MCID'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
@@ -501,6 +504,21 @@ the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
 address-space ID if `DC.tc.PDTV` is 0 and the `iosatp.MODE` field is not `Bare`.
 When `DC.tc.PDTV` is 1, the `PSCID` field in `ta` is ignored.
+
+The `RCID` and `MCID` fields are added by the QoS ID extension. If
+`capabilities.QOSID` is 0, these bits are reserved and must be set to 0.
+IOMMU-initiated requests for accessing the following data structures use the
+value configured in the `RCID` and `MCID` fields of `DC.ta`.
+
+* Process directory table (`PDT`)
+* Second-stage page table
+* First-stage page table
+* MSI page table
+* Memory-resident interrupt file (`MRIF`)
+
+The `RCID` and `MCID` configured in `DC.ta` are provided to the IO bridge on
+successful address translations. The IO bridge should associate these QoS IDs
+with device-initiated requests.
 
 ===== First-Stage context (`fsc`)
 If `DC.tc.PDTV` is 0, the `DC.fsc` field holds the `iosatp` that provides
@@ -716,6 +734,8 @@ misconfigured" (cause = 259).
 . `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writable
   then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writable then
   `DC.tc.SBE` must be the same as `fctl.BE`.
+. `capabilities.QOSID` is 1 and `DC.ta.RCID` or `DC.ta.MCID` values
+  are wider than that supported by the IOMMU.
 
 [NOTE]
 ====

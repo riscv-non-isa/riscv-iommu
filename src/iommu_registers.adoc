@@ -81,7 +81,8 @@ the register returns 0 and writes to that offset are ignored.
                                      control>>            | if `capabilities.DBG==0`
 |616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
                                      response>>           | if `capabilities.DBG==0`
-|624   |Reserved        |64  |Reserved for future use
+|624   |`iommu_qosid`   |4   |<<IOQOSID,IOMMU QoS ID >>   | if `capabilities.QOSID==0`
+|628   |Reserved        |60  |Reserved for future use
                               (`WPRI`)                    |
 |688   |custom          |72  |Designated for custom use
                               (`WARL`)                    |
@@ -153,7 +154,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'PD8'},
   {bits: 1, name: 'PD17'},
   {bits: 1, name: 'PD20'},
-  {bits: 15, name: 'reserved'},
+  {bits: 1, name: 'QOSID'},
+  {bits: 14, name: 'reserved'},
   {bits: 8, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
@@ -223,7 +225,8 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |38    |`PD8`      |RO        | One level PDT with 8-bit process_id supported.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
-|55:41 | reserved  |RO        | Reserved for standard use.
+|41    |`QOSID`    |RO        | Associating QoS IDs with requests is supported.
+|55:42 | reserved  |RO        | Reserved for standard use.
 |63:56 |custom     |RO        | Designated for custom use.
 |===
 
@@ -1647,7 +1650,7 @@ The `iommu_qosid` register fields are defined as follows:
 [width=100%]
 [%header, cols="^1,2,^1,5"]
 |===
-|Bits ^|Field      |Attribute ^| Description
+|Bits  |Field      |Attribute | Description
 |11:0  |`RCID`     |WARL      | `RCID` for IOMMU-initiated requests.
 |15:12 |reserved   |WPRI      | Reserved for standard use.
 |27:16 |`MCID`     |WARL      | `MCID` for IOMMU-initiated requests.
