@@ -405,6 +405,7 @@ step_20:
         // * If requesting device is not a CXL device then CXL.io is set to 0.
         // * If requesting device is a CXL type 1 or type 2 device
         //   ** If the address is determined to be a MSI then the CXL.io bit is set to 1.
+        //   ** if T2GPA is 1 in the device context then the CXL.io bit is set to 1.
         //   ** If the memory type, as determined by the Svpbmt extension, is NC or IO then
         //      the CXL.io bit is set to 1. If the memory type is PMA then the determination
         //      of the setting of this bit is `UNSPECIFIED`. If the Svpbmt extension is not
@@ -449,7 +450,8 @@ step_20:
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
         rsp_msg->trsp.Priv   = (req->pid_valid && req->priv_req) ? 1 : 0;
-        rsp_msg->trsp.CXL_IO = (req->is_cxl_dev && ((vs_pte.PBMT != PMA) || (is_msi == 1))) ? 1 : 0;
+        rsp_msg->trsp.CXL_IO = (req->is_cxl_dev &&
+                                ((vs_pte.PBMT != PMA) || (is_msi == 1) || (DC.tc.T2GPA == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
         rsp_msg->trsp.Global = vs_pte.G;
