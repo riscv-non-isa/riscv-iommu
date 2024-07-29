@@ -150,7 +150,7 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-image::ddt-ext.svg[width=800,height=400]
+image::ddt-ext.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -174,7 +174,7 @@ image::ddt-ext.svg[width=800,height=400]
 //....
 
 .Three, two and single-level device directory with base format `DC`
-image::ddt-base.svg[width=800,height=400]
+image::ddt-base.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -476,6 +476,7 @@ the PTEs from the first page table or the second page table. These are the only
 expected behaviors.
 ====
 
+[[DC_TA]]
 ===== Translation attributes (`ta`)
 
 .Translation attributes (`ta`) field
@@ -484,7 +485,9 @@ expected behaviors.
 {reg: [
   {bits: 12, name: 'reserved'},
   {bits: 20, name: 'PSCID'},
-  {bits: 32, name: 'reserved'},
+  {bits: 8, name: 'reserved'},
+  {bits: 12, name: 'RCID'},
+  {bits: 12, name: 'MCID'},
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
@@ -493,6 +496,21 @@ the address-space of the process. `PSCID` facilitates address-translation
 fences on a per-address-space basis. The `PSCID` field in `ta` is used as the
 address-space ID if `DC.tc.PDTV` is 0 and the `iosatp.MODE` field is not `Bare`.
 When `DC.tc.PDTV` is 1, the `PSCID` field in `ta` is ignored.
+
+The `RCID` and `MCID` fields are added by the QoS ID extension. If
+`capabilities.QOSID` is 0, these bits are reserved and must be set to 0.
+IOMMU-initiated requests for accessing the following data structures use the
+value configured in the `RCID` and `MCID` fields of `DC.ta`.
+
+* Process directory table (`PDT`)
+* Second-stage page table
+* First-stage page table
+* MSI page table
+* Memory-resident interrupt file (`MRIF`)
+
+The `RCID` and `MCID` configured in `DC.ta` are provided to the IO bridge on
+successful address translations. The IO bridge should associate these QoS IDs
+with device-initiated requests.
 
 ===== First-Stage context (`fsc`)
 If `DC.tc.PDTV` is 0, the `DC.fsc` field holds the `iosatp` that provides
@@ -706,6 +724,8 @@ misconfigured" (cause = 259).
 . `DC.tc.SBE` value is not a legal value. If `fctl.BE` is writable
   then `DC.tc.SBE` may be 0 or 1. If `fctl.BE` is not writable then
   `DC.tc.SBE` must be the same as `fctl.BE`.
+. `capabilities.QOSID` is 1 and `DC.ta.RCID` or `DC.ta.MCID` values
+  are wider than that supported by the IOMMU.
 
 [NOTE]
 ====
@@ -991,7 +1011,9 @@ The process to translate an `IOVA` is as follows:
 . Translation process is complete
 
 When checking the `U` bit in a second-stage PTE, the transaction is treated as
-not requesting supervisor privilege.
+not requesting supervisor privilege. The `pte.xwr=010` encoding, as specified by
+the Zicfiss cite:[CFI] extension for the Shadow Stack page type in single-stage
+and VS-stage page tables, remains a reserved encoding for IO transactions.
 
 When the translation process reports a fault, and the request is an Untranslated
 request or a Translated request, the IOMMU requests the IO bridge to abort the
@@ -1151,8 +1173,8 @@ file and translating the address using the MSI page table is as follows:
   process are equivalent to that of a regular RISC-V second-stage PTE with
   `R`=`W`=`U`=1 and `X`=0. Similar to a second-stage PTE, when checking the `U`
   bit, the transaction is treated as not requesting supervisor privilege.
-. If the transaction is an Untranslated or Translated read-for-execute then stop
-  and report "Instruction access fault" (cause = 1).
+.. If the transaction is an Untranslated or Translated read-for-execute then stop
+   and report "Instruction access fault" (cause = 1).
 . MSI address translation process is complete.
 
 [NOTE]
@@ -1246,18 +1268,21 @@ process-context is 0 then a Success response with R and W bits set to 0 is
 generated.
 
 If the translation could be successfully completed but the requested
-permissions are not present (Execute requested but no execute permission;
+permissions are not present in either stage (Execute requested but no execute permission;
 no-write not requested and no write permission; no read permission)
 then a Success response is returned with the denied permission (R, W or X)
 set to 0 and the other permission bits set to the value determined from the
 page tables. The X permission is granted only if the R permission is also
-granted. Execute-only translations are not compatible with PCIe ATS as PCIe
-requires read permission to be granted if the execute permission is granted.
+granted and the execute permission was requested. Execute-only translations are
+not compatible with PCIe ATS as PCIe requires read permission to be granted
+if the execute permission is granted.
 
 When a Success response is generated for an ATS translation request, no fault
 records are reported to software through the fault/event reporting mechanism,
 even when the response indicates no access was granted or some permissions were
-denied.
+denied. Conversely, when a UR or CA response is generated for an ATS translation
+request, the corresponding fault is reported to software through the fault/event
+reporting mechanism.
 
 If the translation request has an address determined to be an MSI address using
 the rules defined by the <<MSI_ID>> but the MSI PTE is configured in MRIF
@@ -1346,11 +1371,12 @@ of "Page Request".
   a "Page Request Group Response" message to the device.
 
 When the IOMMU generates the response, the status field of the response depends
-on the cause of the error.
+on the cause of the error. If a fault condition prevents locating a valid device
+context then the `PRPR` value assumed is 0.
 
 The status is set to Response Failure if the following faults are encountered:
 
-* `ddtp.iommu_mode` is `Off`
+* `ddtp.iommu_mode` is `Off` (cause = 256)
 * DDT entry load access fault (cause = 257)
 * DDT entry misconfigured (cause = 259)
 * DDT entry not valid (cause = 258)
@@ -1359,8 +1385,8 @@ The status is set to Response Failure if the following faults are encountered:
 
 The status is set to Invalid Request if the following faults are encountered:
 
-* `ddtp.iommu_mode` is `Bare`
-* `EN_PRI` is set to 0
+* `ddtp.iommu_mode` is `Bare` (cause = 260)
+* `EN_PRI` is set to 0 (cause = 260)
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
