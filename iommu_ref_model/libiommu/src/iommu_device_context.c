@@ -331,7 +331,7 @@ do_device_context_configuration_checks(
     if ( (g_reg_file.fctl.gxl == 1) && (DC->tc.SXL != 1) ) {
         return 1;
     }
-    if ( (g_gxl_writeable == 0) && (DC->tc.SXL != 0) ) {
+    if ( (g_reg_file.fctl.gxl == 0) && (g_gxl_writeable == 0) && (DC->tc.SXL != 0) ) {
         return 1;
     }
 

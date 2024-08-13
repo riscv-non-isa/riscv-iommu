@@ -606,11 +606,13 @@ main(void) {
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.msi_addr_pattern.reserved = 0;
+    g_reg_file.fctl.gxl = 1;
     DC.iohgatp.MODE = IOHGATP_Sv32x4;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    g_reg_file.fctl.gxl = 0;
     DC.iohgatp.MODE = IOHGATP_Sv48x4;
     DC.iohgatp.MODE = IOHGATP_Sv57x4 + 1;
     write_memory((char *)&DC, DC_addr, 64);
@@ -618,11 +620,13 @@ main(void) {
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     DC.iohgatp.MODE = IOHGATP_Sv48x4;
+    g_reg_file.fctl.gxl = 1;
     DC.fsc.iosatp.MODE = IOSATP_Sv32;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    g_reg_file.fctl.gxl = 0;
     DC.fsc.iosatp.MODE = IOSATP_Bare;
     DC.fsc.iosatp.MODE = IOSATP_Sv57 + 1;
     write_memory((char *)&DC, DC_addr, 64);
@@ -946,7 +950,7 @@ main(void) {
     g_reg_file.fctl.be = 0;
     g_reg_file.capabilities.end = 0;
 
-
+    iodir(INVAL_DDT, 1, 0x012345, 0);
 
 
     END_TEST();
@@ -1393,6 +1397,8 @@ main(void) {
     g_reg_file.capabilities.Sv32x4 = 0;
     for ( i = 0; i < 4; i++ ) {
         if ( i == 0 ) g_reg_file.capabilities.Sv32x4 = 1;
+        if ( i == 0 ) g_reg_file.fctl.gxl = 1;
+        if ( i == 0 ) DC.tc.SXL = 1;
         if ( i == 1 ) g_reg_file.capabilities.Sv39x4 = 1;
         if ( i == 2 ) g_reg_file.capabilities.Sv48x4 = 1;
         if ( i == 3 ) g_reg_file.capabilities.Sv57x4 = 1;
@@ -1417,6 +1423,8 @@ main(void) {
         fail_if( ( i == 1 && ((temp + 1) != 512UL * 512UL * PAGESIZE) ) );
         fail_if( ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) );
         fail_if( ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) );
+        if ( i == 0 ) g_reg_file.fctl.gxl = 0;
+        if ( i == 0 ) DC.tc.SXL = 0;
     }
     END_TEST();
 
@@ -1620,7 +1628,7 @@ main(void) {
             req.tr.iova = gva;
             pte.PPN = 512UL * 512UL * 512UL * 512UL;
             pte.PPN |= (1UL << (i * 9UL));
-            pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
+            pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i, DC.tc.SXL);
             iommu_translate_iova(&req, &rsp);
             fail_if( ( rsp.status != SUCCESS ) );
             fail_if( ( rsp.trsp.S == 1 && i == 0 ) );
@@ -1668,6 +1676,8 @@ main(void) {
     g_reg_file.capabilities.Sv32 = 0;
     for ( i = 0; i < 4; i++ ) {
         if ( i == 0 ) g_reg_file.capabilities.Sv32 = 1;
+        if ( i == 0 ) g_reg_file.fctl.gxl = 1;
+        if ( i == 0 ) DC.tc.SXL = 1;
         if ( i == 1 ) g_reg_file.capabilities.Sv39 = 1;
         if ( i == 2 ) g_reg_file.capabilities.Sv48 = 1;
         if ( i == 3 ) g_reg_file.capabilities.Sv57 = 1;
@@ -1692,6 +1702,8 @@ main(void) {
         fail_if( ( i == 1 && ((temp + 1) != 512UL * 512UL * PAGESIZE) ) );
         fail_if( ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) );
         fail_if( ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) );
+        if ( i == 0 ) g_reg_file.fctl.gxl = 0;
+        if ( i == 0 ) DC.tc.SXL = 0;
     }
 
     // IOTINVAL not allowed to set PSCV
@@ -1761,7 +1773,7 @@ main(void) {
     gva = gva | ((1 << (i * 9)) * PAGESIZE) | 2048;
     req.tr.iova = gva;
     pte.PPN = 512UL * 512UL * 512UL * 512UL;
-    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i);
+    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i, DC.tc.SXL);
     read_memory(pte_addr, 8, (char *)&pte);
 
     pte.U = 1;
@@ -2116,7 +2128,7 @@ main(void) {
     gva = gva | ((1 << (i * 9)) * PAGESIZE) | 2048;
     req.tr.iova = gva;
     pte.PPN = 512UL * 512UL * 512UL * 512UL;
-    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, 0);
+    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, 0, DC.tc.SXL);
 
     event.eventID = IOATC_TLB_MISS;
     event.dmask = 0;
@@ -2314,6 +2326,10 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 269, 0) < 0 ) );
     data_corruption_addr = -1;
 
+    g_reg_file.fctl.gxl = 0;
+    DC.tc.SXL = 0;
+    write_memory((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
     g_reg_file.capabilities.Sv57 = 0;
     g_reg_file.capabilities.Sv48 = 0;
     g_reg_file.capabilities.Sv39 = 0;
@@ -2392,7 +2408,7 @@ main(void) {
     spa = gpte.PPN * PAGESIZE;
     gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
     gva = 0x100000;
-    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
@@ -2595,7 +2611,7 @@ main(void) {
     gpte.PPN |= 0x4;
     gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
     gva = 0x900000;
-    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
@@ -2716,7 +2732,7 @@ main(void) {
         spa = gpte.PPN * PAGESIZE;
         gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
         gva = 0x100000;
-        pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+        pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
     }
     for ( i = 0; i < 10; i++ ) {
         send_translation_request(0x112233, 1, 0x1000+i, 0,
@@ -2914,7 +2930,7 @@ main(void) {
     spa = gpte.PPN * PAGESIZE;
     gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
     gva = 0x900000;
-    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
 
     send_translation_request(0x112233, 1, 0x7000, 1, 0,
                              0, 0, ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST, 0x900000,
@@ -3839,7 +3855,7 @@ main(void) {
     spa = gpte.PPN * PAGESIZE;
     gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 0);
     gva = 0x100000;
-    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp);
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
     send_translation_request(0x000000, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
@@ -3853,7 +3869,7 @@ main(void) {
     spa = gpte.PPN * PAGESIZE;
     gpte_addr = add_g_stage_pte(DC.iohgatp, gpa, gpte, 1);
     gva = 0x19000000;
-    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 1, DC.iohgatp);
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 1, DC.iohgatp, DC.tc.SXL);
     send_translation_request(0x000000, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);

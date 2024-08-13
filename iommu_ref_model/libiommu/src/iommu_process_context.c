@@ -4,6 +4,9 @@
 // Author: ved@rivosinc.com
 
 #include "iommu.h"
+uint8_t
+do_process_context_configuration_checks(
+    device_context_t *DC, process_context_t *PC);
 
 uint8_t
 locate_process_context(
@@ -160,32 +163,54 @@ step_9:
         *cause = 266;     // PDT entry not valid
         return 1;
     }
-    //11. If any bits or encoding that are reserved for future standard use are set
-    //     within `PC`, stop and report "PDT entry misconfigured" (cause = 267).
-    if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 ||
-         PC->fsc.iosatp.reserved != 0 ||
-         ((PC->fsc.iosatp.MODE != IOSATP_Bare) &&
-          (PC->fsc.iosatp.MODE != IOSATP_Sv32) &&
-          (PC->fsc.iosatp.MODE != IOSATP_Sv39) &&
-          (PC->fsc.iosatp.MODE != IOSATP_Sv48) &&
-          (PC->fsc.iosatp.MODE != IOSATP_Sv57)) ) {
-        *cause = 267;     // PDT entry not misconfigured
+
+    //11. If the PC is misconfigured as determined by rules outlined in Section 2.2.4
+    //    then stop and report "PDT entry misconfigured" (cause = 267).
+    if ( do_process_context_configuration_checks(DC, PC) ) {
+        *cause = 267;     // PDT entry misconfigured
         return 1;
     }
-    //12. If any of the following conditions are true then stop and report
-    //     "PDT entry misconfigured" (cause = 267).
-    //    a. `capabilities.Sv32` is 0 and `PC.fsc.MODE` is `Sv32`
-    //    b. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
-    //    c. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
-    //    d. `capabilities.Sv57` is 0 and `PC.fsc.MODE` is `Sv57`
-    if ( ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ||
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0)) ) {
-        *cause = 267;     // PDT entry not misconfigured
-        return 1;
-    }
-    //13. The Process-context has been successfully located.
+
+    //12. The Process-context has been successfully located.
     cache_ioatc_pc(device_id, process_id, PC);
+    return 0;
+}
+uint8_t
+do_process_context_configuration_checks(
+    device_context_t *DC, process_context_t *PC) {
+    //1. If any bits or encoding that are reserved for future standard use are set
+    if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 ||
+         PC->fsc.iosatp.reserved != 0 ) {
+        return 1;
+    }
+    // 2. PC.fsc.MODE encoding is not valid as determined by Table 3
+    if ( (DC->tc.SXL == 0) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Bare) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Sv39) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Sv48) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Sv57) ) {
+        return 1;
+    }
+    if ( (DC->tc.SXL == 1) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Bare) &&
+         (PC->fsc.iosatp.MODE != IOSATP_Sv32) ) {
+        return 1;
+    }
+    // 3. DC.tc.SXL is 0 and PC.fsc.MODE is not one of the supported modes
+    //    a. capabilities.Sv39 is 0 and PC.fsc.MODE is Sv39
+    //    b. capabilities.Sv48 is 0 and PC.fsc.MODE is Sv48
+    //    c. capabilities.Sv57 is 0 and PC.fsc.MODE is Sv57
+    if ( (DC->tc.SXL == 0) &&
+         (((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
+          ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
+          ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0))) ) {
+        return 1;
+    }
+    //4. DC.tc.SXL is 1 and PC.fsc.MODE is not one of the supported modes
+    //   a. capabilities.Sv32 is 0 and PC.fsc.MODE is Sv32
+    if ( (DC->tc.SXL == 1) &&
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ) {
+        return 1;
+    }
     return 0;
 }
