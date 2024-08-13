@@ -36,9 +36,9 @@ second_stage_address_translation(
             *gst_page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
         else if ( g_reg_file.capabilities.Sv48x4 == 1 )
             *gst_page_sz = 512UL * 512UL * 512UL * PAGESIZE;
-        else if ( g_reg_file.capabilities.Sv39x4 == 1 )
+        else if ( g_reg_file.capabilities.Sv39x4 == 1 && g_reg_file.fctl.gxl == 0)
             *gst_page_sz = 512UL * 512UL * PAGESIZE;
-        else if ( g_reg_file.capabilities.Sv32x4 == 1 )
+        else if ( g_reg_file.capabilities.Sv32x4 == 1 && g_reg_file.fctl.gxl == 1)
             *gst_page_sz = 2UL * 512UL * PAGESIZE;
         goto step_8;
     }

@@ -31,9 +31,9 @@ two_stage_address_translation(
         *page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
     else if ( g_reg_file.capabilities.Sv48 == 1 )
         *page_sz = 512UL * 512UL * 512UL * PAGESIZE;
-    else if ( g_reg_file.capabilities.Sv39 == 1 )
+    else if ( g_reg_file.capabilities.Sv39 == 1 && SXL == 0)
         *page_sz = 512UL * 512UL * PAGESIZE;
-    else if ( g_reg_file.capabilities.Sv32 == 1 )
+    else if ( g_reg_file.capabilities.Sv32 == 1 && SXL == 1)
         *page_sz = 2UL * 512UL * PAGESIZE;
 
     *iotval2 = 0;

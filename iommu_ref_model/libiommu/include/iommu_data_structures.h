@@ -150,7 +150,7 @@ typedef union {
 } ta_t;
 
 #define IOSATP_Bare 0
-#define IOSATP_Sv32 1
+#define IOSATP_Sv32 8
 #define IOSATP_Sv39 8
 #define IOSATP_Sv48 9
 #define IOSATP_Sv57 10

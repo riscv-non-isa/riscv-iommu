@@ -8,8 +8,8 @@
 uint64_t add_dev_context(device_context_t *DC, uint32_t device_id);
 uint64_t add_process_context(device_context_t *DC, process_context_t *PC, uint32_t process_id);
 uint64_t add_g_stage_pte(iohgatp_t iohgatp, uint64_t gpa, gpte_t gpte, uint8_t add_level);
-uint64_t add_s_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level);
-uint64_t add_vs_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, iohgatp_t iohgatp);
+uint64_t add_s_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, uint8_t SXL);
+uint64_t add_vs_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, iohgatp_t iohgatp, uint8_t SXL);
 uint64_t translate_gpa (iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa);
 
 

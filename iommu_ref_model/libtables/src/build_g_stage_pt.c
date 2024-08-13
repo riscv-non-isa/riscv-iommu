@@ -14,13 +14,13 @@ add_g_stage_pte (
     gpte_t nl_gpte;
 
     PTESIZE = 8;
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1 ) {
         vpn[0] = get_bits(21, 12, gpa);
         vpn[1] = get_bits(34, 22, gpa);
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);

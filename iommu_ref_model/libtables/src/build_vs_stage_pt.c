@@ -7,7 +7,7 @@
 uint64_t
 add_vs_stage_pte (
     iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level,
-    iohgatp_t iohgatp) {
+    iohgatp_t iohgatp, uint8_t SXL) {
 
     uint16_t vpn[5];
     uint64_t a;
@@ -15,13 +15,13 @@ add_vs_stage_pte (
     pte_t nl_pte;
 
     PTESIZE = 8;
-    if ( satp.MODE == IOSATP_Sv32 ) {
+    if ( satp.MODE == IOSATP_Sv32 && SXL == 1) {
         vpn[0] = get_bits(21, 12, va);
         vpn[1] = get_bits(31, 22, va);
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( satp.MODE == IOSATP_Sv39 ) {
+    if ( satp.MODE == IOSATP_Sv39 && SXL == 0) {
         vpn[0] = get_bits(20, 12, va);
         vpn[1] = get_bits(29, 21, va);
         vpn[2] = get_bits(38, 30, va);
