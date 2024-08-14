@@ -795,7 +795,7 @@ main(void) {
 
     DC.tc.SXL = 1;
     temp = DC.fsc.iosatp.MODE;
-    DC.fsc.iosatp.MODE = IOSATP_Sv39;
+    DC.fsc.iosatp.MODE = IOSATP_Sv48;
     write_memory((char *)&DC, DC_addr, 64);
     send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
@@ -3874,6 +3874,35 @@ main(void) {
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+
+    // Invalid first stage modes
+    iodir(INVAL_DDT, 1, 0x000000, 0);
+    iodir(INVAL_PDT, 1, 0x000000, 0xBABEC);
+    for ( j = 1; j < 16; j++ ) {
+        if (j == 8) continue;
+        PC.fsc.iosatp.MODE = j;
+        write_memory((char *)&PC, PC_addr, 16);
+        send_translation_request(0x000000, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+        fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
+    }
+
+    g_reg_file.capabilities.Sv32 = 0;
+    PC.fsc.iosatp.MODE = IOSATP_Sv32;
+    write_memory((char *)&PC, PC_addr, 16);
+    send_translation_request(0x000000, 1, 0xBABEC, 0,
+         0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+         1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
+    g_reg_file.capabilities.Sv32 = 1;
+
+    PC.fsc.iosatp.MODE = IOSATP_Sv48;
+    write_memory((char *)&PC, PC_addr, 16);
+
+    g_gxl_writeable = 1;
+    g_reg_file.fctl.gxl = 1;
+
     END_TEST();
 
     START_TEST("Misc. Register Access tests");
