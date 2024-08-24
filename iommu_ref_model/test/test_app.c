@@ -1374,20 +1374,20 @@ main(void) {
 
             // Test for walking past max levels
             if ( i == 0 ) {
-                pte.X = 0;
-                pte.W = 0;
-                pte.R = 0;
-                write_memory((char *)&pte, pte_addr, 8);
-                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+                gpte.X = 0;
+                gpte.W = 0;
+                gpte.R = 0;
+                write_memory((char *)&gpte, pte_addr, 8);
+                iotinval(GVMA, 0, 0, 0, 0, 0, 0);
                 iommu_translate_iova(&req, &rsp);
                 fail_if( ( rsp.status != SUCCESS ) );
                 fail_if( ( rsp.trsp.R != 0 ) );
                 fail_if( ( rsp.trsp.W != 0 ) );
-                pte.X = 1;
-                pte.W = 1;
-                pte.R = 1;
-                write_memory((char *)&pte, pte_addr, 8);
-                iotinval(VMA, 0, 0, 0, 0, 0, 0);
+                gpte.X = 1;
+                gpte.W = 1;
+                gpte.R = 1;
+                write_memory((char *)&gpte, pte_addr, 8);
+                iotinval(GVMA, 0, 0, 0, 0, 0, 0);
             }
         }
     }
