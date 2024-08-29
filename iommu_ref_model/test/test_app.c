@@ -1905,7 +1905,7 @@ main(void) {
     req.tr.length = 64;
     req.tr.read_writeAMO = READ;
 
-    for ( int g = 0; g < 1; g++ ) {
+    for ( int g = 0; g < 2; g++ ) {
         pte.G = g;
         // AV=0, PSCV=0
         // Fill TLB
@@ -1943,8 +1943,8 @@ main(void) {
         fail_if( ( g == 0 && check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) );
         if ( g == 1) {
             // Inv TLB - by address - flush globals
-            // AV=1, PSCV=1
-            iotinval(VMA, 0, 1, 1, 1, 10, req.tr.iova);
+            // AV=1, PSCV=0
+            iotinval(VMA, 0, 1, 0, 1, 10, req.tr.iova);
             // Check fault observed - invalidate success
             iommu_translate_iova(&req, &rsp);
             fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) );
