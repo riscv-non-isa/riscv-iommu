@@ -103,7 +103,7 @@ accesses. The IOMMU may employ similar address translation caches, referred as
 IOMMU Address Translation Cache (IOATC). The IOMMU provides mechanisms for
 software to synchronize the IOATC with the memory resident data structures used
 for address translation when they are modified. Software may configure the
-device context with a software defined context identifier called guest
+iohgatp with a software defined context identifier called guest
 soft-context identifier (`GSCID`) to indicate that a collection of devices are
 assigned to the same VM and thus access a common virtual address space.
 Software may configure the process context with a software defined context
@@ -170,6 +170,7 @@ in the device context.
 | DMA             | Direct Memory Access.
 | GPA             | Guest Physical Address: An address in the virtualized
                     physical memory space of a virtual machine.
+| GIPC            | G-stage page table In Process Context.
 | GSCID           | Guest soft-context identifier: An identification number used
                     by software to uniquely identify a collection of devices
                     assigned to a virtual machine. An IOMMU may tag IOATC
