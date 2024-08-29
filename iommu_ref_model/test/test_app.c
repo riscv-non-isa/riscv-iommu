@@ -1773,7 +1773,7 @@ main(void) {
     gva = gva | ((1 << (i * 9)) * PAGESIZE) | 2048;
     req.tr.iova = gva;
     pte.PPN = 512UL * 512UL * 512UL * 512UL;
-    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, i, DC.tc.SXL);
+    pte_addr = add_s_stage_pte(DC.fsc.iosatp, gva, pte, 4, DC.tc.SXL);
     read_memory(pte_addr, 8, (char *)&pte);
 
     pte.U = 1;
