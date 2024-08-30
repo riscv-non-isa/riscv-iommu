@@ -27,6 +27,7 @@ cache_ioatc_dc(
         for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
             if ( ddt_cache[i].lru < lru ) {
                 replace = i;
+                lru = ddt_cache[i].lru;
             }
         }
     }
@@ -67,6 +68,7 @@ cache_ioatc_pc(
         for ( i = 0; i < PDT_CACHE_SIZE; i++ ) {
             if ( pdt_cache[i].lru < lru ) {
                 replace = i;
+                lru = pdt_cache[i].lru;
             }
         }
     }
@@ -111,6 +113,7 @@ cache_ioatc_iotlb(
         for ( i = 0; i < TLB_SIZE; i++ ) {
             if ( tlb[i].lru < lru ) {
                 replace = i;
+                lru = tlb[i].lru;
             }
         }
     }
