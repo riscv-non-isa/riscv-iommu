@@ -34,11 +34,15 @@ get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp) {
 }
 uint32_t
 log2szm1(uint32_t n) {
+#if defined(__GNUC__) || defined(__clang__)
+    return 31 - __builtin_clz(n);
+#else
     uint32_t log2sz = 0;
     while (n >>= 1) {
         log2sz++;
     }
     return log2sz > 0 ? log2sz-1 : 0;
+#endif
 }
 int8_t
 enable_cq(
@@ -48,7 +52,7 @@ enable_cq(
 
     cqb.raw = 0;
     cqb.ppn = get_free_ppn(nppn);
-    cqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/CQ_ENTRY_SZ);
+    cqb.log2szm1 = log2szm1((nppn * PAGESIZE)/CQ_ENTRY_SZ);
     write_register(CQB_OFFSET, 8, cqb.raw);
     do {
         cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -79,7 +83,7 @@ enable_fq(
 
     fqb.raw = 0;
     fqb.ppn = get_free_ppn(nppn);
-    fqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/FQ_ENTRY_SZ);
+    fqb.log2szm1 = log2szm1((nppn * PAGESIZE)/FQ_ENTRY_SZ);
     write_register(FQB_OFFSET, 8, fqb.raw);
     do {
         fqcsr.raw = read_register(FQCSR_OFFSET, 4);
@@ -109,7 +113,7 @@ enable_disable_pq(
     if ( enable_disable == 1 ) {
         pqb.raw = 0;
         pqb.ppn = get_free_ppn(nppn);
-        pqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/PQ_ENTRY_SZ);
+        pqb.log2szm1 = log2szm1((nppn * PAGESIZE)/PQ_ENTRY_SZ);
         write_register(PQB_OFFSET, 8, pqb.raw);
     }
     do {
