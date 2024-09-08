@@ -90,6 +90,8 @@ typedef union {
     };
 } command_t;
 
+#define CQ_ENTRY_SZ sizeof(command_t)
+
 void do_inval_ddt(uint8_t DV, uint32_t DID);
 void do_inval_pdt(uint32_t DID, uint32_t PID);
 void do_iotinval_vma(uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t ADDR);

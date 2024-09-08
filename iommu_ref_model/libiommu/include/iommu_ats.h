@@ -17,6 +17,9 @@ typedef union {
     };
     uint64_t raw[2];
 } page_rec_t;
+
+#define PQ_ENTRY_SZ sizeof(page_rec_t)
+
 // IOMMU generated notifications (invalidation requests and
 // page group responses)
 // IOMMU response to requests from the IO bridge

@@ -63,8 +63,8 @@ process_commands(
     if ( g_reg_file.cqh.index == g_reg_file.cqt.index )
         return;
 
-    a = g_reg_file.cqb.ppn * PAGESIZE | (g_reg_file.cqh.index * 16);
-    status = read_memory(a, 16, (char *)&command);
+    a = g_reg_file.cqb.ppn * PAGESIZE | (g_reg_file.cqh.index * CQ_ENTRY_SZ);
+    status = read_memory(a, CQ_ENTRY_SZ, (char *)&command);
     if ( status != 0 ) {
         // If command-queue access leads to a memory fault then the
         // command-queue-memory-fault bit is set to 1 and the command

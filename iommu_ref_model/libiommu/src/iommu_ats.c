@@ -276,7 +276,7 @@ handle_page_request(
     prec.PAYLOAD  = pr->PAYLOAD;
     prec.reserved0= 0;
     prec.reserved1= 0;
-    prec_addr = ((pqb * 4096) | (pqt * 16));
+    prec_addr = ((pqb * PAGESIZE) | (pqt * PQ_ENTRY_SZ));
     status = write_memory((char *)&prec, prec_addr, 16);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         g_reg_file.pqcsr.pqmf = 1;
