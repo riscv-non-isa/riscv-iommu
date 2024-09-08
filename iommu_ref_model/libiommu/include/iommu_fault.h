@@ -64,6 +64,7 @@ typedef union {
 #define GST_ACCESS_FAULT     0x22
 #define GST_DATA_CORRUPTION  0x23
 
+#define FQ_ENTRY_SZ sizeof(fault_rec_t)
 
 extern void report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, uint8_t dtf,
                   uint32_t device_id, uint8_t pid_valid, uint32_t process_id, uint8_t priv_req);

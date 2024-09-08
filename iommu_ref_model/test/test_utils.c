@@ -32,6 +32,14 @@ get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp) {
     next_free_gpage[iohgatp.GSCID] = free_gppn + num_gppn;
     return free_gppn;
 }
+uint32_t
+log2szm1(uint32_t n) {
+    uint32_t log2sz = 0;
+    while (n >>= 1) {
+        log2sz++;
+    }
+    return log2sz > 0 ? log2sz-1 : 0;
+}
 int8_t
 enable_cq(
     uint32_t nppn) {
@@ -40,7 +48,7 @@ enable_cq(
 
     cqb.raw = 0;
     cqb.ppn = get_free_ppn(nppn);
-    cqb.log2szm1 = 9;
+    cqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/CQ_ENTRY_SZ);
     write_register(CQB_OFFSET, 8, cqb.raw);
     do {
         cqcsr.raw = read_register(CQCSR_OFFSET, 4);
@@ -79,7 +87,7 @@ enable_fq(
 
     fqb.raw = 0;
     fqb.ppn = get_free_ppn(nppn);
-    fqb.log2szm1 = 9;
+    fqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/FQ_ENTRY_SZ);
     write_register(FQB_OFFSET, 8, fqb.raw);
     do {
         fqcsr.raw = read_register(FQCSR_OFFSET, 4);
@@ -115,8 +123,8 @@ enable_disable_pq(
 
     if ( enable_disable == 1 ) {
         pqb.raw = 0;
-        pqb.ppn = get_free_ppn(4);
-        pqb.log2szm1 = 9;
+        pqb.ppn = get_free_ppn(nppn);
+        pqb.log2szm1 = 31 - __builtin_clz((nppn * PAGESIZE)/PQ_ENTRY_SZ);
         write_register(PQB_OFFSET, 8, pqb.raw);
     }
     do {
@@ -214,7 +222,7 @@ check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t E
     if ( read_register(PQH_OFFSET, 4) == read_register(PQT_OFFSET, 4) ) return -1;
     pqh.raw = read_register(PQH_OFFSET, 4);
     pqb.raw = read_register(PQB_OFFSET, 8);
-    read_memory(((pqb.ppn * PAGESIZE) | (pqh.index * 16)), 16, (char *)&page_rec);
+    read_memory(((pqb.ppn * PAGESIZE) | (pqh.index * PQ_ENTRY_SZ)), PQ_ENTRY_SZ, (char *)&page_rec);
     if ( page_rec.DID != DID ) return -1;
     if ( page_rec.PID != PID ) return -1;
     if ( page_rec.PV != PV ) return -1;
@@ -245,7 +253,7 @@ check_msg_faults(
     }
 
     fqb.raw = read_register(FQB_OFFSET, 8);
-    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * 32)), 32, (char *)&fault_rec);
+    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * FQ_ENTRY_SZ)), FQ_ENTRY_SZ, (char *)&fault_rec);
 
     // pop the fault record
     fqh.index++;
@@ -314,7 +322,7 @@ check_rsp_and_faults(
     if ( cause == 0 ) return 0;
 
     fqb.raw = read_register(FQB_OFFSET, 8);
-    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * 32)), 32, (char *)&fault_rec);
+    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * FQ_ENTRY_SZ)), FQ_ENTRY_SZ, (char *)&fault_rec);
 
     // pop the fault record
     fqh.index++;
@@ -444,7 +452,7 @@ iotinval(
     cmd.iotinval.addr_63_12 = address / PAGESIZE;
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
-    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
@@ -475,7 +483,7 @@ ats_command(
 
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
-    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
@@ -493,7 +501,7 @@ generic_any(
     temp1 = data_corruption_addr;
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
-    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
@@ -521,7 +529,7 @@ iodir(
     cmd.iodir.pid = PID;
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
-    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
@@ -551,7 +559,7 @@ iofence(
     cmd.iofence.data = data;
     cqb.raw = read_register(CQB_OFFSET, 8);
     cqt.raw = read_register(CQT_OFFSET, 4);
-    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * 16)), 16);
+    write_memory((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
