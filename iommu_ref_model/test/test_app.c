@@ -95,8 +95,28 @@ main(void) {
 
     // Enable command queue
     fail_if( ( enable_cq(4) < 0 ) );
+
+    // Test that writes to cqcsr are discarded when it is busy
+    g_reg_file.cqcsr.busy = 1;
+    cqcsr.cqen = 0;
+    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+    if ( cqcsr.cqen == 0 ) return -1;
+    if ( cqcsr.cqon == 0 ) return -1;
+    g_reg_file.cqcsr.busy = 0;
+
     // Enable fault queue
     fail_if( ( enable_fq(4) < 0 ) );
+
+    // Test that writes to fqcsr are discarded when it is busy
+    g_reg_file.fqcsr.busy = 1;
+    fqcsr.fqen = 0;
+    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+    if ( fqcsr.fqen == 0 ) return -1;
+    if ( fqcsr.fqon == 0 ) return -1;
+    g_reg_file.fqcsr.busy = 0;
+
     // Enable page queue
     fail_if( ( enable_disable_pq(4, 1) < 0 ) );
 
@@ -3056,6 +3076,15 @@ main(void) {
     fail_if( ( ((read_register(PQH_OFFSET, 4)) != read_register(PQT_OFFSET, 4)) ) );
     fail_if( ( enable_disable_pq(4, 1) < 0 ) );
 
+    // Test that write to pqen when register is busy is discarded
+    g_reg_file.pqcsr.busy = 1;
+    pqcsr.pqen = 0;
+    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    pqcsr.raw = read_register(PQCSR_OFFSET, 4);
+    if ( pqcsr.pqen == 0 ) return -1;
+    if ( pqcsr.pqon == 0 ) return -1;
+    g_reg_file.pqcsr.busy = 0;
+
     // PRI enabled - should queue in PQ
     pr.RID = 0x2233;
     pr.DSEG = 0x11;
@@ -3975,6 +4004,13 @@ main(void) {
                 write_register(FQCSR_OFFSET, 4, fqcsr.raw);
                 fail_if( ( enable_iommu(Off) < 0 ) );
                 fail_if( ( enable_iommu(DDT_3LVL) < 0 ) );
+                // test that writes to ddtp when it is busy are discarded
+                g_reg_file.ddtp.busy = 1;
+                ddtp.iommu_mode = Off;
+                write_register(DDTP_OFFSET, 8, ddtp.raw);
+                ddtp.raw = read_register(DDTP_OFFSET, 8);
+                g_reg_file.ddtp.busy = 0;
+                fail_if( (ddtp.iommu_mode != DDT_3LVL) );
                 offset += 4;
                 break;
             case DDTP_OFFSET:
