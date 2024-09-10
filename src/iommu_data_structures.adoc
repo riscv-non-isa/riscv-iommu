@@ -19,7 +19,7 @@ then only the first-stage suffices to perform necessary address translations and
 protections; the second-stage scheme may be effectively disabled for the device by
 programming the second-stage address translation scheme to be `Bare`.
 
-When second-stage address translation is not Bare, the `DC` holds the PPN of the
+When second-stage address translation is not Bare, the `DC` or `PC` holds the PPN of the
 root second-stage page table; a guest-soft-context-ID (`GSCID`), which
 facilitates invalidation of cached address translations on a per-virtual-machine
 basis; and the second-stage address translation scheme.
@@ -39,6 +39,9 @@ a data structure called the Process Context (`PC`).
 
 When a PDT is active, the controls for first-stage address translation are held
 in the (`PC`).
+
+When a PDT is active with `DC.tc.GIPC = 1`, the controls for first-stage
+and second-stage address translation are held in the (`PC`).
 
 When a PDT is not active, the controls for first-stage address translation are
 held in the `DC` itself.
@@ -104,12 +107,21 @@ traverse the DDT radix-tree are as follows:
 ], config:{lanes: 1, hspace:1024, fontsize: 16}}
 ....
 
+Three formats of the process-context structure are supported:
+* *Base Format* - A 16-byte PC used when `DC.tc.GIPC = 0` and `capabilities.MSI_FLAT = 0`
+
+* *Extended Format* - In the extended format a 32-byte process context is used
+  when `DC.tc.GIPC = 1` and `capabilities.MSI_FLAT = 0`.
+
+* *Extended Format with MSI page table* - In the extended format with MSI page table a
+  64-byte process context is used when `DC.tc.GIPC = 1` and `capabilities.MSI_FLAT = 1`.
+
 The PDT may be configured to be a 1, 2, or 3 level radix-tree depending on the
 maximum width of the `process_id` supported by that device.  The partitioning
 of the `process_id` to obtain the process directory indices (PDI) to traverse
 the PDT radix-tree are as follows:
 
-.`process_id` partitioning for PDT radix-tree traversal
+.Base format `process_id` partitioning for PDT radix-tree traversal
 
 [wavedrom, , ]
 ....
@@ -119,6 +131,29 @@ the PDT radix-tree are as follows:
   {bits: 3, name: 'PDI[2]'},
 ], config:{lanes: 1, hspace:1024, fontsize: 16}}
 ....
+
+.Extended format `process_id` partitioning for PDT radix-tree traversal
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 7, name: 'PDI[0]'},
+  {bits: 9, name: 'PDI[1]'},
+  {bits: 4, name: 'PDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
+.Extended format with MSI page table `process_id` partitioning for PDT radix-tree traversal
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 6, name: 'PDI[0]'},
+  {bits: 9, name: 'PDI[1]'},
+  {bits: 5, name: 'PDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
 [NOTE]
 ====
 The `process_id` partitioning is designed to require a maximum of 4 KiB, a
@@ -269,7 +304,8 @@ order.
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
   {bits: 1,  name: 'SXL'},
-  {bits: 12, name: 'reserved'},
+  {bits: 1,  name: 'GIPC'},
+  {bits: 11, name: 'reserved'},
   {bits: 8, name: 'custom'},
   {bits: 32, name: 'reserved'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
@@ -379,6 +415,10 @@ default value of `process_id` for translating requests without a valid
 `process_id`. When `PDTV` is 0, the `DPE` bit is reserved for future standard
 extension.
 
+The `GIPC` bit is expected to be set to 1 when `PC` is associated with iohgatp
+and msiptp instead of `DC.iohgatp` and `DC.msiptp`. The `DC.tc.GIPC` depends on
+`capabilities.GIPC`.
+
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if
 `capabilities.AMO_HWAD` is 1. When `capabilities.AMO_HWAD` is 0, these bits are
 reserved.
@@ -421,6 +461,8 @@ When `SXL` is 1, the following rules apply:
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
+When `DC.tc.PDTV` is set and `DC.tc.GIPC = 1`, the `DC.iohgatp` field is
+ignored, and `PC.iohgatp` is used instead. Otherwise, `DC.iohgatp` is used.
 The `iohgatp` field holds the PPN of the root second-stage page table and a
 virtual machine identified by a guest soft-context ID (`GSCID`), to facilitate
 address-translation fences on a per-virtual-machine basis. If multiple devices
@@ -562,13 +604,19 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When second-stage address translation is not Bare, the `pdtp.PPN` field holds a
+When second-stage address translation is not Bare and `DC.tc.GIPC = 0`, the `pdtp.PPN` field holds a
 guest PPN. The GPA of the root PDT is then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. Translating addresses of PDT using a second-stage page table, allows the
 PDT to be held in memory allocated by the guest OS and allows the guest OS to
 directly edit the PDT to associate a virtual-address space identified by a
 first-stage page table with a `process_id`.
+
+When second-stage address translation is not Bare and `DC.tc.GIPC = 1`,
+the `PPN` field holds a supervisor PPN. The supervisor physical address of PDT root
+page, allows the PDT to be configured into the supervisor physical address space to
+allow the guest OS to use virtio-IOMMU API edit the PDT in hypervisor to associate a
+virtual-address space identified by a VS-stage page table with a `process_id`.
 
 [[PDTP_MODE_ENC]]
 .Encoding of `pdtp.MODE` field
@@ -775,9 +823,9 @@ A valid (`V==1`) non-leaf PDT entry holds the PPN of the next-level PDT.
 
 ==== Leaf PDT entry
 The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
-(`PC`).
+(`PC`) when `DC.tc.GIPC = 0` and `capabilities.MSI_FLAT = 0`.
 
-.Process-context
+.Base-format process-context
 
 [wavedrom, , ]
 ....
@@ -787,7 +835,41 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+The leaf PDT page is indexed by `PDI[0]` and holds the 32-byte process-context
+(`PC`) when `DC.tc.GIPC = 1` and `capabilities.MSI_FLAT = 0`.
+
+.Extended-format process-context
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'reserved'},
+  {bits: 64,  name: 'IO Hyp. guest addr. translation and prot. (iohgatp)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The leaf PDT page is indexed by `PDI[0]` and holds the 64-byte process-context
+(`PC`) when `DC.tc.GIPC = 1` and `capabilities.MSI_FLAT = 1`.
+
+.Extended-format process-context with MSI-page-table
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'reserved'},
+  {bits: 64,  name: 'MSI-page-table pointer (msiptp)'},
+  {bits: 64,  name: 'MSI-address-mask (msi_addr_mask)'},
+  {bits: 64,  name: 'MSI-address-pattern (msi_addr_pattern)'},
+  {bits: 64,  name: 'reserved'},
+  {bits: 64,  name: 'IO Hyp. guest addr. translation and prot. (iohgatp)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The `PC` is interpreted as multi 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
 determined by `DC.tc.SBE`. The IOMMU may read the `PC` fields in any order.
 
@@ -849,13 +931,17 @@ field controls the supported paged virtual-memory schemes. When `PC.fsc.MODE` is
 not `Bare`, the `PC.fsc.PPN` field holds the PPN of the root page of a
 first-stage page table.
 
-When second-stage address translation is not Bare, the `PC.fsc.PPN` field holds
+When second-stage address translation is not Bare and `DC.tc.GIPC = 0`, the `PC.fsc.PPN` field holds
 a guest PPN of the root of a first-stage page table. Addresses of the first-stage
 page table entries are then converted by guest physical address translation
 process, as controlled by the `DC.iohgatp`, into a supervisor physical address.
 A guest OS may thus directly edit the first-stage page table to limit access by
 the device to a subset of its memory and specify permissions for the device
 accesses.
+
+When second-stage address translation is not Bare and `DC.tc.GIPC = 1`, the `PC.fsc.PPN` field holds
+a supervisor PPN of the root of a first-stage page table. A guest OS may edit
+the first-stage page table with the help of hypervisor.
 
 [NOTE]
 ====
@@ -865,6 +951,15 @@ are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
 behaviors.
 ====
+
+===== IO hypervisor guest address translation and protection (`iohgatp`)
+The same as `DC.iohgatp`.
+
+===== MSI page table pointer (`msiptp`)
+The same as `DC.msiptp`.
+
+===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
+The same as `DC.msi_addr_mask` and `DC.msi_addr_pattern`.
 
 [[PC_MISCONFIG]]
 ==== Process-context configuration checks
@@ -1039,9 +1134,9 @@ is as follows:
 ==== Process to locate the Process-context
 
 The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
-`DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
+`DC/PC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
 Physical Addresses (GPA) which must be translated into Supervisor Physical
-Addresses (SPA) using the second-stage page table pointed to by `DC.iohgatp`.
+Addresses (SPA) using the second-stage page table pointed to by `DC/PC.iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
 by the second-stage.
 
@@ -1051,7 +1146,7 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
+. If `DC/PC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
   second-stage address translation of `a` then stop and report the fault detected
   by the second-stage address translation process. The translated `a` is used in
@@ -1066,7 +1161,7 @@ The process to locate the Process-context for a transaction using its
 . If any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
-. Let `PC` be the value of the 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
+. Let `PC` be the value of the 16/32/64-bytes at address `a + PDI[0] x 16/32/64`. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access
   fault" (cause = 265). If `PC` access detects a data corruption
   (a.k.a. poisoned data), then stop and report "PDT data corruption"
@@ -1120,7 +1215,7 @@ file and translating the address using the MSI page table is as follows:
 ** `y = 1 0 1 0 0 1 1 0`
 ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
 
-. Let `m` be `(DC.msiptp.PPN x 2^12^)`.
+. Let `m` be `(DC/PC.msiptp.PPN x 2^12^)`.
 . Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
   accessing `msipte` violates a PMA or PMP check, then stop and report
   "MSI PTE load access fault" (cause = 261).
@@ -1169,8 +1264,8 @@ operations may be performed by the I/O bridge.
 
 When `capabilities.AMO_HWAD` is 1, the IOMMU supports updating the A and D bits in
 PTEs atomically. When updating of A and D bits in second-stage PTEs is enabled
-(`DC.tc.GADE=1`) and/or updating of A and D bits in first-stage PTEs is enabled
-(`DC.tc.SADE=1`) the following rules apply:
+(`DC/PC.tc.GADE=1`) and/or updating of A and D bits in first-stage PTEs is enabled
+(`DC/PC.tc.SADE=1`) the following rules apply:
 
 . The A and/or D bit updates by the IOMMU must follow the rules specified by the
   Privileged specification for validity, permission checking, and atomicity.

@@ -146,9 +146,9 @@ device with `device_id = D`) then the following invalidations must be performed:
 * `IODIR.INVAL_DDT` with `DV=1` and `DID=D`
 * If `DC.tc.PDTV==1` then `IODIR.INVAL_PDT` with `DV=1`, `PV=0`, and `DID=D`
 
-* If `DC.iohgatp.MODE != Bare`
-** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC.iohgatp.GSCID`
-** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+* If `DC/PC.iohgatp.MODE != Bare`
+** `IOTINVAL.VMA` with `GV=1`, `AV=PSCV=0`, and `GSCID=DC/PC.iohgatp.GSCID`
+** `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC/PC.iohgatp.GSCID`
 * else
 ** If `DC.tc.PDTV==1 || DC.tc.PDTV == 0 && DC.fsc.MODE == Bare`
 *** `IOTINVAL.VMA` with `GV=AV=PSCV=0`
@@ -171,8 +171,8 @@ If software changes a leaf-level PDT entry (i.e, a process context (`PC`), for
 performed:
 
 * `IODIR.INVAL_PDT` with `DV=1`, `PV=1`, `DID=D` and `PID=P`
-* If `DC.iohgatp.MODE != Bare`
-** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,
+* If `DC/PC.iohgatp.MODE != Bare`
+** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC/PC.iohgatp.GSCID`,
    and `PSCID=PC.PSCID`
 * else
 ** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
@@ -188,12 +188,12 @@ number `I` that corresponds to an untranslated MSI address `A` then the followin
 invalidations must be performed:
 
 * `IOTINVAL.GVMA` with `GV=AV=1`, `ADDR[63:12]=A[63:12]` and
-    `GSCID=DC.iohgatp.GSCID`
+    `GSCID=DC/PC.iohgatp.GSCID`
 
 To invalidate all cache entries from a MSI page table the following
 invalidations must be performed:
 
-* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC.iohgatp.GSCID`
+* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, and `GSCID=DC/PC.iohgatp.GSCID`
 
 Between a change to the MSI PTE and when an invalidation command to invalidate
 the cached PTE is processed by the IOMMU, the IOMMU may use the old PTE value
@@ -207,19 +207,20 @@ If software changes a leaf second-stage page-table entry of a VM where the chang
 affects translation for a guest-PPN `G` then the following invalidations must be
 performed:
 
-* `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC.iohgatp.GSCID`, and `ADDR[63:12]=G`
+* `IOTINVAL.GVMA` with `GV=AV=1`, `GSCID=DC/PC.iohgatp.GSCID`, and `ADDR[63:12]=G`
 
 If software changes a non-leaf second-stage page-table entry of a VM
 then the following invalidations must be performed:
 
-* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC.iohgatp.GSCID`
+* `IOTINVAL.GVMA` with `GV=1`, `AV=0`, `GSCID=DC/PC.iohgatp.GSCID`
 
-The `DC` has fields that hold a guest-PPN. An implementation may translate such
+The `DC` has fields that hold a guest-PPN when `DC.tc.GIPC = 0`. An implementation may translate such
 fields to a supervisor-PPN as part of caching the `DC`. If the second-stage page
 table update affects translation of guest-PPN held in the `DC` then software
 must invalidate all such cached `DC` using `IODIR.INVAL_DDT` with `DV=1` and
 `DID` set to the corresponding `device_id`.  Alternatively, an
 `IODIR.INVAL_DDT` with `DV=0` may be used to invalidate all cached `DC`.
+The `DC` hasn't fields that hold a guest-PPN when `DC.tc.GIPC = 1`.
 
 Between a change to the second-stage PTE and when an invalidation command to
 invalidate the cached PTE is processed by the IOMMU, the IOMMU may use the
@@ -238,7 +239,7 @@ specified in <<IVMA>>.
 
 When a change is made to a first-stage page table, and the second-stage is
 not Bare, then software must perform invalidations using `IOTINVAL.VMA` with
-`GV=1`, `GSCID=DC.iohgatp.GSCID` and `AV` and `PSCV` operands appropriate for
+`GV=1`, `GSCID=DC/PC.iohgatp.GSCID` and `AV` and `PSCV` operands appropriate for
 the modification as specified in <<IVMA>>.
 
 Between a change to the first-stage PTE and when an invalidation command to
