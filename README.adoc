@@ -1,6 +1,6 @@
 = RISC-V IOMMU specification
 
-The specification is in Frozen state and pending ratification.
+The specification is Ratified.
 
 == License
 
