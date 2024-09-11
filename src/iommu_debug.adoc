@@ -42,10 +42,10 @@ when the process completes (successfully or due to encountering a fault). When
 the `Go/Busy` bit goes from 1 to 0, a response is valid in the `tr_response`
 register.
 
-The IOMMU behavior is `UNSPECIFIED` if:
+When the `Go/Busy` bit is 1, the IOMMU behavior is `UNSPECIFIED` if:
 
-* The `tr_req_iova` or `tr_req_ctl` are modified when the `Go/Busy` bit is 1.
-* IOMMU configurations such as `ddtp.iommu_mode`, etc. are modified.
+* The `tr_req_iova` or `tr_req_ctl` are modified.
+* IOMMU configurations, such as `ddtp.iommu_mode`, are modified.
 
 The time to complete a translation request through this debug interface is
 `UNSPECIFIED` but is required to be finite. If the IOMMU is serving translation

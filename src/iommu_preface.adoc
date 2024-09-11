@@ -1,0 +1,49 @@
+== Preface
+
+[.big]*_Preface to Version 20240901_*
+
+Chapters 2 through 8 of this document form the RISC-V IOMMU Base Architecture
+Specification. Chapter 9 includes the standard extensions to the base
+architecture. This release, version 20240901, contains the following versions
+of the RISC-V IOMMU Base Architecture specification and standard extensions:
+
+[%autowidth,float="center",align="center",cols="^,^,^",options="header",]
+|===
+|       Specification                              |Version |Status
+|*RISC-V IOMMU Base Architecture specification*   +
+ *Quality-of-Service (QoS) Identifiers Extension*
+                                                   |*1.0*  +
+                                                    *1.0*
+                                                            |*Ratified* +
+                                                             *Ratified*
+|===
+
+The following backward-compatible changes, comprising a set of clarifications
+and corrections, have been made since version 1.0.0:
+
+* A set of typographic errors and editorial updates were made.
+* Translations cached, if any, in `Bare` mode do not require invalidation.
+* Clarified that memory faults encountered by commands also set the `cqmf` flag.
+* Values tested by algorithms in SW Guidelines are before modifications made by
+  the algorithms.
+* Included SW guidelines for modifying non-leaf PDT entries.
+* Clarified the behavior for in-flight transactions observed at the time of `ddtp`
+  write operations.
+* Clarified the behavior when `IOTINVAL` is invoked with an invalid address.
+* Stated that faults leading to UR/CA ATS responses are reported in the Fault Queue.
+* Added a detailed description of the `capabilities.PAS` field.
+* SW guidelines for changing IOMMU modes and programming `tr_req_ctl` and HPM
+  counters.
+* PCIe ATS Translation Resp. grants execute permission only if requested.
+* Clarified the handling of hardware implementations that internally split
+  8-byte transactions.
+* Shadow stack encodings introduced by Zicfiss are reserved for IOMMU use.
+* Listed the fault codes reported for faults detected by Page Request.
+* Updated Fig 31 to remove the unused Destination ID field for ATS.PRGR
+* Included a software guideline for IOMMU emulation.
+
+These changes were made through PR#243 cite:[PR243].
+
+[.big]*_Preface to Version 1.0.0_*
+
+* Ratified version of the RISC-V IOMMU Architecture Specification.

@@ -52,8 +52,8 @@ management complexity for DMA. Use of an identical format also allows the same
 page tables to be used simultaneously by both the CPU MMU and the IOMMU.
 
 Although there is no option to disable two-stage address translation, either
-stage may be effectivly disabled by configuring the virtual memory scheme for
-that stage to be `Bare` i.e. perfom no address translation or memory protection.
+stage may be effectively disabled by configuring the virtual memory scheme for
+that stage to be `Bare` i.e. perform no address translation or memory protection.
 
 The virtual memory scheme employed by the IOMMU may be configured individually
 per device in the IOMMU. Devices perform DMA using an I/O virtual address (IOVA).
@@ -87,7 +87,7 @@ is a VA. Two-stage address translation is in effect. The first-stage translates
 the VA to a GPA and the second-stage translates the GPA to a SPA. Each stage
 enforces the configured memory protections. Such a configuration would be
 typically be employed when the device control is passed-through to a virtual
-machine and the Guest OS in the VM uses the first-stage addresss translation to
+machine and the Guest OS in the VM uses the first-stage address translation to
 further constrain the memory accessed by such devices and associated privileges
 and memory protections. Comparing to a RISC-V hart, this configuration is
 analogous to two-stage address translation being in effect on a RISC-V hart with
@@ -190,10 +190,6 @@ in the device context.
                     address space of a process. The PASID value is provided in
                     the PASID TLP prefix of the request.
 | PBMT            | Page-Based Memory Types.
-| PPN             | Physical Page Number.
-| PRI             | Page Request Interface - a PCIe protocol that enables
-                    devices to request OS memory manager services to make pages
-                    resident cite:[PCI].
 | PC              | Process Context.
 | PCIe            | Peripheral Component Interconnect Express bus standard
                     cite:[PCI].
@@ -293,6 +289,10 @@ in <<fig:device-isolation>> the OS may configure the IOMMU with a page table to
 translate the IOVA and thereby limit the addresses that may be accessed to those
 allowed by the page table.
 
+[[fig:device-isolation]]
+.Device isolation in non-virtualized OS
+image::non-virt-OS.svg[width=300,height=300, align="center"]
+
 Legacy 32-bit devices cannot access the memory above 4 GiB. The IOMMU, through
 its address remapping capability, offers a simple mechanism for the device to
 directly access any address in the system (with appropriate access permission).
@@ -313,9 +313,6 @@ When the IOMMU is used by a non-virtualized OS, the first-stage suffices to
 provide the required address translation and protection function and the
 second-stage may be set to Bare.
 
-[[fig:device-isolation]]
-.Device isolation in non-virtualized OS
-image::non-virt-OS.svg[width=300,height=300]
 
 //["ditaa",shadows=false, separation=false, fontsize: 16]
 //....
@@ -360,7 +357,7 @@ and from D2 to VM-2 associated memory.
 
 [[fig:dma-translation-direct-device-assignment]]
 .DMA translation to enable direct device assignment
-image::hypervisor.svg[width=300,height=300]
+image::hypervisor.svg[width=300,height=300, align="center"]
 //["ditaa",shadows=false, separation=false, fontsize: 16]
 //....
 //+----------------+ +----------------+
@@ -394,7 +391,7 @@ address, the same as supported by regular RISC-V page-based address translation.
 
 [[MSI_REDIR]]
 .MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
-image::msi-imsic.svg[width=500,height=400]
+image::msi-imsic.svg[width=500,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //                                                                +-----------------------+
@@ -440,6 +437,10 @@ hypervisor.
 
 <<fig:iommu-for-guest-os>> illustrates the concept.
 
+[[fig:iommu-for-guest-os]]
+.Address translation in IOMMU for Guest OS
+image::guest-OS.svg[width=500,height=400, align="center"]
+
 The IOMMU is configured to perform address translation using a first-stage
 and second-stage page table for device D1. The second-stage is typically used by
 the hypervisor to translate GPA to SPA and limit the device D1 to memory
@@ -452,9 +453,6 @@ The host OS or hypervisor may also retain a device, such as D3, for its own use.
 The first-stage suffices to provide the required address translation and
 protection function for device D3 and the second-stage is set to Bare.
 
-[[fig:iommu-for-guest-os]]
-.Address translation in IOMMU for Guest OS
-image::guest-OS.svg[width=500,height=400]
 //["ditaa",shadows=false, separation=false, fontsize: 16]
 //....
 //+---------------------------------------------------+
@@ -503,6 +501,8 @@ incorporates an ATS interface to the IOMMU that is used to support the PCIe ATS
 protocol by the IOMMU.  The example shows an endpoint device with a device side
 ATC (DevATC) that holds translations obtained by the device from IOMMU 0 using
 the PCIe ATS protocol cite:[PCI].
+
+<<<
 
 When such IO-protocol-to-system-fabric-protocol translation using a Root Port
 is not required, the devices may interface directly with the system fabric.
@@ -596,10 +596,8 @@ image::interfaces.svg[width=800]
 Similar to the RISC-V harts, physical memory attributes (PMA) and physical
 memory protection (PMP) checks must be completed on all inbound IO transactions
 even when the IOMMU is in bypass (`Bare` mode). The placement and integration of
-the PMA and PMP checkers is a platform choice.
-
-PMA and PMP checkers reside outside the IOMMU. The example above is showing
-them in the IO Bridge.
+the PMA and PMP checkers is a platform choice. PMA and PMP checkers reside
+outside the IOMMU. The example above is showing them in the IO Bridge.
 
 Implicit accesses by the IOMMU itself through the Data Structure interface are
 checked by the PMA checker. PMAs are tightly tied to a given physical platform’s

@@ -53,6 +53,8 @@ enabling error detection, logging the detected errors (including their severity,
 nature, and location), and configuring means to report the error to an error
 handler.
 
+<<<
+
 Some errors, such as those in the IOATC, may be correctable by reloading the
 cached in-memory data structures when the error is detected. Such errors are not
 expected to affect the functioning of the IOMMU.
