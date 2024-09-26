@@ -302,11 +302,11 @@ step_5:
     //    – If the comparison fails, return to step 2
     if ( (pte->A == 1) && ( (pte->D == 1) || (is_write == 0) || (pte->W == 0) ) ) goto step_8;
 
-    // If G-stage does not provide write permission then cause guest page fault
-    if ( gpte.W == 0 ) goto guest_page_fault;
-
     // A and/or D bit update needed
     if ( SADE == 0 ) goto page_fault;
+
+    // If G-stage does not provide write permission then cause guest page fault
+    if ( gpte.W == 0 ) goto guest_page_fault;
 
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
