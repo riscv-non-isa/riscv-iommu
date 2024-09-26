@@ -17,6 +17,7 @@ locate_process_context(
     gpte_t g_pte;
     pdte_t pdte;
     uint16_t PDI[3];
+    uint8_t is_implicit, is_read, is_write, is_exec;
 
     // The device-context provides the PDT root page PPN (pdtp.ppn).
     // When DC.iohgatp.mode is not Bare, pdtp.PPN as well as pdte.PPN
@@ -80,10 +81,13 @@ step_2:
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
     //    is used in subsequent steps.
-    if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, 1, 0, 0, 0, 1, process_id,
-                           0, 0, ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
-                           DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SADE, DC->tc.SXL, &a,
-                           &gst_page_sz, &g_pte) ) ) {
+    is_read = 1;
+    is_write = is_exec = is_implicit = 0;
+    if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, is_read, is_write,
+                           is_exec, is_implicit, 1, process_id, 0, 0, 
+                           ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
+                           DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SADE,
+                           DC->tc.SXL, &a, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) {
             *cause = 21;            // Read guest page fault
             *iotval2 = (a & ~0x3);
