@@ -25,7 +25,7 @@ iommu_translate_iova(
     uint32_t DID, PID, GSCID, PSCID;
     pte_t vs_pte;
     gpte_t g_pte;
-    uint8_t ioatc_status, gst_fault;
+    uint8_t ioatc_status, gst_fault, is_implicit;
     uint64_t napot_ppn, napot_iova, napot_gpa;
 
     // Classify transaction type
@@ -310,9 +310,10 @@ step_17:
     //     cite:[PRIV] to translate the GPA `A` to determine the SPA accessed by the
     //     transaction. If a fault is detected by the address translation process then
     //     stop and report the fault.
+    is_implicit = 0;
     if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID,
-                          is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
-                          iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
+                          is_read, is_write, is_exec, is_implicit, PV, PID, PSCV, PSCID, GV, GSCID,
+                          iohgatp, DC.tc.GADE, DC.tc.SADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
         goto data_corruption;

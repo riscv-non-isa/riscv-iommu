@@ -20,6 +20,7 @@ two_stage_address_translation(
     pte_t amo_pte;
     gpte_t gpte;
     uint8_t NL_G = 0;
+    uint8_t is_implicit;
     uint8_t PTESIZE, LEVELS, status, pte_changed, gst_fault;
     int8_t i;
     uint64_t a, masked_upper_bits, mask;
@@ -119,9 +120,9 @@ step_2:
     // If IOMMU HW A/D bit update are enabled the implicit accesses are treated
     // as writes. This avoids the IOMMU needing to go back in time to set D bit
     // in G-stage page tables if A or D bit needs to be set in VS stage.
-    // If SADE is 1, then its a implicit write else its a implicit read
-    if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, SADE, 0,
-                            PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SXL,
+    is_implicit = 1;
+    if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, 0, 0, is_implicit,
+                            PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SADE, SXL,
                             &a, &gst_page_sz, &gpte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
@@ -288,7 +289,9 @@ step_5:
 
     // 7. If pte.a = 0, or if the original memory access is a store and pte.d = 0,
     //    If SADE is 1, the IOMMU updates A and D bits in first-stage PTEs atomically. If
-    //    SADE is 0, the IOMMU causes a page-fault corresponding to the original access type
+    //    SADE is 0, the IOMMU causes a page-fault corresponding to the original access type.
+    //    To set A or D bit in first-stage PTE, the G-stage PTE that provides
+    //    its translation must have write permission else a guest page fault occurs.
     //    if the A bit is 0 or if the memory access is a store and the D bit is 0.
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
     //      corresponding to the original access type.
@@ -298,6 +301,9 @@ step_5:
     //      also set pte.d to 1.
     //    – If the comparison fails, return to step 2
     if ( (pte->A == 1) && ( (pte->D == 1) || (is_write == 0) || (pte->W == 0) ) ) goto step_8;
+
+    // If G-stage does not provide write permission then cause guest page fault
+    if ( gpte.W == 0 ) goto guest_page_fault;
 
     // A and/or D bit update needed
     if ( SADE == 0 ) goto page_fault;

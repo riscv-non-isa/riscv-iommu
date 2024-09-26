@@ -7,10 +7,10 @@
 uint8_t
 second_stage_address_translation(
     uint64_t gpa, uint8_t check_access_perms, uint32_t DID,
-    uint8_t is_read, uint8_t is_write, uint8_t is_exec,
+    uint8_t is_read, uint8_t is_write, uint8_t is_exec, uint8_t is_implicit,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
-    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
-    uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte) {
+    uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SADE,
+    uint8_t SXL, uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -259,6 +259,10 @@ step_5:
     //    If `GADE` is 1, the IOMMU updates A and D bits in G-stage PTEs atomically. If
     //    `GADE` is 0, the IOMMU causes a guest-page-fault corresponding to the original
     //    access type if A bit is 0 or if the memory access is a store and the D bit is 0.
+    //    If the G-stage was invoked for a implicit walk then set D bit if its
+    //    not already 0, if HW A/D updating for first stage is enabled (SADE is 1),
+    //    HW A/D updating for G-stage is enabled (GADE is 1), and PTE provides
+    //    write permission.
     //    For IOMMU updating of A/D bits the following steps are performed:
     //    - If a store to pte would violate a PMA or PMP check, raise an access-fault exception
     //      corresponding to the original access type.
@@ -267,7 +271,8 @@ step_5:
     //    – If the values match, set pte.a to 1 and, if the original memory access is a store,
     //      also set pte.d to 1.
     //    – If the comparison fails, return to step 2
-    if ( (gpte->A == 1) && ( (gpte->D == 1) || (is_write == 0) || (gpte->W == 0) ) ) goto step_8;
+    if ( (gpte->A == 1) && (gpte->D == 1 || is_write == 0) &&
+         (gpte->D == 1 || is_implicit == 0 || gpte->W == 0 || GADE == 0 || SADE == 0) ) goto step_8;
 
     // A and/or D bit update needed
     if ( GADE == 0 ) return GST_PAGE_FAULT;
