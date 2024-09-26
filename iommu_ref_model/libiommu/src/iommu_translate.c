@@ -311,8 +311,8 @@ step_17:
     //     transaction. If a fault is detected by the address translation process then
     //     stop and report the fault.
     if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID,
-                          is_read, is_write, is_exec, PV, PID, PSCV, PSCID, GV, GSCID,
-                          iohgatp, DC.tc.GADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
+                          is_read, is_write, is_exec, 0, PV, PID, PSCV, PSCID, GV, GSCID,
+                          iohgatp, DC.tc.GADE, DC.tc.SADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
         goto data_corruption;
