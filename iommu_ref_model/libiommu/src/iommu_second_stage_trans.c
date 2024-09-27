@@ -188,7 +188,6 @@ step_5:
     //   No faults are caused here - the denied permissions will be reported back in
     //   the ATS completion
     // Implicit accesses dont check permission against original access type
-    if ( (gpte->PPN * PAGESIZE) & ~pa_mask ) return GST_ACCESS_FAULT;
     if ( check_access_perms == 1 ) {
         if ( is_exec  && (gpte->X == 0) ) return GST_PAGE_FAULT;
         if ( is_read  && (gpte->R == 0) ) return GST_PAGE_FAULT;
