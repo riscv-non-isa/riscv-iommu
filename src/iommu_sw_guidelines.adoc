@@ -112,13 +112,10 @@ The guidelines for initializing the IOMMU are as follows:
 .. If `Dw` is less than or equal to  7-bits and `1LVL` is supported then `M = 1LVL`
 .. If `Dw` is less than or equal to 16-bits and `2LVL` is supported then `M = 2LVL`
 .. If `Dw` is less than or equal to 24-bits and `3LVL` is supported then `M = 3LVL`
-
-+
-Program the `ddtp` register as follows:
-
-** `temp_ddtp_var.iommu_mode = M`
-** `temp_ddtp_var.PPN = B`
-** `ddtp = temp_ddtp_var`
+** Program the `ddtp` register as follows:
+.. `temp_ddtp_var.iommu_mode = M`
+.. `temp_ddtp_var.PPN = B`
+.. `ddtp = temp_ddtp_var`
 
 The IOMMU is initialized and may be now be configured with device-contexts
 for devices in scope of the IOMMU.
@@ -384,7 +381,7 @@ following actions:
 .. Process pending fault/event reports that need processing and remove them from
    the `FQ` by advancing the `fqh` by the number of records processed.
 . If the `ipsr.pip` bit is set then an interrupt is pending from the `PQ`.
-.. Read the `pqcsr`register.
+.. Read the `pqcsr` register.
 .. Determine if an error caused the interrupt and if so, the cause of the error
    by examining the state of the `pqmf` and `pqof` bits. If either of these bits
    are set then the `PQ` encountered an error and "Page Request" reporting is
