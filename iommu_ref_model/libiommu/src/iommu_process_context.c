@@ -84,7 +84,7 @@ step_2:
     is_read = 1;
     is_write = is_exec = is_implicit = 0;
     if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, is_read, is_write,
-                           is_exec, is_implicit, 1, process_id, 0, 0, 
+                           is_exec, is_implicit, 1, process_id, 0, 0,
                            ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
                            DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SADE,
                            DC->tc.SXL, &a, &gst_page_sz, &g_pte) ) ) {

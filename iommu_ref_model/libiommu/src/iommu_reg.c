@@ -20,6 +20,7 @@ uint8_t g_max_iommu_mode;
 uint8_t g_fill_ats_trans_in_ioatc;
 uint32_t g_max_devid_mask;
 extern uint8_t g_iofence_wait_pending_inv;
+uint8_t g_trans_for_debug;
 
 uint8_t
 is_access_valid(
@@ -703,7 +704,9 @@ write_register(
                         req.tr.length = 1;
                         req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.NW == 1) ? READ : WRITE;
 
+                        g_trans_for_debug = 1;
                         iommu_translate_iova(&req, &rsp);
+                        g_trans_for_debug = 0;
 
                         // The value in PBMT, S< and PPN are UNSPECIFIED if
                         // fault is 1. Model sets them to 0.

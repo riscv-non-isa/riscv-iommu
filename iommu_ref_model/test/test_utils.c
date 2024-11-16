@@ -207,9 +207,9 @@ check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t E
     return 0;
 }
 int8_t
-check_msg_faults(
+check_faults(
     uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV,
-    uint32_t exp_DID, uint64_t exp_iotval) {
+    uint32_t exp_DID, uint64_t exp_iotval, uint8_t ttyp, uint64_t exp_iotval2) {
     fault_rec_t fault_rec;
     fqb_t fqb;
     fqh_t fqh;
@@ -233,8 +233,8 @@ check_msg_faults(
 
     if ( fault_rec.CAUSE != cause || fault_rec.DID != exp_DID ||
          fault_rec.iotval != exp_iotval ||
-         fault_rec.iotval2 != 0 ||
-         fault_rec.TTYP != PCIE_MESSAGE_REQUEST ||
+         fault_rec.iotval2 != exp_iotval2 ||
+         fault_rec.TTYP != ttyp ||
          fault_rec.reserved != 0 ) {
         printf("Bad fault record\n");
         return -1;
@@ -255,8 +255,6 @@ check_rsp_and_faults(
     uint16_t cause,
     uint64_t exp_iotval2) {
 
-    fault_rec_t fault_rec;
-    fqb_t fqb;
     fqh_t fqh;
     uint8_t EXP_TTYP;
 
@@ -292,29 +290,8 @@ check_rsp_and_faults(
     }
 
     if ( cause == 0 ) return 0;
-
-    fqb.raw = read_register(FQB_OFFSET, 8);
-    read_memory(((fqb.ppn * PAGESIZE) | (fqh.index * FQ_ENTRY_SZ)), FQ_ENTRY_SZ, (char *)&fault_rec);
-
-    // pop the fault record
-    fqh.index++;
-    write_register(FQH_OFFSET, 4, fqh.raw);
-
-    if ( fault_rec.CAUSE != cause || fault_rec.DID != req->device_id ||
-         fault_rec.iotval != req->tr.iova ||
-         fault_rec.iotval2 != exp_iotval2 ||
-         fault_rec.TTYP != EXP_TTYP ||
-         fault_rec.reserved != 0 ) {
-        printf("Bad fault record\n");
-        return -1;
-    }
-    if ( (req->pid_valid != fault_rec.PV) ||
-         (req->pid_valid && ((fault_rec.PID != req->process_id) ||
-                              (fault_rec.PRIV != req->priv_req))) ) {
-        printf("Bad fault record\n");
-        return -1;
-    }
-    return 0;
+    return check_faults(cause, req->pid_valid, req->process_id, req->priv_req,
+                 req->device_id, req->tr.iova, EXP_TTYP, exp_iotval2);
 }
 uint64_t
 add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,

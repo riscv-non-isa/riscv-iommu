@@ -154,7 +154,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(256, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(256, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
     END_TEST();
 
     START_TEST("Bare mode tests");
@@ -195,7 +195,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
     // Turn it off
     fail_if( ( enable_iommu(Off) < 0 ) );
     END_TEST();
@@ -227,7 +227,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
 
     fail_if( ( enable_iommu(DDT_2LVL) == 0 ) );
     fail_if( ( enable_iommu(Off) < 0 ) );
@@ -258,7 +258,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
 
     // Change to MSI flat mode
     g_reg_file.capabilities.msi_flat = 0;
@@ -284,7 +284,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
     g_reg_file.capabilities.msi_flat = 1;
 
     END_TEST();
@@ -3024,7 +3024,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(258, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(258, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
 
     // ATS disabled
     pr.RID = 0x2233;
@@ -3040,7 +3040,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
 
     // ATS enabled PRI disabled
     pr.RID = 0x2233;
@@ -3056,7 +3056,7 @@ main(void) {
     exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
-    fail_if( ( check_msg_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE) < 0 ) );
+    fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
 
 
     // ATS, PRI enabled - Page request queue disabled
@@ -3646,6 +3646,27 @@ main(void) {
     fail_if( ( rsp.trsp.mrif_nid != 0x412 ) );
     fail_if( ( rsp.trsp.mrif_nid != 0x412 ) );
     fail_if( ( rsp.trsp.dest_mrif_addr != (msipte.mrif.MRIF_ADDR_55_9 * 512)) );
+
+    req.device_id = 0x121679;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_UNTRANSLATED;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = READ;
+    req.tr.iova = gpa;
+
+    tr_req_ctrl.DID = 0x121679;
+    tr_req_ctrl.PV = 0;
+    tr_req_ctrl.PID = 0;
+    tr_req_ctrl.Priv = 0;
+    tr_req_ctrl.NW = 1;
+    tr_req_ctrl.go_busy = 1;
+    tr_req_iova.raw = gpa;
+    write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
+    write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
+    tr_response.raw = read_register(TR_RESPONSE_OFFSET, 8);
+    fail_if( ( tr_response.fault == 0 ) );
+    fail_if( ( check_faults(260, tr_req_ctrl.PV, tr_req_ctrl.PID, tr_req_ctrl.Priv, 0x121679, gpa, UNTRANSLATED_READ_TRANSACTION, 0) < 0 ) );
 
     END_TEST();
 

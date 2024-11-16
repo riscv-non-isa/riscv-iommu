@@ -303,6 +303,14 @@ step_17:
     if ( msi_address_translation(gpa, is_exec, &DC, &is_msi, &is_mrif, &mrif_nid, &dest_mrif_addr,
                                  &cause, &iotval2, &pa, &gst_page_sz, &g_pte, check_access_perms) )
         goto stop_and_report_fault;
+
+    // Chapter 5: If the IOVA is determined to be that of a virtual interrupt file
+    // (Section 3.1.3.6) and the corresponding MSI PTE is in MRIF mode, then the process
+    // stops and reports a "Transaction type disallowed" (cause = 260) fault.
+    if ( is_msi && is_mrif && g_trans_for_debug) {
+      cause = 260; // "Transaction type disallowed"
+      goto stop_and_report_fault;
+    }
     if ( is_msi == 1 ) goto skip_gpa_trans;
 
     // 19. Use the second-stage address translation process specified in Section
