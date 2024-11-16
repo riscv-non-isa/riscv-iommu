@@ -790,6 +790,7 @@ extern uint8_t offset_to_size[4096];
 extern uint8_t g_max_iommu_mode;
 extern uint8_t g_fill_ats_trans_in_ioatc;
 extern uint32_t g_max_devid_mask;
+extern uint8_t g_trans_for_debug;
 
 extern void process_commands(void);
 #endif //_IOMMU_REGS_H_
