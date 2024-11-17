@@ -308,8 +308,8 @@ step_17:
     // (Section 3.1.3.6) and the corresponding MSI PTE is in MRIF mode, then the process
     // stops and reports a "Transaction type disallowed" (cause = 260) fault.
     if ( is_msi && is_mrif && g_trans_for_debug) {
-      cause = 260; // "Transaction type disallowed"
-      goto stop_and_report_fault;
+        cause = 260; // "Transaction type disallowed"
+        goto stop_and_report_fault;
     }
     if ( is_msi == 1 ) goto skip_gpa_trans;
 
