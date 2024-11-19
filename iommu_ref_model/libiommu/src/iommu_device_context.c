@@ -277,14 +277,14 @@ do_device_context_configuration_checks(
     }
     //13. `DC.iohgatp.MODE` encoding is not a valid encoding as determined
     //    by <<IOHGATP_MODE_ENC>>
-    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 0) &&
+    if ( (g_reg_file.fctl.gxl == 0) &&
          (DC->iohgatp.MODE != IOHGATP_Bare) &&
          (DC->iohgatp.MODE != IOHGATP_Sv39x4) &&
          (DC->iohgatp.MODE != IOHGATP_Sv48x4) &&
          (DC->iohgatp.MODE != IOHGATP_Sv57x4) ) {
         return 1;
     }
-    if ( (DC->tc.PDTV == 0) && (g_reg_file.fctl.gxl == 1) &&
+    if ( (g_reg_file.fctl.gxl == 1) &&
          (DC->iohgatp.MODE != IOHGATP_Bare) &&
          (DC->iohgatp.MODE != IOHGATP_Sv32x4) ) {
         return 1;
