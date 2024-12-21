@@ -27,16 +27,6 @@ two_stage_address_translation(
     uint64_t gst_page_sz;
     uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
-    // Indicate S/VS-stage page size as largest possible page size
-    if ( g_reg_file.capabilities.Sv57 == 1 )
-        *page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
-    else if ( g_reg_file.capabilities.Sv48 == 1 )
-        *page_sz = 512UL * 512UL * 512UL * PAGESIZE;
-    else if ( g_reg_file.capabilities.Sv39 == 1 && SXL == 0)
-        *page_sz = 512UL * 512UL * PAGESIZE;
-    else if ( g_reg_file.capabilities.Sv32 == 1 && SXL == 1)
-        *page_sz = 2UL * 512UL * PAGESIZE;
-
     *iotval2 = 0;
 
     // Walk page tables
@@ -50,6 +40,19 @@ two_stage_address_translation(
         pte->N = 0;
         pte->PBMT = PMA;
         *pa = iova;
+        // The translation range size returned in a Success response to
+        // an ATS translation request, when either stages of address
+        // translation are Bare, is implementation-defined. However, it
+        // is recommended that the translation range size be large, such
+        // as 2 MiB or 1 GiB.
+        if ( g_reg_file.capabilities.Sv57 == 1 )
+            *page_sz = g_sv57_bare_pg_sz;
+        else if ( g_reg_file.capabilities.Sv48 == 1 )
+            *page_sz = g_sv48_bare_pg_sz;
+        else if ( g_reg_file.capabilities.Sv39 == 1 && SXL == 0)
+            *page_sz = g_sv39_bare_pg_sz;
+        else if ( g_reg_file.capabilities.Sv32 == 1 && SXL == 1)
+            *page_sz = g_sv32_bare_pg_sz;
         return 0;
     }
 
