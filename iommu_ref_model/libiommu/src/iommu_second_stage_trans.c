@@ -31,15 +31,19 @@ second_stage_address_translation(
         gpte->X = gpte->W = gpte->R = gpte->V = 1;
         gpte->N = 0;
         gpte->PBMT = PMA;
-        // Indicate G-stage page size as largest possible page size
+        // The translation range size returned in a Success response to
+        // an ATS translation request, when either stages of address
+        // translation are Bare, is implementation-defined. However, it
+        // is recommended that the translation range size be large, such
+        // as 2 MiB or 1 GiB.
         if ( g_reg_file.capabilities.Sv57x4 == 1 )
-            *gst_page_sz = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+            *gst_page_sz = g_sv57_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv48x4 == 1 )
-            *gst_page_sz = 512UL * 512UL * 512UL * PAGESIZE;
+            *gst_page_sz = g_sv48_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv39x4 == 1 && g_reg_file.fctl.gxl == 0)
-            *gst_page_sz = 512UL * 512UL * PAGESIZE;
+            *gst_page_sz = g_sv39_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv32x4 == 1 && g_reg_file.fctl.gxl == 1)
-            *gst_page_sz = 2UL * 512UL * PAGESIZE;
+            *gst_page_sz = g_sv32_bare_pg_sz;
         goto step_8;
     }
 

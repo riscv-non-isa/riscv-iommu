@@ -791,6 +791,10 @@ extern uint8_t g_max_iommu_mode;
 extern uint8_t g_fill_ats_trans_in_ioatc;
 extern uint32_t g_max_devid_mask;
 extern uint8_t g_trans_for_debug;
+extern uint64_t g_sv57_bare_pg_sz;
+extern uint64_t g_sv48_bare_pg_sz;
+extern uint64_t g_sv39_bare_pg_sz;
+extern uint64_t g_sv32_bare_pg_sz;
 
 extern void process_commands(void);
 #endif //_IOMMU_REGS_H_

@@ -28,6 +28,8 @@ main(void) {
     uint32_t i, j, test_num = 0;
     uint64_t DC_addr, exp_iotval2, iofence_PPN, iofence_data, spa, gpa;
     uint64_t gva, gpte_addr, pte_addr, PC_addr, temp;
+    uint64_t sv57_bare_sz, sv48_bare_sz, sv39_bare_sz, sv32_bare_sz;
+    uint64_t g_pg_sz, vs_pg_sz, exp_trn_sz, exp_pa;
     volatile uint64_t temp1;
     device_context_t DC;
     process_context_t PC;
@@ -67,10 +69,12 @@ main(void) {
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
-
+    sv57_bare_sz = sv48_bare_sz = sv39_bare_sz = 0x40000000;
+    sv32_bare_sz = 0x200000;
     fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0,
                            (FILL_IOATC_ATS_T2GPA | FILL_IOATC_ATS_ALWAYS),
-                           cap, fctl) < 0 ) );
+                           cap, fctl, sv57_bare_sz, sv48_bare_sz, sv39_bare_sz,
+                           sv32_bare_sz) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));
@@ -1386,11 +1390,11 @@ main(void) {
             } else {
                 temp = 0xFFF;
             }
-            fail_if( ( ((rsp.trsp.PPN * PAGESIZE) & ~temp) != (gpte.PPN * PAGESIZE) ) );
-            fail_if( ( ((temp + 1) != PAGESIZE) && i == 0 ) );
-            fail_if( ( ((temp + 1) != 512UL * PAGESIZE) && i == 1 ) );
-            fail_if( ( ((temp + 1) != 512UL * 512UL * PAGESIZE) && i == 2 ) );
-            fail_if( ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) );
+            g_pg_sz = (1UL << (i * 9UL)) * PAGESIZE;
+            exp_trn_sz = g_pg_sz > sv57_bare_sz ? sv57_bare_sz : g_pg_sz;
+            exp_pa = (((gpte.PPN * PAGESIZE) & ~(g_pg_sz - 1)) | (gpa & (g_pg_sz - 1))) & ~temp;
+            fail_if( (((rsp.trsp.PPN * PAGESIZE) & ~temp) != exp_pa) );
+            fail_if( ((temp + 1) != exp_trn_sz) );
 
             // Test for walking past max levels
             if ( i == 0 ) {
@@ -1439,10 +1443,9 @@ main(void) {
         fail_if( ( rsp.trsp.S != 1 ) );
         temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
         temp = temp  * PAGESIZE | 0xFFF;
-        fail_if( ( i == 0 && ((temp + 1) != 2 * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 1 && ((temp + 1) != 512UL * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) );
+        exp_trn_sz = i == 3 ? sv57_bare_sz : i == 2 ? sv48_bare_sz :
+                     i == 1 ? sv39_bare_sz : sv32_bare_sz;
+        fail_if( ((temp + 1) != exp_trn_sz) );
         if ( i == 0 ) g_reg_file.fctl.gxl = 0;
         if ( i == 0 ) DC.tc.SXL = 0;
     }
@@ -1665,11 +1668,11 @@ main(void) {
             } else {
                 temp = 0xFFF;
             }
-            fail_if( ( ((rsp.trsp.PPN * PAGESIZE) & ~temp) != (pte.PPN * PAGESIZE) ) );
-            fail_if( ( ((temp + 1) != PAGESIZE) && i == 0 ) );
-            fail_if( ( ((temp + 1) != 512UL * PAGESIZE) && i == 1 ) );
-            fail_if( ( ((temp + 1) != 512UL * 512UL * PAGESIZE) && i == 2 ) );
-            fail_if( ( ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) && i == 3 ) );
+            vs_pg_sz = (1UL << (i * 9UL)) * PAGESIZE;
+            exp_trn_sz = vs_pg_sz > sv57_bare_sz ? sv57_bare_sz : vs_pg_sz;
+            exp_pa = (((pte.PPN * PAGESIZE) & ~temp) | (gva & (vs_pg_sz - 1))) & ~temp;
+            fail_if( (((rsp.trsp.PPN * PAGESIZE) & ~temp) != exp_pa) );
+            fail_if( ((temp + 1) != exp_trn_sz) );
 
             // Test for walking past max levels
             if ( i == 0 ) {
@@ -1718,10 +1721,9 @@ main(void) {
         fail_if( ( rsp.trsp.S != 1 ) );
         temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
         temp = temp  * PAGESIZE | 0xFFF;
-        fail_if( ( i == 0 && ((temp + 1) != 2 * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 1 && ((temp + 1) != 512UL * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 2 && ((temp + 1) != 512UL * 512UL * 512UL * PAGESIZE) ) );
-        fail_if( ( i == 3 && ((temp + 1) != 512UL * 512UL * 512UL * 512UL * PAGESIZE) ) );
+        exp_trn_sz = i == 3 ? sv57_bare_sz : i == 2 ? sv48_bare_sz :
+                     i == 1 ? sv39_bare_sz : sv32_bare_sz;
+        fail_if( ((temp + 1) != exp_trn_sz) );
         if ( i == 0 ) g_reg_file.fctl.gxl = 0;
         if ( i == 0 ) DC.tc.SXL = 0;
     }
