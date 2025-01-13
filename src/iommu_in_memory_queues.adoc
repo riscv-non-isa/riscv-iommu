@@ -154,10 +154,12 @@ the command-queue. To re-enable command processing software should clear the
   {bits: 20, name: 'PSCID'},
   {bits: 1, name: 'PSCV'},
   {bits: 1, name: 'GV'},
-  {bits: 10, name: 'rsvd'},
+  {bits: 1, name: 'NL'},
+  {bits: 9, name: 'rsvd'},
   {bits: 16, name: 'GSCID'},
   {bits: 4, name: 'rsvd'},
-  {bits: 10, name: 'rsvd'},
+  {bits: 9, name: 'rsvd'},
+  {bits: 1, name: 'S'},
   {bits: 52, name: 'ADDR[63:12]'},
   {bits: 2, name: 'rsvd'},
 ], config:{lanes: 4, hspace:1024, fontsize:12}}
@@ -184,6 +186,10 @@ When `AV` is 0, the `ADDR` operand is ignored. When `PSCV` operand is 0, the
 `PSCID` operand is ignored. When the `AV` operand is set to 1, if the `ADDR`
 operand specifies an invalid address, the command may or may not perform any
 invalidations.
+
+The definition of the `NL` bit is provided by the non-leaf PTE invalidation
+extension <<NLINV>>. The definition of the `S` bit is provided by the address
+range invalidation extension <<ARINV>>.
 
 [NOTE]
 ====
