@@ -11,6 +11,9 @@ Architecture:
 | <<QOSID, *Quality-of-Service (QoS) Identifiers Extension*>>
                                                              |*1.0*
                                                                       |*Ratified*
+| <<NLINV, _Non-leaf PTE Invalidation Extension_>>
+                                                             |_0.99_
+                                                                      |_Draft_
 |===
 
 [[QOSID]]
@@ -93,3 +96,85 @@ different capacities. In scenarios where multiple IOATCs are implemented, such
 as an IOATC for each supported page size, the IOMMU can implement a capacity
 controller register interface for each IOATC to facilitate individual capacity
 allocation.
+
+<<<
+
+[[NLINV]]
+=== Non-leaf PTE Invalidation Extension, Version 0.99
+
+The RISC-V IOMMU Version 1.0 specification provides commands to invalidate
+leaf page table entries from address translation caches when performing an
+address-specific invalidation operation. The non-leaf PTE invalidation
+extension provides commands to optionally also invalidate non-leaf PTE
+entries from the address translation caches when performing an
+address-specific invalidation operation.
+
+The non-leaf PTE invalidation extension is implemented if the `capabilities.NL`
+(bit 42) is 1. When the `capabilities.NL` bit is 1, a non-leaf (`NL`) field is
+defined at bit 34 in the `IOTINVAL.VMA` and `IOTINVAL.GVMA` commands by this
+extension. When the `capabilities.NL` bit is 0, bit 34 remains reserved.
+
+[NOTE]
+====
+The non-leaf PTE invalidation extension enables optimizations in shared
+virtual addressing use cases by providing the ability to invalidate non-leaf
+PTEs corresponding to the IOVA being invalidated from the IOMMU address
+translation caches.
+====
+
+If the address range invalidation extension is also implemented, the `NL`
+operand applies to the address range determined by the `ADDR` and `S` operands.
+
+==== Non-leaf PTE Invalidation by `IOTINVAL.VMA`
+
+* When the `AV` operand is 0, the `NL` operand is ignored and the `IOTINVAL.VMA`
+  command operations are as specified in RISC-V IOMMU Version 1.0 specification.
+
+* When the `AV` operand is 1 and the `NL` operand is 0, the `IOTINVAL.VMA`
+  command operations are as specified in RISC-V IOMMU Version 1.0 specification.
+
+* When both the `AV` and `NL` operands are 1, the `IOTINVAL.VMA` command
+  performs the following operations:
+
+** When `GV=0` and `PSCV=0`: Invalidates information cached from all levels of
+   first-stage page table entries corresponding to the IOVA in the `ADDR`
+   operand for all host address spaces, including entries containing global
+   mappings.
+
+** When `GV=0` and `PSCV=1`: Invalidates information cached from all levels of
+   first-stage page table entries corresponding to the IOVA in the `ADDR`
+   operand and the host address space identified by the `PSCID` operand, except
+   for entries containing global mappings.
+
+** When `GV=1` and `PSCV=0`: Invalidates information cached from all levels of
+   first-stage page table entries corresponding to the IOVA in the `ADDR`
+   operand for all VM address spaces associated with the `GSCID` operand,
+   including entries that contain global mappings.
+
+** When `GV=1` and `PSCV=1`: Invalidates information cached from all levels of
+   first-stage page table entries corresponding to the IOVA in the `ADDR`
+   operand and the VM address space identified by the `PSCID` and `GSCID`
+   operands, except for entries containing global mappings.
+
+==== Non-leaf PTE Invalidation by `IOTINVAL.GVMA`
+
+* When the `GV` operand is 0, both the `AV` and `NL` operands are ignored and
+  the `IOTINVAL.GVMA` command operations are as specified in RISC-V IOMMU
+  Version 1.0 specification.
+
+* When the `GV` operand is 1 and the `AV` operand is 0, the `NL` operand is
+  ignored and the `IOTINVAL.GVMA` command operations are as specified in
+  RISC-V IOMMU Version 1.0 specification.
+
+* When the `GV` and `AV` operands are 1 and the `NL` operand is 0, the
+  `IOTINVAL.GVMA` command operations are as specified in RISC-V IOMMU Version
+  1.0 specification.
+
+* When `GV`, `AV`, and `NL` are all 1, the `IOTINVAL.GVMA` command performs the
+  following operations:
+
+** Invalidates information cached from all levels of second-stage page table
+   entries corresponding to the guest-physical address in the `ADDR` operand and
+   the VM address spaces identified by the `GSCID` operand.
+
+<<<
