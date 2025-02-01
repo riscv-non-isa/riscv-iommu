@@ -14,6 +14,9 @@ Architecture:
 | <<NLINV, _Non-leaf PTE Invalidation Extension_>>
                                                              |_0.99_
                                                                       |_Draft_
+| <<ARINV, _Address Range Invalidation Extension_>>
+                                                             |_0.99_
+                                                                      |_Draft_
 |===
 
 [[QOSID]]
@@ -178,3 +181,45 @@ operand applies to the address range determined by the `ADDR` and `S` operands.
    the VM address spaces identified by the `GSCID` operand.
 
 <<<
+
+[[ARINV]]
+=== Address Range Invalidation Extension, Version 0.99
+
+The address range invalidation extension enables specifying a range of addresses
+in an IOMMU ATC invalidation command, reducing the number of commands queued to
+the IOMMU. This facility is especially useful when superpages are employed in
+page tables.
+
+The address range invalidation extension is implemented if `capabilities.S` (bit
+43) is 1. When `capabilities.S` is 1, a range-size (`S`) operand is defined at
+bit 73 in the `IOTINVAL.VMA` and `IOTINVAL.GVMA` commands by this extension.
+When the `capabilities.S` bit is 0, bit 73 remains reserved.
+
+When the `GV` operand is 0, both the `AV` and `S` operands are ignored by the
+`IOTINVAL.GVMA` command. When the `AV` operand is 0, the `S` operand is ignored
+in both the `IOTINVAL.VMA` and `IOTINVAL.GVMA` commands. When the `S` operand is
+ignored or set to 0, the operations of the `IOTINVAL.VMA` and `IOTINVAL.GVMA`
+commands are as specified in the RISC-V IOMMU Version 1.0 specification.
+
+When the `S` operand is not ignored and is 1, the `ADDR` operand represents a
+NAPOT range encoded in the operand itself. Starting from bit position 0
+of the `ADDR` operand, if the first 0 bit is at position `X`, the range size is
+`2^(X+1)^ * 4` KiB. When `X` is 0, the size of the range is 8 KiB.
+
+If the `S` operand is not ignored and is 1 and all bits of the `ADDR` operand
+are 1, the behavior is UNSPECIFIED.
+
+If the `S` operand is not ignored and is 1 and the most significant bit of the
+`ADDR` operand is 0 while all other bits are 1, the specified address range
+covers the entire address space.
+
+[NOTE]
+====
+The NAPOT range encoding used by this extension follows the convention used by
+PCIe ATS Invalidation Requests to denote address ranges. This convention is also
+used to encode the translation range size in `tr_response` (<<TRR_RSP>>)
+register.
+
+Simpler implementations may invalidate all address-translation cache entries
+when the `S` bit is set to 1.
+====
