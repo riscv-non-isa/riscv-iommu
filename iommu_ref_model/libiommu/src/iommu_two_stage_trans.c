@@ -35,9 +35,9 @@ two_stage_address_translation(
         i = 0;
         pte->raw = 0;
         pte->PPN = 0;
-        pte->D = pte->A = pte->G = pte->U = 1;
+        pte->D = pte->A = pte->U = 1;
         pte->X = pte->W = pte->R = pte->V = 1;
-        pte->N = 0;
+        pte->N = pte->G = 0;
         pte->PBMT = PMA;
         *pa = iova;
         // The translation range size returned in a Success response to

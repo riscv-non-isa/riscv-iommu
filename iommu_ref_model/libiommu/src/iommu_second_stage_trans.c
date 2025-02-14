@@ -27,9 +27,9 @@ second_stage_address_translation(
         // No translation or protection.
         gpte->raw = 0;
         gpte->PPN = gpa / PAGESIZE;
-        gpte->D = gpte->A = gpte->G = gpte->U = 1;
+        gpte->D = gpte->A = gpte->U = 1;
         gpte->X = gpte->W = gpte->R = gpte->V = 1;
-        gpte->N = 0;
+        gpte->N = gpte->G = 0;
         gpte->PBMT = PMA;
         // The translation range size returned in a Success response to
         // an ATS translation request, when either stages of address
