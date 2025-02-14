@@ -463,7 +463,7 @@ step_20:
                                 ((vs_pte.PBMT != PMA) || (is_msi == 1) || (DC.tc.T2GPA == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
-        rsp_msg->trsp.Global = vs_pte.G;
+        rsp_msg->trsp.Global = req->pid_valid ? vs_pte.G : 0;
         rsp_msg->trsp.U      = (is_msi & is_mrif);
         rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
         rsp_msg->trsp.W      = (vs_pte.W & g_pte.W & vs_pte.D & g_pte.D);
