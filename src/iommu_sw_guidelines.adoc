@@ -172,10 +172,10 @@ performed:
 
 * `IODIR.INVAL_PDT` with `DV=1`, `DID=D` and `PID=P`
 * If `DC.iohgatp.MODE != Bare`
-** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PV=1`, `GSCID=DC.iohgatp.GSCID`,
+** `IOTINVAL.VMA` with `GV=1`, `AV=0`, `PSCV=1`, `GSCID=DC.iohgatp.GSCID`,
    and `PSCID=PC.PSCID`
 * else
-** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PV=1`, and `PSCID=PC.PSCID`
+** `IOTINVAL.VMA` with `GV=0`, `AV=0`, `PSCV=1`, and `PSCID=PC.PSCID`
 
 If software changes a non-leaf-level PDT entry the following invalidations
 must be performed:
