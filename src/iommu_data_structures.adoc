@@ -1314,6 +1314,14 @@ This is accomplished by setting "Untranslated Access Only" (U) field of the
 returned response to 1.
 ====
 
+[NOTE]
+====
+The translation range size returned in a Success response to an ATS translation
+request, when either stages of address translation are Bare, is
+implementation-defined. However, it is recommended that the translation range
+size be large, such as 2 MiB or 1 GiB.
+====
+
 When a Success response is generated for an ATS translation request, the setting
 of the Priv, N, CXL.io, Global, and AMA fields is as follows:
 
