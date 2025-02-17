@@ -408,6 +408,10 @@ step_20:
         // receive the Priv bit Clear and thus don’t need to cache it.
         // An ATC that receives a translation with R=W=0b for one privilege level may not
         // assume anything about what it might receive for the other privilege level.
+        // * Global field is set to the value determined from the first-stage page tables
+        //   if translation could be successfully completed and the request had a PASID
+        //   present. In all other cases, including MSI address translations, this field
+        //   is set to 0.
         // * N field of the ATS translation completion is always set to 0. The device may
         //   use other means to determine if the No-snoop flag should be set in the
         //   translated requests.
@@ -463,7 +467,7 @@ step_20:
                                 ((vs_pte.PBMT != PMA) || (is_msi == 1) || (DC.tc.T2GPA == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
-        rsp_msg->trsp.Global = req->pid_valid ? vs_pte.G : 0;
+        rsp_msg->trsp.Global = req->pid_valid && (is_msi == 0) ? vs_pte.G : 0;
         rsp_msg->trsp.U      = (is_msi & is_mrif);
         rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
         rsp_msg->trsp.W      = (vs_pte.W & g_pte.W & vs_pte.D & g_pte.D);
