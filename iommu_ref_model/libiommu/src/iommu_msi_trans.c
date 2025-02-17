@@ -116,10 +116,10 @@ msi_address_translation(
         *pa = ((msipte.translate_rw.PPN * PAGESIZE) | (A & 0xFFF));
         g_pte->raw = 0;
         g_pte->PPN = gpa / PAGESIZE;
-        g_pte->D = g_pte->A = g_pte->G = g_pte->U = 1;
+        g_pte->D = g_pte->A = g_pte->U = 1;
         g_pte->X = 0;
         g_pte->W = g_pte->R = g_pte->V = 1;
-        g_pte->N = 0;
+        g_pte->N = g_pte->G = 0;
         g_pte->PBMT = PMA;
         *page_sz = PAGESIZE;
         *is_mrif = 0;
@@ -156,10 +156,10 @@ msi_address_translation(
     *is_mrif = 1;
     g_pte->raw = 0;
     g_pte->PPN = gpa / PAGESIZE;
-    g_pte->D = g_pte->A = g_pte->G = g_pte->U = 1;
+    g_pte->D = g_pte->A = g_pte->U = 1;
     g_pte->X = 0;
     g_pte->W = g_pte->R = g_pte->V = 1;
-    g_pte->N = 0;
+    g_pte->N = g_pte->G = 0;
     g_pte->PBMT = PMA;
     *page_sz = PAGESIZE;
 
