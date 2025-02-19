@@ -296,7 +296,7 @@ step_5:
         // requests that may request write permission when write permission does not
         // exist. If write permission exists then the D bit is set else D bit is not
         // set and the write permission is returned in responses as 0.
-        if ( (is_write == 1) && (amo_gpte.W == 1) ) amo_gpte.D = 1;
+        if ( (is_write == 1 || is_implicit == 1) && (amo_gpte.W == 1) ) amo_gpte.D = 1;
     }
 
     status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
