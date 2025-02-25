@@ -291,7 +291,7 @@ allowed by the page table.
 
 [[fig:device-isolation]]
 .Device isolation in non-virtualized OS
-image::non-virt-OS.svg[width=300,height=300, align="center"]
+image::images/non-virt-OS.svg[width=300,height=300, align="center"]
 
 Legacy 32-bit devices cannot access the memory above 4 GiB. The IOMMU, through
 its address remapping capability, offers a simple mechanism for the device to
@@ -357,7 +357,7 @@ and from D2 to VM-2 associated memory.
 
 [[fig:dma-translation-direct-device-assignment]]
 .DMA translation to enable direct device assignment
-image::hypervisor.svg[width=300,height=300, align="center"]
+image::images/hypervisor.svg[width=300,height=300, align="center"]
 //["ditaa",shadows=false, separation=false, fontsize: 16]
 //....
 //+----------------+ +----------------+
@@ -391,7 +391,7 @@ address, the same as supported by regular RISC-V page-based address translation.
 
 [[MSI_REDIR]]
 .MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
-image::msi-imsic.svg[width=500,height=400, align="center"]
+image::images/msi-imsic.svg[width=500,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //                                                                +-----------------------+
@@ -439,7 +439,7 @@ hypervisor.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
-image::guest-OS.svg[width=500,height=400, align="center"]
+image::images/guest-OS.svg[width=500,height=400, align="center"]
 
 The IOMMU is configured to perform address translation using a first-stage
 and second-stage page table for device D1. The second-stage is typically used by
@@ -519,7 +519,7 @@ The IOMMU is not invoked for outbound transactions.
 
 [[fig:example-soc-with-iommu]]
 .Example of IOMMUs integration in SoC.
-image::placement.svg[width=800]
+image::images/placement.svg[width=800]
 
 The IOMMU is invoked by the IO Bridge for address translation and protection for
 inbound transactions. The data associated with the inbound transactions is not
@@ -591,7 +591,7 @@ generating the associated _notice_ MSI are implementation-specific.
 
 [[fig:iommu-interfaces]]
 .IOMMU interfaces.
-image::interfaces.svg[width=800]
+image::images/interfaces.svg[width=800]
 
 Similar to the RISC-V harts, physical memory attributes (PMA) and physical
 memory protection (PMP) checks must be completed on all inbound IO transactions
