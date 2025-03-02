@@ -95,24 +95,30 @@ process_commands(
             // non-leaf (NL) field is defined at bit 34 in the IOTINVAL.VMA and
             // IOTINVAL.GVMA commands by this extension. When the capabilities.NL
             // bit is 0, bit 34 remains reserved.
+            // The address range invalidation extension is implemented if
+            // `capabilities.S` (bit 43) is 1. When `capabilities.S` is 1, a
+            // range-size (`S`) operand is defined at bit 73 in the `IOTINVAL.VMA` and
+            // `IOTINVAL.GVMA` commands by this extension. When the `capabilities.S`
+            // bit is 0, bit 73 remains reserved.
             if ( command.iotinval.rsvd != 0 || command.iotinval.rsvd1 != 0 ||
                  command.iotinval.rsvd2 != 0 || command.iotinval.rsvd3 != 0 ||
                  command.iotinval.rsvd4 != 0 ||
-                 (g_reg_file.capabilities.nl == 0 && command.iotinval.nl != 0) )
+                 (g_reg_file.capabilities.nl == 0 && command.iotinval.nl != 0) ||
+                 (g_reg_file.capabilities.s  == 0 && command.iotinval.s  != 0) )
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case VMA:
                     do_iotinval_vma(command.iotinval.gv, command.iotinval.av,
-                                    command.iotinval.nl,
-                                    command.iotinval.pscv, command.iotinval.gscid,
-                                    command.iotinval.pscid, command.iotinval.addr_63_12);
+                                    command.iotinval.nl, command.iotinval.pscv,
+                                    command.iotinval.gscid, command.iotinval.pscid,
+                                    command.iotinval.addr_63_12, command.iotinval.s);
                     break;
                 case GVMA:
                     // Setting PSCV to 1 with IOTINVAL.GVMA is illegal.
                     if ( command.iotinval.pscv != 0 ) goto command_illegal;
                     do_iotinval_gvma(command.iotinval.gv, command.iotinval.av,
-                                     command.iotinval.nl,
-                                     command.iotinval.gscid, command.iotinval.addr_63_12);
+                                     command.iotinval.nl, command.iotinval.gscid,
+                                     command.iotinval.addr_63_12, command.iotinval.s);
                     break;
                 default: goto command_illegal;
             }
@@ -292,7 +298,8 @@ do_inval_pdt(
 
 void
 do_iotinval_vma(
-    uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t ADDR_63_12) {
+    uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t GSCID,
+    uint32_t PSCID, uint64_t ADDR_63_12, uint8_t S) {
 
     // IOMMU operations cause implicit reads to PDT, first-stage and second-stage
     // page tables. To reduce latency of such reads, the IOMMU may cache entries
@@ -348,6 +355,21 @@ do_iotinval_vma(
 
     uint8_t i, gscid_match, pscid_match, addr_match, global_match;
 
+    // The address range invalidation extension adds the S bit.
+    // When the AV operand is 0, the S operand is ignored in both the IOTINVAL.VMA and
+    // IOTINVAL.GVMA commands. When the S operand is ignored or set to 0, the operations of
+    // the IOTINVAL.VMA and IOTINVAL.GVMA commands are as specified in the RISC-V IOMMU
+    // Version 1.0 specification.
+    // When the S operand is not ignored and is 1, the ADDR operand represents a NAPOT
+    // range encoded in the operand itself. Starting from bit position 0 of the ADDR operand,
+    // if the first 0 bit is at position X, the range size is 2(X+1) * 4 KiB. When X is 0,
+    // the size of the range is 8 KiB.  If the S operand is not ignored and is 1 and all bits
+    // of the ADDR operand are 1, the behavior is UNSPECIFIED.
+    //   * The model treats this unspecified behavior as matching the entire address space.
+    // If the S operand is not ignored and is 1 and the most significant bit of the ADDR
+    // operand is 0 while all other bits are 1, the specified address range covers the entire
+    // address space
+
     for ( i = 0; i < TLB_SIZE; i++ ) {
         gscid_match = pscid_match = addr_match = global_match = 0;
         if ( (GV == 0 && tlb[i].GV == 0 ) ||
@@ -360,7 +382,7 @@ do_iotinval_vma(
              (PSCV == 1 && tlb[i].G == 0) )
             global_match = 1;
         if ( (AV == 0) ||
-             (AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) )
+             (AV == 1 && match_address_range(ADDR_63_12, S, tlb[i].vpn, tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && pscid_match && addr_match && global_match )
             tlb[i].valid = 0;
@@ -397,7 +419,7 @@ do_iotinval_vma(
 }
 void
 do_iotinval_gvma(
-    uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID, uint64_t ADDR_63_12) {
+    uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID, uint64_t ADDR_63_12, uint8_t S) {
 
     uint8_t i, gscid_match, addr_match;
     // Conceptually, an implementation might contain two address-translation
@@ -430,6 +452,23 @@ do_iotinval_gvma(
     //                   table entries corresponding to the guest-physical-address in
     //                   `ADDR` operand, for only for VM address spaces identified
     //                   `GSCID` operand.
+    //
+    // The address range invalidation extension adds the S bit.
+    // When the GV operand is 0, both the AV and S operands are ignored by the
+    // IOTINVAL.GVMA command.
+    // When the AV operand is 0, the S operand is ignored in both the IOTINVAL.VMA and
+    // IOTINVAL.GVMA commands. When the S operand is ignored or set to 0, the operations of
+    // the IOTINVAL.VMA and IOTINVAL.GVMA commands are as specified in the RISC-V IOMMU
+    // Version 1.0 specification.
+    // When the S operand is not ignored and is 1, the ADDR operand represents a NAPOT
+    // range encoded in the operand itself. Starting from bit position 0 of the ADDR operand,
+    // if the first 0 bit is at position X, the range size is 2(X+1) * 4 KiB. When X is 0,
+    // the size of the range is 8 KiB.  If the S operand is not ignored and is 1 and all bits
+    // of the ADDR operand are 1, the behavior is UNSPECIFIED.
+    //   * The model treats this unspecified behavior as matching the entire address space.
+    // If the S operand is not ignored and is 1 and the most significant bit of the ADDR
+    // operand is 0 while all other bits are 1, the specified address range covers the entire
+    // address space
     for ( i = 0; i < TLB_SIZE; i++ ) {
         if ( tlb[i].valid == 0 ) continue;
         if ( (GV == 0 && tlb[i].GV == 1) ||
@@ -439,7 +478,7 @@ do_iotinval_gvma(
         // it. If PSCV is 0 then it holds a GPA. If AV is 0 then all entries are
         // eligible else match the address
         if ( (tlb[i].PSCV == 1) || (AV == 0) ||
-             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, tlb[i].vpn, tlb[i].S)) )
+             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, S, tlb[i].vpn, tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && addr_match )
             tlb[i].valid = 0;

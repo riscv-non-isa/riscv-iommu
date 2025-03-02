@@ -3702,8 +3702,10 @@ main(void) {
                      cmd.iotinval.rsvd2 == 0 &&
                      cmd.iotinval.rsvd3 == 0 &&
                      cmd.iotinval.rsvd4 == 0 ) {
-                    if ( temp == 0 )
+                    if ( temp == 0 ) {
+                        cmd.iotinval.s     = 0;
                         cmd.iotinval.func3 = 0x7;
+                    }
                     if ( temp == 1 )
                         cmd.iotinval.rsvd = 1;
                     if ( temp == 2 )
@@ -4323,7 +4325,6 @@ main(void) {
     g_reg_file.capabilities.ats = 1;
     write_register(ICVEC_OFFSET, 8, 0x0000000000005555);
     fail_if( ( read_register(ICVEC_OFFSET, 8) != 0x0000000000005555) );
- 
     // test iommu_qosid
     g_reg_file.capabilities.qosid = 1;
     g_iommu_qosid_mask = 0x00FF00FF;
