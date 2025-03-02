@@ -11,28 +11,38 @@
 
 uint8_t
 read_memory(
-    uint64_t addr, uint8_t size, char *data){
+    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid){
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(data, &memory[addr], size);
     return 0;
 }
-
+uint8_t
+read_memory_test(
+    uint64_t addr, uint8_t size, char *data) {
+    return read_memory(addr, size, data, 0, 0);
+}
 uint8_t
 read_memory_for_AMO(
-    uint64_t addr, uint8_t size, char *data) {
+    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid) {
     // Same for now
-    return read_memory(addr, size, data);
+    return read_memory(addr, size, data, rcid, mcid);
 }
 
 uint8_t
 write_memory(
-    char *data, uint64_t addr, uint32_t size) {
+    char *data, uint64_t addr, uint32_t size, uint32_t rcid, uint32_t mcid) {
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(&memory[addr], data, size);
     return 0;
 }
+uint8_t
+write_memory_test(
+    char *data, uint64_t addr, uint32_t size) {
+    return write_memory(data, addr, size, 0, 0);
+}
+
 
 void
 iommu_to_hb_do_global_observability_sync(

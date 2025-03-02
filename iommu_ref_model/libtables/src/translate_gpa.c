@@ -53,7 +53,7 @@ translate_gpa (
     a = iohgatp.PPN * PAGESIZE;
     while ( 1 ) {
         nl_gpte.raw = 0;
-        if ( read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw) ) return -1;
+        if ( read_memory_test((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_gpte.raw) ) return -1;
         if ( nl_gpte.V == 0 ) return -1;
         if ( nl_gpte.R != 0 || nl_gpte.X != 0 ) {
             *spa = nl_gpte.PPN;

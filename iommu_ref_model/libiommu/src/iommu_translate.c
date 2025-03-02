@@ -291,7 +291,8 @@ step_17:
     if ( two_stage_address_translation(req->tr.iova, check_access_perms, DID, is_read, is_write, is_exec,
                                         PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
                                         GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
-                                        &cause, &iotval2, &gpa, &page_sz, &vs_pte) )
+                                        &cause, &iotval2, &gpa, &page_sz,
+                                        &vs_pte, DC.ta.rcid, DC.ta.mcid) )
         goto stop_and_report_fault;
 
     // 18. If MSI address translations using MSI page tables is enabled
@@ -301,7 +302,8 @@ step_17:
     //     If a fault is detected by the MSI address translation process then stop and
     //     report the fault else the process continues at step 20.
     if ( msi_address_translation(gpa, is_exec, &DC, &is_msi, &is_mrif, &mrif_nid, &dest_mrif_addr,
-                                 &cause, &iotval2, &pa, &gst_page_sz, &g_pte, check_access_perms) )
+                                 &cause, &iotval2, &pa, &gst_page_sz, &g_pte,
+                                 check_access_perms, DC.ta.rcid, DC.ta.mcid) )
         goto stop_and_report_fault;
 
     // Chapter 5: If the IOVA is determined to be that of a virtual interrupt file
@@ -321,7 +323,8 @@ step_17:
     is_implicit = 0;
     if ( (gst_fault = second_stage_address_translation(gpa, check_access_perms, DID,
                           is_read, is_write, is_exec, is_implicit, PV, PID, PSCV, PSCID, GV, GSCID,
-                          iohgatp, DC.tc.GADE, DC.tc.SADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte) ) ) {
+                          iohgatp, DC.tc.GADE, DC.tc.SADE, DC.tc.SXL, &pa, &gst_page_sz, &g_pte,
+                          DC.ta.rcid, DC.ta.mcid) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
         goto data_corruption;

@@ -277,7 +277,9 @@ handle_page_request(
     prec.reserved0= 0;
     prec.reserved1= 0;
     prec_addr = ((pqb * PAGESIZE) | (pqt * PQ_ENTRY_SZ));
-    status = write_memory((char *)&prec, prec_addr, 16);
+    status = write_memory((char *)&prec, prec_addr, 16,
+                          g_reg_file.iommu_qosid.rcid,
+                          g_reg_file.iommu_qosid.mcid);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         g_reg_file.pqcsr.pqmf = 1;
         generate_interrupt(PAGE_QUEUE);

@@ -10,7 +10,8 @@ static void
 do_msi(
     uint32_t msi_data, uint64_t msi_addr) {
     uint8_t  status;
-    status = write_memory((char *)&msi_data, msi_addr, 4);
+    status = write_memory((char *)&msi_data, msi_addr, 4,
+                          g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid);
     if ( status & ACCESS_FAULT ) {
         // If an access fault is detected on a MSI write using msi_addr_x,
         // then the IOMMU reports a "IOMMU MSI write access fault" (cause 273) fault,

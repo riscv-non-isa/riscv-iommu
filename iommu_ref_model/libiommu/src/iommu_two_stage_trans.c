@@ -13,7 +13,7 @@ two_stage_address_translation(
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
-    uint64_t *page_sz, pte_t *pte) {
+    uint64_t *page_sz, pte_t *pte, uint32_t rcid, uint32_t mcid) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -126,7 +126,7 @@ step_2:
     is_implicit = 1;
     if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, 0, 0, is_implicit,
                             PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SADE, SXL,
-                            &a, &gst_page_sz, &gpte) ) ) {
+                            &a, &gst_page_sz, &gpte, rcid, mcid) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
         goto data_corruption;
@@ -139,7 +139,7 @@ step_2:
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     pte->raw = 0;
-    status = read_memory(a, PTESIZE, (char *)&pte->raw);
+    status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid);
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
 
@@ -314,7 +314,7 @@ step_5:
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     amo_pte.raw = 0;
-    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw);
+    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
@@ -330,7 +330,7 @@ step_5:
         if ( (is_write == 1) && (amo_pte.W == 1) ) amo_pte.D = 1;
     }
 
-    status = write_memory((char *)&amo_pte.raw, a, PTESIZE);
+    status = write_memory((char *)&amo_pte.raw, a, PTESIZE, rcid, mcid);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;

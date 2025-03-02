@@ -144,7 +144,21 @@ typedef union {
         // `Bare`.
         uint64_t reserved0:12;
         uint64_t PSCID:20;
-        uint64_t reserved1:32;
+        uint64_t reserved1:8;
+        // The RCID and MCID fields are added by the QoS ID extension. If
+        // capabilities.QOSID is 0, these bits are reserved and must be set to 0.
+        // IOMMU-initiated requests for accessing the following data structures
+        // use the value configured in the RCID and MCID fields of DC.ta.
+        // - Process directory table (PDT)
+        // - Second-stage page table
+        // - First-stage page table
+        // - MSI page table
+        // - Memory-resident interrupt file (MRIF)
+        // The RCID and MCID configured in DC.ta are provided to the IO bridge on
+        // successful address translations. The IO bridge should associate these QoS IDs
+        // with device-initiated requests.
+        uint64_t rcid:12;
+        uint64_t mcid:12;
     };
     uint64_t raw;
 } ta_t;

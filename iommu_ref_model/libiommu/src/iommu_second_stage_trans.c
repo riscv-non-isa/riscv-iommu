@@ -10,7 +10,8 @@ second_stage_address_translation(
     uint8_t is_read, uint8_t is_write, uint8_t is_exec, uint8_t is_implicit,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SADE,
-    uint8_t SXL, uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte) {
+    uint8_t SXL, uint64_t *pa, uint64_t *gst_page_sz, gpte_t *gpte,
+    uint32_t rcid, uint32_t mcid) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -117,7 +118,8 @@ step_2:
     //    then an access fault occurs
     if ( a & ~pa_mask ) return GST_ACCESS_FAULT;
     gpte->raw = 0;
-    status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw);
+    status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw,
+                         rcid, mcid);
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
@@ -283,7 +285,8 @@ step_5:
     // Count G stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
     amo_gpte.raw = 0;
-    status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE, (char *)&amo_gpte.raw);
+    status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE,
+                                 (char *)&amo_gpte.raw, rcid, mcid);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
@@ -299,7 +302,8 @@ step_5:
         if ( (is_write == 1 || is_implicit == 1) && (amo_gpte.W == 1) ) amo_gpte.D = 1;
     }
 
-    status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)), PTESIZE);
+    status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)),
+                          PTESIZE, rcid, mcid);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;

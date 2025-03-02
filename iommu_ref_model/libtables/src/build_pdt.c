@@ -26,7 +26,7 @@ add_process_context(
     while ( i > 0 ) {
         if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return -1;
         pdte.raw = 0;
-        if ( read_memory((a + (PDI[i] * 8)), 8, (char *)&pdte.raw) ) return -1;
+        if ( read_memory_test((a + (PDI[i] * 8)), 8, (char *)&pdte.raw) ) return -1;
         if ( pdte.V == 0 ) {
             pdte.V = 1;
             pdte.reserved0 = pdte.reserved1 = 0;
@@ -51,12 +51,12 @@ add_process_context(
             } else {
                 pdte.PPN = get_free_ppn(1);
             }
-            if ( write_memory((char *)&pdte.raw, (a + (PDI[i] * 8)), 8) ) return -1;
+            if ( write_memory_test((char *)&pdte.raw, (a + (PDI[i] * 8)), 8) ) return -1;
         }
         i = i - 1;
         a = pdte.PPN * PAGESIZE;
     }
     if ( translate_gpa(DC->iohgatp, a, &a) == -1 ) return -1;
-    if ( write_memory((char *)PC, (a + (PDI[0] * 16)), 16) ) return -1;
+    if ( write_memory_test((char *)PC, (a + (PDI[0] * 16)), 16) ) return -1;
     return (a + (PDI[0] * 16));
 }

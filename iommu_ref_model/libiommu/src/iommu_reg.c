@@ -25,6 +25,7 @@ uint64_t g_sv57_bare_pg_sz;
 uint64_t g_sv48_bare_pg_sz;
 uint64_t g_sv39_bare_pg_sz;
 uint64_t g_sv32_bare_pg_sz;
+uint32_t g_iommu_qosid_mask;
 
 uint8_t
 is_access_valid(
@@ -726,6 +727,13 @@ write_register(
                 }
             }
             break;
+        case IOMMU_QOSID_OFFSET:
+            // This register is read-only zero if qosid extension is not
+            // supported. The RCID and MCID fields of the register are WARL
+            if ( g_reg_file.capabilities.qosid == 1 ) {
+                g_reg_file.iommu_qosid.raw = data4 & g_iommu_qosid_mask;
+            }
+            break;
         case ICVEC_OFFSET:
             // The performance-monitoring-interrupt-vector
             // (`pmiv`) is the vector number assigned to the
@@ -978,6 +986,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
     for ( i = RESERVED_OFFSET; i < ICVEC_OFFSET; i++ ) {
         g_offset_to_size[i] = 1;
     }
+    g_offset_to_size[IOMMU_QOSID_OFFSET] = 4;
     g_offset_to_size[ICVEC_OFFSET] = 8;
     g_offset_to_size[ICVEC_OFFSET + 4] = 8;
     for ( i = 0; i < 256; i += 16) {
