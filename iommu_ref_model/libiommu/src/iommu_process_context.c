@@ -87,7 +87,8 @@ step_2:
                            is_exec, is_implicit, 1, process_id, 0, 0,
                            ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
                            DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SADE,
-                           DC->tc.SXL, &a, &gst_page_sz, &g_pte) ) ) {
+                           DC->tc.SXL, &a, &gst_page_sz, &g_pte, DC->ta.rcid,
+                           DC->ta.mcid) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) {
             *cause = 21;            // Read guest page fault
             *iotval2 = (a & ~0x3);
@@ -113,7 +114,7 @@ step_2:
     // 4. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
     //    accessing `pdte` violates a PMA or PMP check, then stop and report
     //    "PDT entry load access fault" (cause = 265).
-    status = read_memory(a, 8, (char *)&pdte.raw);
+    status = read_memory(a, 8, (char *)&pdte.raw, DC->ta.rcid, DC->ta.mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
@@ -153,7 +154,7 @@ step_9:
     //    fault" (cause = 265).If `PC` access detects a data corruption
     //    (a.k.a. poisoned data), then stop and report "PDT data corruption"
     //    (cause = 269).
-    status = read_memory(a, 16, (char *)PC);
+    status = read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;

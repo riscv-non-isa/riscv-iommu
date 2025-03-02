@@ -21,7 +21,8 @@ msi_address_translation(
     uint64_t gpa, uint8_t is_exec, device_context_t *DC,
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
-    uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms ) {
+    uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms,
+    uint32_t rcid, uint32_t mcid) {
 
     uint64_t A, m, I;
     uint8_t status;
@@ -67,7 +68,7 @@ msi_address_translation(
     // 7. Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
     //    accessing `msipte` violates a PMA or PMP check, then stop and report
     //    "MSI PTE load access fault" (cause = 261).
-    status = read_memory((m + (I * 16)), 16, (char *)&msipte.raw);
+    status = read_memory((m + (I * 16)), 16, (char *)&msipte.raw, rcid, mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 261;     // MSI PTE load access fault
         return 1;

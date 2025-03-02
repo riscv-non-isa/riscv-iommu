@@ -47,7 +47,7 @@ add_vs_stage_pte (
     while ( i > add_level ) {
         if ( translate_gpa(iohgatp, a, &a) == -1) return -1;
         nl_pte.raw = 0;
-        if ( read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw))  return -1;
+        if ( read_memory_test((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw))  return -1;
         if ( nl_pte.V == 0 ) {
             gpte_t gpte;
 
@@ -68,13 +68,13 @@ add_vs_stage_pte (
 
             if ( add_g_stage_pte(iohgatp, (PAGESIZE * nl_pte.PPN), gpte, 0) == -1) return -1;
 
-            if ( write_memory((char *)&nl_pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
+            if ( write_memory_test((char *)&nl_pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
         }
         i = i - 1;
         if ( i < 0 ) return 1;
         a = nl_pte.PPN * PAGESIZE;
     }
     if ( translate_gpa(iohgatp, a, &a) == -1) return -1;
-    if ( write_memory((char *)&pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
+    if ( write_memory_test((char *)&pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
     return (a | (vpn[i] * PTESIZE));
 }

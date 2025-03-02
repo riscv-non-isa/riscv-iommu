@@ -34,15 +34,15 @@ add_dev_context(
     i = LEVELS - 1;
     while ( i > 0 ) {
         ddte.raw = 0;
-        if ( read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw) ) return -1;
+        if ( read_memory_test((a + (DDI[i] * 8)), 8, (char *)&ddte.raw) ) return -1;
         if ( ddte.V == 0 ) {
             ddte.V = 1;
             ddte.PPN = get_free_ppn(1);
-            if ( write_memory((char *)&ddte.raw, (a + (DDI[i] * 8)), 8) ) return -1;
+            if ( write_memory_test((char *)&ddte.raw, (a + (DDI[i] * 8)), 8) ) return -1;
         }
         i = i - 1;
         a = ddte.PPN * PAGESIZE;
     }
-    if ( write_memory((char *)DC, (a + (DDI[0] * DC_SIZE)), DC_SIZE) ) return -1;
+    if ( write_memory_test((char *)DC, (a + (DDI[0] * DC_SIZE)), DC_SIZE) ) return -1;
     return (a + (DDI[0] * DC_SIZE));
 }

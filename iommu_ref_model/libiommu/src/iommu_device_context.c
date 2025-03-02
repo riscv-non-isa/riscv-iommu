@@ -108,7 +108,9 @@ step_2:
     // 3. Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
     //    `ddte` violates a PMA or PMP check, then stop and report "DDT entry load
     //     access fault" (cause = 257).
-    status = read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw);
+    status = read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw,
+                         g_reg_file.iommu_qosid.rcid,
+                         g_reg_file.iommu_qosid.mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;
@@ -153,7 +155,9 @@ step_8:
     //    (cause = 268). This fault is detected if the IOMMU supports the RAS capability
     //    (`capabilities.RAS == 1`).
     DC_SIZE = ( g_reg_file.capabilities.msi_flat == 1 ) ? EXT_FORMAT_DC_SIZE : BASE_FORMAT_DC_SIZE;
-    status = read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC);
+    status = read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC,
+                         g_reg_file.iommu_qosid.rcid,
+                         g_reg_file.iommu_qosid.mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;
@@ -184,6 +188,8 @@ do_device_context_configuration_checks(
     // misconfigured" (cause = 259).
 
     // 1. If any bits or encoding that are reserved for future standard use are set.
+    //    The RCID and MCID fields are added by the QoS ID extension. If capabilities.QOSID
+    //    is 0, these bits are reserved and must be set to 0.
     if ( ((g_reg_file.capabilities.msi_flat == 1) && (DC->reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msiptp.reserved != 0)) ||
          ((g_reg_file.capabilities.msi_flat == 1) && (DC->msi_addr_mask.reserved != 0)) ||
@@ -193,7 +199,8 @@ do_device_context_configuration_checks(
          (DC->fsc.pdtp.reserved != 0 && DC->tc.PDTV == 1) ||
          (DC->fsc.iosatp.reserved != 0 && DC->tc.PDTV == 0) ||
          (DC->ta.reserved0 != 0) ||
-         (DC->ta.reserved1 != 0) ) {
+         (DC->ta.reserved1 != 0) ||
+         (g_reg_file.capabilities.qosid == 0 && (DC->ta.rcid != 0 || DC->ta.mcid != 0)) ) {
         return 1;
     }
     // 2. `capabilities.ATS` is 0 and `DC.tc.EN_ATS`, or `DC.tc.EN_PRI`,
@@ -331,6 +338,7 @@ do_device_context_configuration_checks(
     if ( (g_reg_file.fctl.gxl == 1) && (DC->tc.SXL != 1) ) {
         return 1;
     }
+
     if ( (g_reg_file.fctl.gxl == 0) && (g_gxl_writeable == 0) && (DC->tc.SXL != 0) ) {
         return 1;
     }

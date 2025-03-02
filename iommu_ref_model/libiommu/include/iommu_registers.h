@@ -74,7 +74,8 @@ typedef union {
         uint64_t pd8     : 1;      // One level PDT with 8-bit process_id supported.
         uint64_t pd17    : 1;      // Two level PDT with 17-bit process_id supported.
         uint64_t pd20    : 1;      // Three level PDT with 20-bit process_id supported.
-        uint64_t rsvd3   : 15;     // Reserved for standard use
+        uint64_t qosid   : 1;      // Associating QoS IDs with requests is supported.
+        uint64_t rsvd3   : 14;     // Reserved for standard use
         uint64_t custom  : 8;      // _Designated for custom use_
     };
     uint64_t raw;
@@ -580,6 +581,26 @@ typedef struct {
     uint32_t msi_data;
     msi_vec_ctrl_t msi_vec_ctrl;
 } msi_cfg_tbl_t;
+
+// IOMMU-initiated requests for accessing the following data structures use
+// the value programmed in the RCID and MCID fields of the iommu_qosid register.
+//  - Device directory table (DDT)
+//  - Fault queue (FQ)
+//  - Command queue (CQ)
+//  - Page-request queue (PQ)
+//  - IOMMU-initiated MSI (Message-signaled interrupts)
+// When ddtp.iommu_mode == Bare, all device-originated requests are associated
+// with the QoS IDs configured in the iommu_qosid register.
+typedef union {
+    struct {
+        uint32_t rcid:12;              // RCID for IOMMU-initiated requests.
+        uint32_t rsvd1:4;
+        uint32_t mcid:12;              // MCID for IOMMU-initiated requests.
+        uint32_t rsvd2:4;
+    };
+    uint32_t raw;
+} iommu_qosid_t;
+
 // The IOMMU provides a memory-mapped programming interface. The memory-mapped
 // registers of each IOMMU are located within a naturally aligned 4-KiB region
 // (a page) of physical address space.
@@ -613,9 +634,10 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
         tr_req_iova_t  tr_req_iova;    // |600 |`tr_req_iova`   |8   |Translation-request IOVA
         tr_req_ctrl_t  tr_req_ctrl;    // |608 |`tr_req_ctrl`   |8   |Translation-request control
         tr_response_t  tr_response;    // |616 |`tr_response`   |8   |Translation-request response
-        uint8_t        reserved0[58];  // |624 |Reserved        |82  |Reserved for future use (`WPRI`)
-        uint8_t        custom1[78];    // |682 |_custom_        |78  |Designated for custom use (`WARL`)_
-        icvec_t        icvec;          // |760 |`icvec`         |4   |Interrupt cause to vector register
+        iommu_qosid_t  iommu_qosid;    // |624 |`iommu_qosid`   |4   |IOMMU QoS ID
+        uint8_t        reserved0[60];  // |628 |Reserved        |60  |Reserved for future use (`WPRI`)
+        uint8_t        custom1[72];    // |682 |_custom_        |72  |Designated for custom use (`WARL`)_
+        icvec_t        icvec;          // |760 |`icvec`         |8   |Interrupt cause to vector register
         msi_cfg_tbl_t  msi_cfg_tbl[16];// |768 |`msi_cfg_tbl`   |256 |MSI Configuration Table
         uint8_t        reserved1[3072];// |1024|Reserved        |3072|Reserved for future use (`WPRI`)
     };
@@ -712,8 +734,9 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
 #define TR_REQ_IOVA_OFFSET   600
 #define TR_REQ_CTRL_OFFSET   608
 #define TR_RESPONSE_OFFSET   616
-#define RESERVED_OFFSET      624
-#define CUSTOM_OFFSET        682
+#define IOMMU_QOSID_OFFSET   624
+#define RESERVED_OFFSET      628
+#define CUSTOM_OFFSET        688
 #define ICVEC_OFFSET         760
 
 #define MSI_ADDR_0_OFFSET      768 + 0 * 16 + 0
@@ -795,6 +818,7 @@ extern uint64_t g_sv57_bare_pg_sz;
 extern uint64_t g_sv48_bare_pg_sz;
 extern uint64_t g_sv39_bare_pg_sz;
 extern uint64_t g_sv32_bare_pg_sz;
+extern uint32_t g_iommu_qosid_mask;
 
 extern void process_commands(void);
 #endif //_IOMMU_REGS_H_
