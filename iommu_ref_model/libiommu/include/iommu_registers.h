@@ -75,7 +75,8 @@ typedef union {
         uint64_t pd17    : 1;      // Two level PDT with 17-bit process_id supported.
         uint64_t pd20    : 1;      // Three level PDT with 20-bit process_id supported.
         uint64_t qosid   : 1;      // Associating QoS IDs with requests is supported.
-        uint64_t rsvd3   : 14;     // Reserved for standard use
+        uint64_t nl      : 1;      // Non-leaf PTE invalidation extension is supported.
+        uint64_t rsvd3   : 13;     // Reserved for standard use
         uint64_t custom  : 8;      // _Designated for custom use_
     };
     uint64_t raw;
