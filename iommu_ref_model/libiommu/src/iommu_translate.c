@@ -25,7 +25,7 @@ iommu_translate_iova(
     uint32_t DID, PID, GSCID, PSCID;
     pte_t vs_pte;
     gpte_t g_pte;
-    uint8_t ioatc_status, gst_fault, is_implicit;
+    uint8_t ioatc_status, gst_fault, is_implicit, pasid_valid;
     uint64_t napot_ppn, napot_iova, napot_gpa;
 
     // Classify transaction type
@@ -33,6 +33,7 @@ iommu_translate_iova(
     iotval = req->tr.iova;
     DTF = 0;
     PSCID = 0;
+    pasid_valid = req->pid_valid;
 
     // Count events
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED )
@@ -465,12 +466,12 @@ step_20:
         // in MRIF mode then a Success response is generated with R, W, and U bit set to
         // 1. The U bit being set to 1 in the response instructs the device that it must
         // only use Untranslated requests to access the implied 4 KiB memory range
-        rsp_msg->trsp.Priv   = (req->pid_valid && req->priv_req) ? 1 : 0;
+        rsp_msg->trsp.Priv   = (pasid_valid && req->priv_req) ? 1 : 0;
         rsp_msg->trsp.CXL_IO = (req->is_cxl_dev &&
                                 ((vs_pte.PBMT != PMA) || (is_msi == 1) || (DC.tc.T2GPA == 1))) ? 1 : 0;
         rsp_msg->trsp.N      = 0;
         rsp_msg->trsp.AMA    = 0;
-        rsp_msg->trsp.Global = req->pid_valid && (is_msi == 0) ? vs_pte.G : 0;
+        rsp_msg->trsp.Global = pasid_valid && (is_msi == 0) ? vs_pte.G : 0;
         rsp_msg->trsp.U      = (is_msi & is_mrif);
         rsp_msg->trsp.R      = (vs_pte.R & g_pte.R);
         rsp_msg->trsp.W      = (vs_pte.W & g_pte.W & vs_pte.D & g_pte.D);
