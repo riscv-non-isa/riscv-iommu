@@ -4323,7 +4323,6 @@ main(void) {
     g_reg_file.capabilities.ats = 1;
     write_register(ICVEC_OFFSET, 8, 0x0000000000005555);
     fail_if( ( read_register(ICVEC_OFFSET, 8) != 0x0000000000005555) );
- 
     // test iommu_qosid
     g_reg_file.capabilities.qosid = 1;
     g_iommu_qosid_mask = 0x00FF00FF;
