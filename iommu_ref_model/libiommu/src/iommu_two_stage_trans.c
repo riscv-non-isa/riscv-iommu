@@ -23,7 +23,7 @@ two_stage_address_translation(
     uint8_t is_implicit;
     uint8_t PTESIZE, LEVELS, status, pte_changed, gst_fault;
     int8_t i;
-    uint64_t a, masked_upper_bits, mask;
+    uint64_t a, a_gpa, masked_upper_bits, mask;
     uint64_t gst_page_sz;
     uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
@@ -116,6 +116,7 @@ step_2:
     //    violates a PMA or PMP check, raise an access-fault exception
     //    corresponding to the original access type.
     pte->raw = 0;
+    a_gpa = a;
     a = a + vpn[i] * PTESIZE;
 
     // Invoke G-stage page table to translate the PTE address if G-stage page
@@ -335,6 +336,7 @@ step_5:
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
 
+    a = (pte_changed == 1) ? a_gpa : a;
     if ( pte_changed == 1) goto step_2;
 
 step_8:
