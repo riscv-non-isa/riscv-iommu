@@ -121,9 +121,10 @@ step_2:
 
     // Invoke G-stage page table to translate the PTE address if G-stage page
     // table is active.
-    // If IOMMU HW A/D bit update are enabled the implicit accesses are treated
-    // as writes. This avoids the IOMMU needing to go back in time to set D bit
-    // in G-stage page tables if A or D bit needs to be set in VS stage.
+    // When two-stage address translation is active and IOMMU HW A/D bit update
+    // are enabled, updates to the D bit in G-stage PTEs may be performed by an
+    // implicit access to a VS-stage PTE, if the G-stage PTE provides write
+    // permission, before any speculative access to the VS-stage PTE.
     is_implicit = 1;
     if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, 0, 0, is_implicit,
                             PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SADE, SXL,
