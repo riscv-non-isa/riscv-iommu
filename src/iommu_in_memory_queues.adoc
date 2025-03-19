@@ -69,6 +69,10 @@ offsets determined by the head and the tail.
 All RISC-V IOMMU implementations are required to support in-memory queues
 located in main memory. Supporting in-memory queues in I/O memory is not required
 but is not prohibited by this specification.
+
+The implication of the queue being considered full when tail is head minus one
+is that the effective size of the queue is one less than the number of entries
+in the queue.
 ====
 
 === Command-Queue (CQ)
