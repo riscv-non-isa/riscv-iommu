@@ -394,7 +394,7 @@ guest_page_fault:
     // is 1, then guest-page-fault was caused by an implicit memory access for
     // VS-stage address translation. If bit 0 of iotval2 is 1, and the implicit
     // access was a write then bit 1 of iotval2 is set to 1 else it is set to 0.
-    *iotval2 = (a & ~0x3);
+    *iotval2 = (a_gpa & ~0x3);
     *iotval2 |= 1;
     *iotval2 |= (SADE << 1);
     return 1;
