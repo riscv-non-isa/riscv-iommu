@@ -372,7 +372,7 @@ following actions:
    temporarily disabled.
 .. If errors have occurred, correct the cause of the error and clear the bits
    corresponding to the corrected errors in `fqcsr` by writing 1 to the bits.
-... Clearing all error indication bits in `cqcsr` re-enables fault/event
+... Clearing all error indication bits in `fqcsr` re-enables fault/event
    reporting.
 .. Clear `ipsr.fip` by writing 1 to the bit.
 .. Read the `fqt` and `fqh` registers.
