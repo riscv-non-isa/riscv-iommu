@@ -115,14 +115,14 @@ handle_page_request(
         cause = 256; // "All inbound transactions disallowed"
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = RESPONSE_FAILURE;
+        response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
     if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
         cause = 260; // "Transaction type disallowed"
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = INVALID_REQUEST;
+        response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
     }
     // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
@@ -150,14 +150,14 @@ handle_page_request(
         cause = 260; // "Transaction type disallowed"
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = INVALID_REQUEST;
+        response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
     }
     if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
         cause = 260; // "Transaction type disallowed"
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = INVALID_REQUEST;
+        response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
     }
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
@@ -166,7 +166,7 @@ handle_page_request(
     if ( locate_device_context(&DC, device_id, pr->PV, pr->PID, &cause) ) {
         report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = RESPONSE_FAILURE;
+        response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
     PRPR = DC.tc.PRPR;
@@ -176,7 +176,7 @@ handle_page_request(
         //   * Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
         report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, DC.tc.DTF,
                      device_id, pr->PV, pr->PID, pr->PRIV);
-        response_code = INVALID_REQUEST;
+        response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
     }
     // If ATS and PRI are enabled, i.e. EN_ATS and EN_PRI are both set to 1,
@@ -194,7 +194,7 @@ handle_page_request(
     // when page-request-queue is off or in the process of being turned
     // off, as specified in Section 2.8.
     if ( g_reg_file.pqcsr.pqon == 0 || g_reg_file.pqcsr.pqen == 0 ) {
-        response_code = RESPONSE_FAILURE;
+        response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
 
@@ -207,7 +207,7 @@ handle_page_request(
     // the pqof or pqmf bit to be set and all subsequent “Page Request”
     // messages received while these bits are 1 as specified in Section 2.8.
     if ( g_reg_file.pqcsr.pqmf == 1 ) {
-        response_code = RESPONSE_FAILURE;
+        response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
 
@@ -223,7 +223,7 @@ handle_page_request(
     // the pqof or pqmf bit to be set and all subsequent “Page Request”
     // messages received while these bits are 1 as specified in Section 2.8.
     if ( g_reg_file.pqcsr.pqof == 1 ) {
-        response_code = SUCCESS;
+        response_code = PRGR_SUCCESS;
         goto send_prgr;
     }
 
@@ -283,7 +283,7 @@ handle_page_request(
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         g_reg_file.pqcsr.pqmf = 1;
         generate_interrupt(PAGE_QUEUE);
-        response_code = RESPONSE_FAILURE;
+        response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
 
@@ -342,7 +342,7 @@ send_prgr:
     // the associated "Page Request" had a PASID.  For IOMMU generated "Page Request
     // Group Response" with response code set to Response Failure, if the "Page Request"
     // had a PASID then response is generated with a PASID.
-    if ( response_code == INVALID_REQUEST || response_code == SUCCESS ) {
+    if ( response_code == PRGR_INVALID_REQUEST || response_code == PRGR_SUCCESS ) {
         if ( PRPR == 1 ) {
             prgr.PV = pr->PV;
             prgr.PID = pr->PID;

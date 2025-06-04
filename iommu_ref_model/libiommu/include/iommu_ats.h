@@ -66,9 +66,9 @@ typedef struct {
 //           |         |Function shall ignore any subsequent PRG Response Messages, pending
 //           |         |re-enablement of the Page Request Interface.
 //-----------+---------+--------------------------------------------------------------------
-#define SUCCESS          0x0UL
-#define INVALID_REQUEST  0x1UL
-#define RESPONSE_FAILURE 0xFUL
+#define PRGR_SUCCESS          0x0UL
+#define PRGR_INVALID_REQUEST  0x1UL
+#define PRGR_RESPONSE_FAILURE 0xFUL
 
 typedef struct {
     uint8_t  busy;
