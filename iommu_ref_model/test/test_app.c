@@ -155,7 +155,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(256, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -196,7 +196,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -228,7 +228,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -259,7 +259,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -285,7 +285,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -3023,7 +3023,7 @@ main(void) {
     exp_msg.EXEC_REQ = 0;
     exp_msg.DSV = 1;
     exp_msg.DSEG = 0x43;
-    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x1234UL << 48UL) | (PRGR_RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(258, pr.PV, pr.PID, pr.PRIV, 0x431234, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -3039,7 +3039,7 @@ main(void) {
     exp_msg.DSEG = 0x11;
     exp_msg.PV = 0;
     exp_msg.PID = 0;
-    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -3055,7 +3055,7 @@ main(void) {
     exp_msg.DSEG = 0x11;
     exp_msg.PV = 0;
     exp_msg.PID = 0;
-    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (INVALID_REQUEST << 44UL);
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (PRGR_INVALID_REQUEST << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( check_faults(260, pr.PV, pr.PID, pr.PRIV, 0x112233, PAGE_REQ_MSG_CODE, PCIE_MESSAGE_REQUEST, 0) < 0 ) );
@@ -3072,7 +3072,7 @@ main(void) {
     exp_msg.DSEG = 0x11;
     exp_msg.PV = 1;
     exp_msg.PID = 0xBABEC;
-    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (PRGR_RESPONSE_FAILURE << 44UL);
     handle_page_request(&pr);
     fail_if( ( exp_msg_received == 0 ) );
     fail_if( ( ((read_register(PQH_OFFSET, 4)) != read_register(PQT_OFFSET, 4)) ) );
@@ -3115,7 +3115,7 @@ main(void) {
     exp_msg.DSEG = 0x11;
     exp_msg.PV = 0;
     exp_msg.PID = 0;
-    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (SUCCESS << 44UL);
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (PRGR_SUCCESS << 44UL);
     handle_page_request(&pr);
     fail_if( ( message_received == 0 ) );
     fail_if( ( exp_msg_received == 0 ) );
@@ -3150,7 +3150,7 @@ main(void) {
     access_viol_addr = (pqb.ppn * PAGESIZE);
     access_viol_addr += (read_register(PQT_OFFSET, 4) * 16);
     pr.PAYLOAD = 0xdeadbeef00000007; // Set last = 1, PRG index = 0
-    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (RESPONSE_FAILURE << 44UL);
+    exp_msg.PAYLOAD = (0x2233UL << 48UL) | (PRGR_RESPONSE_FAILURE << 44UL);
     message_received = 0;
     handle_page_request(&pr);
     fail_if( ( message_received == 0 ) );
