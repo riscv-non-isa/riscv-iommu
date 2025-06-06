@@ -11,6 +11,9 @@ Architecture:
 | <<QOSID, *Quality-of-Service (QoS) Identifiers Extension*>>
                                                              |*1.0*
                                                                       |*Ratified*
+| <<SVRSW, *PTE Reserved-for-Software Bits 60-59*>>
+                                                             |*0.1*
+                                                                      |*Draft*
 |===
 
 [[QOSID]]
@@ -93,3 +96,11 @@ different capacities. In scenarios where multiple IOATCs are implemented, such
 as an IOATC for each supported page size, the IOMMU can implement a capacity
 controller register interface for each IOATC to facilitate individual capacity
 allocation.
+
+<<<
+
+[[SVRSW]]
+=== PTE Reserved-for-Software Bits 60-59, Version 0.1
+
+The Svrsw60t59b extension is implemented if `capabilities.Svrsw60t59b` (bit 14)
+is set to 1.
