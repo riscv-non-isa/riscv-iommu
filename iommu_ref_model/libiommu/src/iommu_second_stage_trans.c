@@ -119,7 +119,7 @@ step_2:
     if ( a & ~pa_mask ) return GST_ACCESS_FAULT;
     gpte->raw = 0;
     status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw,
-                         rcid, mcid);
+                         rcid, mcid, PMA);
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
@@ -290,7 +290,7 @@ step_5:
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
     amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE,
-                                 (char *)&amo_gpte.raw, rcid, mcid);
+                                 (char *)&amo_gpte.raw, rcid, mcid, PMA);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
@@ -307,7 +307,7 @@ step_5:
     }
 
     status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)),
-                          PTESIZE, rcid, mcid);
+                          PTESIZE, rcid, mcid, PMA);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;

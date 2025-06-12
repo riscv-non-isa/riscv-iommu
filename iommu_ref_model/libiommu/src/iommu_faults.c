@@ -139,7 +139,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // interrupt pending (fip) bit is set in the fqcsr.
     frec_addr = ((fqb * PAGESIZE) | (fqt * FQ_ENTRY_SZ));
     status = write_memory((char *)&frec, frec_addr, 32,
-                          g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid);
+                          g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid, PMA);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         g_reg_file.fqcsr.fqmf = 1;
     } else {

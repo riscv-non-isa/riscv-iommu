@@ -110,7 +110,7 @@ step_2:
     //     access fault" (cause = 257).
     status = read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw,
                          g_reg_file.iommu_qosid.rcid,
-                         g_reg_file.iommu_qosid.mcid);
+                         g_reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;
@@ -157,7 +157,7 @@ step_8:
     DC_SIZE = ( g_reg_file.capabilities.msi_flat == 1 ) ? EXT_FORMAT_DC_SIZE : BASE_FORMAT_DC_SIZE;
     status = read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC,
                          g_reg_file.iommu_qosid.rcid,
-                         g_reg_file.iommu_qosid.mcid);
+                         g_reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;

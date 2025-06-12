@@ -141,7 +141,7 @@ step_2:
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     pte->raw = 0;
-    status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid);
+    status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid, gpte.PBMT);
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
 
@@ -316,7 +316,7 @@ step_5:
     // Count S/VS stage page walks
     count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     amo_pte.raw = 0;
-    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid);
+    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid, gpte.PBMT);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
@@ -332,7 +332,7 @@ step_5:
         if ( (is_write == 1) && (amo_pte.W == 1) ) amo_pte.D = 1;
     }
 
-    status = write_memory((char *)&amo_pte.raw, a, PTESIZE, rcid, mcid);
+    status = write_memory((char *)&amo_pte.raw, a, PTESIZE, rcid, mcid, gpte.PBMT);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;

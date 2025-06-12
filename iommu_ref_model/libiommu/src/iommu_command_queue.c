@@ -65,7 +65,8 @@ process_commands(
 
     a = g_reg_file.cqb.ppn * PAGESIZE | (g_reg_file.cqh.index * CQ_ENTRY_SZ);
     status = read_memory(a, CQ_ENTRY_SZ, (char *)&command,
-                         g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid);
+                         g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid,
+                         PMA);
     if ( status != 0 ) {
         // If command-queue access leads to a memory fault then the
         // command-queue-memory-fault bit is set to 1 and the command
@@ -489,7 +490,7 @@ do_iofence_c(
     // a 4-byte store.
     if ( AV == 1 ) {
         status = write_memory((char *)&DATA, ADDR, 4, g_reg_file.iommu_qosid.rcid,
-                              g_reg_file.iommu_qosid.mcid);
+                              g_reg_file.iommu_qosid.mcid, PMA);
         if ( status != 0 ) {
             if ( g_reg_file.cqcsr.cqmf == 0 ) {
                 g_reg_file.cqcsr.cqmf = 1;

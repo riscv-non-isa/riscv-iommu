@@ -11,7 +11,8 @@
 
 uint8_t
 read_memory(
-    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid){
+    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid,
+    uint32_t pma){
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(data, &memory[addr], size);
@@ -20,18 +21,20 @@ read_memory(
 uint8_t
 read_memory_test(
     uint64_t addr, uint8_t size, char *data) {
-    return read_memory(addr, size, data, 0, 0);
+    return read_memory(addr, size, data, 0, 0, PMA);
 }
 uint8_t
 read_memory_for_AMO(
-    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid) {
+    uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid,
+    uint32_t pma) {
     // Same for now
-    return read_memory(addr, size, data, rcid, mcid);
+    return read_memory(addr, size, data, rcid, mcid, pma);
 }
 
 uint8_t
 write_memory(
-    char *data, uint64_t addr, uint32_t size, uint32_t rcid, uint32_t mcid) {
+    char *data, uint64_t addr, uint32_t size, uint32_t rcid, uint32_t mcid,
+    uint32_t pma) {
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(&memory[addr], data, size);
@@ -40,7 +43,7 @@ write_memory(
 uint8_t
 write_memory_test(
     char *data, uint64_t addr, uint32_t size) {
-    return write_memory(data, addr, size, 0, 0);
+    return write_memory(data, addr, size, 0, 0, PMA);
 }
 
 
