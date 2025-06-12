@@ -68,7 +68,7 @@ msi_address_translation(
     // 7. Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
     //    accessing `msipte` violates a PMA or PMP check, then stop and report
     //    "MSI PTE load access fault" (cause = 261).
-    status = read_memory((m + (I * 16)), 16, (char *)&msipte.raw, rcid, mcid);
+    status = read_memory((m | (I * 16)), 16, (char *)&msipte.raw, rcid, mcid);
     if ( status & ACCESS_FAULT ) {
         *cause = 261;     // MSI PTE load access fault
         return 1;
