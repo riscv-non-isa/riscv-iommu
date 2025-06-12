@@ -155,7 +155,9 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
   {bits: 1, name: 'PD17'},
   {bits: 1, name: 'PD20'},
   {bits: 1, name: 'QOSID'},
-  {bits: 14, name: 'reserved'},
+  {bits: 1, name: 'NL'},
+  {bits: 1, name: 'S'},
+  {bits: 12, name: 'reserved'},
   {bits: 8, name: 'custom'},
 ], config:{lanes: 8, hspace:1024}}
 ....
@@ -226,7 +228,9 @@ the IOMMU. At reset, the register shall contain the IOMMU supported features.
 |39    |`PD17`     |RO        | Two level PDT with 17-bit process_id supported.
 |40    |`PD20`     |RO        | Three level PDT with 20-bit process_id supported.
 |41    |`QOSID`    |RO        | Associating QoS IDs with requests is supported.
-|55:42 | reserved  |RO        | Reserved for standard use.
+|42    |`NL`       |RO        | Non-leaf PTE invalidation extension is supported.
+|43    |`S`        |RO        | Address range invalidation extension is supported.
+|55:44 | reserved  |RO        | Reserved for standard use.
 |63:56 |custom     |RO        | Designated for custom use.
 |===
 
