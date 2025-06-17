@@ -12,8 +12,8 @@ Architecture:
                                                              |*1.0*
                                                                       |*Ratified*
 | <<SVRSW, *PTE Reserved-for-Software Bits 60-59*>>
-                                                             |*0.1*
-                                                                      |*Draft*
+                                                             |*0.9*
+                                                                      |*Frozen*
 |===
 
 [[QOSID]]
@@ -100,7 +100,7 @@ allocation.
 <<<
 
 [[SVRSW]]
-=== PTE Reserved-for-Software Bits 60-59, Version 0.1
+=== PTE Reserved-for-Software Bits 60-59, Version 0.9
 
 The Svrsw60t59b extension is implemented if `capabilities.Svrsw60t59b` (bit 14)
 is set to 1.
