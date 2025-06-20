@@ -164,7 +164,7 @@ lookup_ioatc_iotlb(
         if ( tlb[i].valid == 1 &&
              tlb[i].GV == GV && tlb[i].GSCID == GSCID &&
              tlb[i].PSCV == PSCV && tlb[i].PSCID == PSCID &&
-             match_address_range(vpn, tlb[i].vpn, tlb[i].S) ) {
+             match_address_range(vpn, 0, tlb[i].vpn, tlb[i].S) ) {
             hit = i;
             break;
         }

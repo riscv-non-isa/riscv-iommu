@@ -3702,8 +3702,10 @@ main(void) {
                      cmd.iotinval.rsvd2 == 0 &&
                      cmd.iotinval.rsvd3 == 0 &&
                      cmd.iotinval.rsvd4 == 0 ) {
-                    if ( temp == 0 )
+                    if ( temp == 0 ) {
+                        cmd.iotinval.s     = 0;
                         cmd.iotinval.func3 = 0x7;
+                    }
                     if ( temp == 1 )
                         cmd.iotinval.rsvd = 1;
                     if ( temp == 2 )
