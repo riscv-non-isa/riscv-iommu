@@ -69,6 +69,10 @@ offsets determined by the head and the tail.
 All RISC-V IOMMU implementations are required to support in-memory queues
 located in main memory. Supporting in-memory queues in I/O memory is not required
 but is not prohibited by this specification.
+
+The implication of the queue being considered full when tail is head minus one
+is that the effective size of the queue is one less than the number of entries
+in the queue.
 ====
 
 === Command-Queue (CQ)
@@ -294,10 +298,6 @@ match the `GSCID` argument, regardless of the address argument.
 Simpler implementations may ignore the operand of `IOTINVAL.VMA` and/or
 `IOTINVAL.GVMA` and perform a global invalidation of all
 address-translation entries.
-
-Some implementations may cache an identity-mapped translation for the stage of
-address translation operating in `Bare` mode. Since these identity mappings
-are invariably correct, an explicit invalidation is unnecessary.
 
 Some implementations may cache an identity-mapped translation for the stage of
 address translation operating in `Bare` mode. Since these identity mappings
