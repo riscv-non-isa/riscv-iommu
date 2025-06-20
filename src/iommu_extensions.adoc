@@ -11,12 +11,12 @@ Architecture:
 | <<QOSID, *Quality-of-Service (QoS) Identifiers Extension*>>
                                                              |*1.0*
                                                                       |*Ratified*
-| <<NLINV, _Non-leaf PTE Invalidation Extension_>>
-                                                             |_0.99_
-                                                                      |_Draft_
-| <<ARINV, _Address Range Invalidation Extension_>>
-                                                             |_0.99_
-                                                                      |_Draft_
+| <<NLINV, *Non-leaf PTE Invalidation Extension*>>
+                                                             |*1.0*
+                                                                      |*Ratified*
+| <<ARINV, *Address Range Invalidation Extension*>>
+                                                             |*1.0*
+                                                                      |*Ratified*
 |===
 
 [[QOSID]]
@@ -103,7 +103,7 @@ allocation.
 <<<
 
 [[NLINV]]
-=== Non-leaf PTE Invalidation Extension, Version 0.99
+=== Non-leaf PTE Invalidation Extension, Version 1.0
 
 The RISC-V IOMMU Version 1.0 specification provides commands to invalidate
 leaf page table entries from address translation caches when performing an
@@ -183,7 +183,7 @@ operand applies to the address range determined by the `ADDR` and `S` operands.
 <<<
 
 [[ARINV]]
-=== Address Range Invalidation Extension, Version 0.99
+=== Address Range Invalidation Extension, Version 1.0
 
 The address range invalidation extension enables specifying a range of addresses
 in an IOMMU ATC invalidation command, reducing the number of commands queued to
