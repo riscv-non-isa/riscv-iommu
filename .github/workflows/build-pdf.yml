@@ -53,9 +53,10 @@ jobs:
         run: docker pull riscvintl/riscv-docs-base-container-image:latest
 
       # Override VERSION and REVMARK for manual workflow dispatch
+      # echo "VERSION=v${{ steps.version.outputs.version }}" >> "$GITHUB_ENV"
       - name: Update environment variables
         run: |
-          echo "VERSION=v${{ steps.version.outputs.version }}" >> "$GITHUB_ENV"
+          echo "VERSION=v1.0.1, $(date +'%Y-%m-%d')" >> "$GITHUB_ENV"
           echo "REVMARK=${{ github.event.inputs.revision_mark }}" >> "$GITHUB_ENV"
         if: github.event_name == 'workflow_dispatch'
 
