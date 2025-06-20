@@ -1,5 +1,38 @@
 == Preface
 
+[.big]*_Preface to Version 20250620_*
+
+This document describes the RISC-V IOMMU architecture. This release, version
+20250620, includes the following versions of the RISC-V IOMMU Base Architecture
+specification and standard extensions:
+
+[%autowidth,float="center",align="center",cols="^,^,^",options="header",]
+|===
+|       Specification                              |Version |Status
+|*RISC-V IOMMU Base Architecture Specification*   +
+ *Quality-of-Service (QoS) Identifiers Extension* +
+ *Non-leaf PTE Invalidation Extension*            +
+ *Address Range Invalidation Extension*
+                                                   |*1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*
+                                                            |*Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified*
+|===
+
+The following backward-compatible changes--comprising a set of clarifications
+and corrections--have been made since version 20240901:
+
+* Typographic errors have been corrected, and editorial updates have been made.
+* Clarified that the translation size is implementation-defined when both
+  stages are bare.
+* Clarified that the size of a queue is one less than the number of its entries.
+
+These changes were made through PR#441, cite:[PR441].
+
 [.big]*_Preface to Version 20240901_*
 
 Chapters 2 through 8 of this document form the RISC-V IOMMU Base Architecture
