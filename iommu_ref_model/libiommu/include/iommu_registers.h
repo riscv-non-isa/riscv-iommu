@@ -78,7 +78,8 @@ typedef union {
         uint64_t qosid   : 1;      // Associating QoS IDs with requests is supported.
         uint64_t nl      : 1;      // Non-leaf PTE invalidation extension is supported.
         uint64_t s       : 1;      // Address range invalidation extension is supported.
-        uint64_t rsvd3   : 12;     // Reserved for standard use
+        uint64_t GIPC    : 1;      // G-stage table In Process Context is supported.
+        uint64_t rsvd3   : 11;     // Reserved for standard use
         uint64_t custom  : 8;      // _Designated for custom use_
     };
     uint64_t raw;

@@ -19,6 +19,7 @@ locate_process_context(
     pdte_t pdte;
     uint16_t PDI[3];
     uint8_t is_implicit, is_read, is_write, is_exec;
+    int is_GIPC = (DC->tc.GIPC == 1) && (g_reg_file.capabilities.GIPC == 1);
 
     // The device-context provides the PDT root page PPN (pdtp.ppn).
     // When DC.iohgatp.mode is not Bare, pdtp.PPN as well as pdte.PPN
@@ -30,9 +31,15 @@ locate_process_context(
     // depending on the maximum width of the process_id supported for
     // that device. The partitioning of the process_id to obtain the process
     // directory indices (PDI) to traverse the PDT radix-tree table are as follows:
-    PDI[0] = get_bits(7,   0, process_id);
-    PDI[1] = get_bits(16,  8, process_id);
-    PDI[2] = get_bits(19, 17, process_id);
+    if (is_GIPC) {
+        PDI[0] = get_bits(6,   0, process_id);
+        PDI[1] = get_bits(15,  7, process_id);
+        PDI[2] = get_bits(19, 16, process_id);
+    } else {
+        PDI[0] = get_bits(7,   0, process_id);
+        PDI[1] = get_bits(16,  8, process_id);
+        PDI[2] = get_bits(19, 17, process_id);
+    }
 
     // The following diagrams illustrate the PDT radix-tree. The root
     // process-directory page number is located using the process-directory-table
@@ -45,6 +52,27 @@ locate_process_context(
     //   +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
     //      |       |       |             |       |           |
     //      +-3-bit +-9-bit +-8-bit       +-9-bit +-8-bit     +-8-bit
+    //      |       |       |             |       |           |
+    //      |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
+    //      |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
+    //      |  |  | |  |  | |  +--+       |  |  | |  +--+     |   |  |
+    //      |  |  | |  |  | +->|PC|       |  |  | +->|PC|     |   |  |
+    //      |  |  | |  +--+    +--+       |  |  |    +--+     |   |  |
+    //      |  |  | +->|NL+-+  |  |       |  +--+    |  |     |   |  |
+    //      |  |  |    +--+ |  |  |       +->|NL+-+  |  |     |   +--+
+    //      +->+--+    |  | |  |  |          +--+ |  |  |     +-->|PC|
+    //         |NL+-+  |  | |  |  |          |  | |  |  |         +--+
+    //         +--+ |  |  | |  |  |          |  | |  |  |         |  |
+    //         |  | |  |  | |  |  |          |  | |  |  |         |  |
+    // pdtp--->+--+ +->+--+ +->+--+  pdtp--->+--+ +->+--+ pdtp--->+--+
+
+    // process-directory-table entry holds the extened process-context (`PC`).
+    // .Three, two and single-level extened process directory
+    //   +-------+-------+-------+      +-------+-------+   +-------+
+    //   |PDI[2] |PDI[1] |PDI[0] |      |PDI[1] |PDI[0] |   |PDI[0] |
+    //   +--+----+--+----+--+----+      +-+-----+-+-----+   +-+-----+
+    //      |       |       |             |       |           |
+    //      +-4-bit +-9-bit +-7-bit       +-9-bit +-7-bit     +-7-bit
     //      |       |       |             |       |           |
     //      |  +--+ |  +--+ |  +--+       |  +--+ |  +--+     |   +--+
     //      |  |  | |  |  | |  |  |       |  |  | |  |  |     |   |  |
@@ -76,8 +104,13 @@ locate_process_context(
     i = LEVELS - 1;
 
 step_2:
-    a = a + ((i == 0) ? (PDI[i] * 16) : (PDI[i] * 8));
-    // 2. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
+    a = a + ((i == 0) ? (PDI[i] * (is_GIPC ? 32 : 16)) : (PDI[i] * 8));
+
+    // 2. If `DC.iohgatp.mode != Bare` and GIPC enabled, then `a` is a SPA.
+    if (is_GIPC)
+	goto skip_gpa;
+
+    // 2. If `DC.iohgatp.mode != Bare` and GIPC disabled, then `a` is a GPA. Invoke the process
     //    to translate `a` to a SPA as an implicit memory access. If faults
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
@@ -110,6 +143,7 @@ step_2:
         }
     }
 
+skip_gpa:
     // 3. If `i == 0` go to step 9.
     if ( i == 0 ) goto step_9;
 
@@ -159,7 +193,7 @@ step_9:
     //    fault" (cause = 265).If `PC` access detects a data corruption
     //    (a.k.a. poisoned data), then stop and report "PDT data corruption"
     //    (cause = 269).
-    status = read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
+    status = read_memory(a, is_GIPC ? 32 : 16, (char *)PC, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
