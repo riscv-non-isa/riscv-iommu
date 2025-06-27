@@ -1077,7 +1077,12 @@ The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the second-stage page table pointed to by `DC.iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
-by the second-stage.
+by the second-stage. However, any guest-page fault exception raised by the
+second stage is always reported using the original access type (instruction,
+load, or store/AMO). An access fault in the second stage is reported as "PDT
+entry load access fault" (`cause = 265`). If the second-stage accesses detect
+data corruption (i.e., poisoned data), it is reported as "PDT data corruption"
+(`cause = 269`).
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
