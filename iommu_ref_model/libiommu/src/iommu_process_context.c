@@ -11,7 +11,8 @@ do_process_context_configuration_checks(
 uint8_t
 locate_process_context(
     process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id,
-    uint32_t *cause, uint64_t *iotval2, uint8_t TTYP) {
+    uint32_t *cause, uint64_t *iotval2, uint8_t TTYP,
+    uint8_t is_orig_read, uint8_t is_orig_write, uint8_t is_orig_exec) {
     uint64_t a, gst_page_sz;
     uint8_t i, LEVELS, status, gst_fault;
     gpte_t g_pte;
@@ -90,7 +91,11 @@ step_2:
                            DC->tc.SXL, &a, &gst_page_sz, &g_pte, DC->ta.rcid,
                            DC->ta.mcid) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) {
-            *cause = 21;            // Read guest page fault
+            // Stop and raise a page-fault exception corresponding
+            // to the original access type.
+            if ( is_orig_exec ) *cause = 20;      // Instruction guest page fault
+            else if ( is_orig_read ) *cause = 21; // Read guest page fault
+            else *cause = 23;                     // Write/AMO guest page fault
             *iotval2 = (a & ~0x3);
             *iotval2 |= 1;
             return 1;

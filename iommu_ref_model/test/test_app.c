@@ -2381,7 +2381,7 @@ main(void) {
     send_translation_request(0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa & ~0x3UL) | 1)) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 23, ((gpa & ~0x3UL) | 1)) < 0 ) );
     gpte.V = 1;
     write_memory_test((char *)&gpte, temp, 8);
 

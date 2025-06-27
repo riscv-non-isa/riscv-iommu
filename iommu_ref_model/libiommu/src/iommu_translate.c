@@ -236,7 +236,8 @@ iommu_translate_iova(
     }
 
     // 14. Locate the process-context (`PC`) as specified in Section 2.4.2
-    if ( locate_process_context(&PC, &DC, req->device_id, req->process_id, &cause, &iotval2, TTYP) )
+    if ( locate_process_context(&PC, &DC, req->device_id, req->process_id, &cause,
+                                &iotval2, TTYP, is_read, is_write, is_exec) )
         goto stop_and_report_fault;
 
     // 15. if any of the following conditions hold then stop and report
