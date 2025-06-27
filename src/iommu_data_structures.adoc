@@ -1077,7 +1077,9 @@ The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the second-stage page table pointed to by `DC.iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
-by the second-stage.
+by the second-stage. However, any exception raised by the second-stage
+is always reported for the original access type (instruction, load, or
+store/AMO).
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
