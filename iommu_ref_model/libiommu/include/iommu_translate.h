@@ -88,7 +88,8 @@ locate_device_context(device_context_t *DC, uint32_t device_id, uint8_t pid_vali
 extern uint8_t
 locate_process_context(process_context_t *PC, device_context_t *DC,
                        uint32_t device_id, uint32_t process_id, uint32_t *cause,
-                       uint64_t *iotval2, uint8_t TTYP);
+                       uint64_t *iotval2, uint8_t TTYP, uint8_t is_orig_read,
+                       uint8_t is_orig_write, uint8_t is_orig_exec);
 
 extern uint8_t
 two_stage_address_translation(
