@@ -66,6 +66,7 @@ main(void) {
     cap.version = 0x10;
     cap.Sv39 = cap.Sv48 = cap.Sv57 = cap.Sv39x4 = cap.Sv48x4 = cap.Sv57x4 = 1;
     cap.amo_hwad = cap.ats = cap.t2gpa = cap.hpm = cap.msi_flat = cap.msi_mrif = cap.amo_mrif = 1;
+    cap.GIPC = 1;
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
@@ -537,7 +538,7 @@ main(void) {
 
     // Add a device 0x012345 to guest with GSCID=1
     DC_addr = add_device(0x012345, 1, 0, 0, 0, 0, 0,
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 0, 0,
                          IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     (void)(DC_addr);
@@ -1636,7 +1637,7 @@ main(void) {
 
     START_TEST("S-stage translation sizes");
     DC_addr = add_device(0x012349, 1, 1, 1, 0, 0, 1,
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 0, 0,
                          IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
                          MSIPTP_Flat, 1, 0xF0F00FF0FF, 0x1903020124);
     read_memory_test(DC_addr, 64, (char *)&DC);
@@ -2287,7 +2288,7 @@ main(void) {
     // collapse fault queue
     write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
     DC_addr = add_device(0x112233, 0x1234, 0, 0, 0, 0, 0,
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 0, 0,
                          IOHGATP_Sv48x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory_test(DC_addr, 64, (char *)&DC);
@@ -3486,10 +3487,136 @@ main(void) {
     write_register(CQT_OFFSET, 4, i);
     END_TEST();
 
+    START_TEST("G-stage table In Process Context (GIPC)");
+    // collapse fault queue
+    write_register(FQH_OFFSET, 4, read_register(FQT_OFFSET, 4));
+    DC_addr = add_device(0x112234, 0x1235, 0, 0, 0, 0, 0,
+                         1, 1, 0, 0, 0, 1,
+                         IOHGATP_Sv48x4, IOSATP_Bare, PD20,
+                         MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
+    read_memory_test(DC_addr, 64, (char *)&DC);
+    DC.msiptp.MODE = MSIPTP_Off;
+    write_memory_test((char *)&DC, DC_addr, 64);
+
+    // Invalid non-leaf PDTE
+    send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
+
+    // Add process context
+    memset(&PC, 0, 32);
+    PC.fsc.iosatp.MODE = IOSATP_Sv48;
+    PC.fsc.iosatp.PPN = get_free_gppn(1, DC.iohgatp);
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    add_g_stage_pte(DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), gpte, 0);
+    PC.ta.V = 1;
+    PC.ta.PSCID = 10;
+    PC.ta.ENS = 1;
+    PC.ta.SUM = 1;
+    PC_addr = add_process_context(&DC, &PC, 0xBABEC);
+    fail_if( (read_memory_test(PC_addr, 32, (char *)&PC) != 0) );
+
+    // Invalid PC
+    PC.ta.V = 0;
+    write_memory_test((char *)&PC, PC_addr, 32);
+    send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
+    PC.ta.V = 1;
+    write_memory_test((char *)&PC, PC_addr, 32);
+
+    // PC access violation
+    access_viol_addr = PC_addr;
+    send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 265, 0) < 0 ) );
+    access_viol_addr = -1;
+    // PC data corruption violation
+    data_corruption_addr = PC_addr;
+    send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 269, 0) < 0 ) );
+    data_corruption_addr = -1;
+
+    PC.ta.V = 1;
+    write_memory_test((char *)&PC, PC_addr, 32);
+    g_reg_file.fctl.gxl = 0;
+    DC.tc.SXL = 0;
+    write_memory_test((char *)&DC, DC_addr, 64);
+    iodir(INVAL_DDT, 1, 0x112233, 0);
+    g_reg_file.capabilities.Sv57 = 0;
+    g_reg_file.capabilities.Sv48 = 0;
+    g_reg_file.capabilities.Sv39 = 0;
+    g_reg_file.capabilities.Sv32 = 0;
+    for ( j = 1; j < 16; j++ ) {
+        PC.fsc.iosatp.MODE = j;
+        write_memory_test((char *)&PC, PC_addr, 32);
+        send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
+             1, WRITE, &req, &rsp);
+        fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 267, 0) < 0 ) );
+    }
+    g_reg_file.capabilities.Sv57 = 1;
+    g_reg_file.capabilities.Sv48 = 1;
+    g_reg_file.capabilities.Sv39 = 1;
+    g_reg_file.capabilities.Sv32 = 1;
+    PC.fsc.iosatp.MODE = IOSATP_Sv48;
+    write_memory_test((char *)&PC, PC_addr, 32);
+
+    // Two stage translation
+    iodir(INVAL_DDT, 1, 0x112234, 0);
+    pte.raw = 0;
+    pte.V = 1;
+    pte.R = 1;
+    pte.W = 1;
+    pte.X = 1;
+    pte.U = 1;
+    pte.G = 0;
+    pte.A = 0;
+    pte.D = 0;
+    pte.PBMT = PMA;
+    pte.PPN = get_free_gppn(1, DC.iohgatp);
+
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    gpte.PPN = get_free_ppn(1);
+    gpa = pte.PPN * PAGESIZE;
+    spa = gpte.PPN * PAGESIZE;
+    gpte_addr = add_g_stage_pte(PC.iohgatp, gpa, gpte, 0);
+    gva = 0x100000;
+    pte_addr = add_vs_stage_pte(PC.fsc.iosatp, gva, pte, 0, DC.iohgatp, DC.tc.SXL);
+    send_translation_request(0x112234, 1, 0xBABEC, 0,
+             0, 1, 0, ADDR_TYPE_UNTRANSLATED, gva,
+             1, WRITE, &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, SUCCESS, 0, 0) < 0 ) );
+    END_TEST();
+
     START_TEST("MSI write-through mode");
 
     DC_addr = add_device(0x042874, 0x1974, 1, 0, 0, 0, 0,
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 0, 0,
                          IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
     read_memory_test(DC_addr, 64, (char *)&DC);
@@ -3651,7 +3778,7 @@ main(void) {
 
     START_TEST("MSI MFIF mode");
     DC_addr = add_device(0x121679, 0x1979, 1, 0, 0, 0, 0,
-                         1, 1, 0, 0, 0,
+                         1, 1, 0, 0, 0, 0,
                          IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
                          MSIPTP_Flat, 1, 0x0000000FF, 0x280000000);
     read_memory_test(DC_addr, 64, (char *)&DC);
@@ -3913,7 +4040,7 @@ main(void) {
     g_reg_file.fctl.gxl = 1;
 
     DC_addr = add_device(0x000000, 1, 0, 0, 0, 0, 0,
-                         1, 1, 0, 0, 1,
+                         1, 1, 0, 0, 1, 0,
                          IOHGATP_Sv32x4, IOSATP_Bare, PD20,
                          MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
     read_memory_test(DC_addr, 64, (char *)&DC);
