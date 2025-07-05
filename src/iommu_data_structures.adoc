@@ -1303,11 +1303,13 @@ denied. Conversely, when a UR or CA response is generated for an ATS translation
 request, the corresponding fault is reported to software through the fault/event
 reporting mechanism.
 
-If the translation request has an address determined to be an MSI address using
-the rules defined by the <<MSI_ID>> but the MSI PTE is configured in MRIF
-mode then a Success response is generated with R, W, and U bit set to 1. The U
-bit being set to 1 in the response instructs the device that it must only use
-Untranslated requests to access the implied 4 KiB memory range.
+If the translation request is successfully completed and the address is
+determined to be an MSI address using the rules defined by the <<MSI_ID>>, but
+the MSI PTE is configured in MRIF mode, a Success response is generated
+with the U bit (Untranslated access only) set to 1. The U bit being set to 1 in
+the response instructs the device that it must use only Untranslated requests to
+access the implied 4 KiB memory range. The R, W, and Exe bits in the response
+indicate the granted permissions.
 
 [NOTE]
 ====
