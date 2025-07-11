@@ -1196,6 +1196,10 @@ file and translating the address using the MSI page table is as follows:
 
 [NOTE]
 ====
+Unlike regular RISC-V leaf PTEs, MSI PTEs do not have an accessed (`A`) or
+dirty (`D`) bit. An IOMMU may treat an MSI PTE *as if* the `A` and `D` bits are
+always set to 1.
+
 In MRIF mode, the Advanced Interrupt Architecture Specification defines the operation to
 store the incoming MSIs into the destination MRIF and to generate the notice
 MSI. These operations may be performed by the IOMMU itself or the IOMMU may
