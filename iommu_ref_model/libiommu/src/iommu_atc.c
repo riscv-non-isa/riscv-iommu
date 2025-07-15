@@ -180,9 +180,10 @@ lookup_ioatc_iotlb(
         if ( is_read  && (tlb[hit].VS_R == 0) ) goto page_fault;
         if ( is_write && (tlb[hit].VS_W == 0) ) goto page_fault;
     }
-    if ( (priv == U_MODE) && (tlb[hit].U == 0) ) goto page_fault;
-    if ( is_exec && (priv == S_MODE) && (tlb[hit].U == 1) ) goto page_fault;
-    if ( (priv == S_MODE) && !is_exec && SUM == 0 && tlb[hit].U == 1 ) goto page_fault;
+    // U and SUM bit based checks are active only when iosatp.MODE is not Bare
+    if ( (PSCV == 1) && (priv == U_MODE) && (tlb[hit].U == 0) ) goto page_fault;
+    if ( (PSCV == 1) && is_exec && (priv == S_MODE) && (tlb[hit].U == 1) ) goto page_fault;
+    if ( (PSCV == 1) && (priv == S_MODE) && !is_exec && SUM == 0 && tlb[hit].U == 1 ) goto page_fault;
 
     // Check G stage permissions
     if ( (is_exec  && (tlb[hit].G_X == 0)) ||
