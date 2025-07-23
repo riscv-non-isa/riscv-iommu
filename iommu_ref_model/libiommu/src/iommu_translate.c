@@ -271,7 +271,8 @@ step_17:
     //     successfully then let `A` be the translated GPA.
     PSCV  = (iosatp.MODE == IOSATP_Bare) ? 0 : 1;
     GV    = (iohgatp.MODE == IOHGATP_Bare) ? 0 : 1;
-    GSCID = iohgatp.GSCID;
+    GSCID = (GV == 0) ? 0 : iohgatp.GSCID;
+    PSCID = (PSCV == 0) ? 0 : PSCID;
     PV    = req->pid_valid;
     DID   = req->device_id;
     PID   = req->process_id;
