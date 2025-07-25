@@ -683,6 +683,18 @@ where >> 12 represents shifting right by 12 bits, an ampersand (&) represents
 bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of
 the address mask.
 
+While the MSI address mask and pattern fields are 52 bits wide, if
+stem:[MGPAW < 64], then bits stem:[51 : MGPAW - 12] are reserved for
+future standard use and must be set to zero by software. MGPAW is
+determined as follows:
+
+* If `capabilities.Sv57x4` is 1, then MGPAW = 59
+* Else if `capabilities.Sv48x4` is 1, then MGPAW = 50
+* Else if `capabilities.Sv39x4` is 1, then MGPAW = 41
+* Else if `capabilities.Sv32x4` is 1, then MGPAW = 34
+* Otherwise, MGPAW = `capabilities.PAS`
+
+
 [[DC_MISCONFIG]]
 ==== Device-context configuration checks
 
