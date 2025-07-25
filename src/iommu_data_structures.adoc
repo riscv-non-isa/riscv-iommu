@@ -683,6 +683,18 @@ where >> 12 represents shifting right by 12 bits, an ampersand (&) represents
 bitwise logical AND, and `~msi_addr_mask` is the bitwise logical complement of
 the address mask.
 
+While the MSI address mask and pattern fields are 52 bits wide, if
+stem:[MGPAW < 64], then bits stem:[51 : MGPAW - 12] are reserved for
+future standard use and must be set to zero by software. MGPAW is
+determined as follows:
+
+* If `capabilities.Sv57x4` is 1, then MGPAW = 59
+* Else if `capabilities.Sv48x4` is 1, then MGPAW = 50
+* Else if `capabilities.Sv39x4` is 1, then MGPAW = 41
+* Else if `capabilities.Sv32x4` is 1, then MGPAW = 34
+* Otherwise, MGPAW = `capabilities.PAS`
+
+
 [[DC_MISCONFIG]]
 ==== Device-context configuration checks
 
@@ -1077,7 +1089,12 @@ The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
 Physical Addresses (GPA) which must be translated into Supervisor Physical
 Addresses (SPA) using the second-stage page table pointed to by `DC.iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
-by the second-stage.
+by the second-stage. However, any guest-page fault exception raised by the
+second stage is always reported using the original access type (instruction,
+load, or store/AMO). An access fault in the second stage is reported as "PDT
+entry load access fault" (`cause = 265`). If the second-stage accesses detect
+data corruption (i.e., poisoned data), it is reported as "PDT data corruption"
+(`cause = 269`).
 
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
@@ -1191,6 +1208,10 @@ file and translating the address using the MSI page table is as follows:
 
 [NOTE]
 ====
+Unlike regular RISC-V leaf PTEs, MSI PTEs do not have an accessed (`A`) or
+dirty (`D`) bit. An IOMMU may treat an MSI PTE *as if* the `A` and `D` bits are
+always set to 1.
+
 In MRIF mode, the Advanced Interrupt Architecture Specification defines the operation to
 store the incoming MSIs into the destination MRIF and to generate the notice
 MSI. These operations may be performed by the IOMMU itself or the IOMMU may
@@ -1298,11 +1319,13 @@ denied. Conversely, when a UR or CA response is generated for an ATS translation
 request, the corresponding fault is reported to software through the fault/event
 reporting mechanism.
 
-If the translation request has an address determined to be an MSI address using
-the rules defined by the <<MSI_ID>> but the MSI PTE is configured in MRIF
-mode then a Success response is generated with R, W, and U bit set to 1. The U
-bit being set to 1 in the response instructs the device that it must only use
-Untranslated requests to access the implied 4 KiB memory range.
+If the translation request is successfully completed and the address is
+determined to be an MSI address using the rules defined by the <<MSI_ID>>, but
+the MSI PTE is configured in MRIF mode, a Success response is generated
+with the U bit (Untranslated access only) set to 1. The U bit being set to 1 in
+the response instructs the device that it must use only Untranslated requests to
+access the implied 4 KiB memory range. The R, W, and Exe bits in the response
+indicate the granted permissions.
 
 [NOTE]
 ====
