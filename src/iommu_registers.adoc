@@ -326,7 +326,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 as message-signaled-interrupts.
 |2     |`GXL`      |WARL      | Controls the address-translation schemes that
                                 may be used for guest physical addresses as
-                                defined in <<IOHGATP_MODE_ENC>>.
+                                defined in <<IOHGATP_MODE_ENC-0>> and
+                                <<IOHGATP_MODE_ENC-1>>.
 |15:3  |reserved   |WPRI      | Reserved for standard use.
 |31:16 |custom     |WPRI      | Designated for custom use.
 |===
