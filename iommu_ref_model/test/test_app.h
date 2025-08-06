@@ -27,7 +27,7 @@ extern int8_t check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t P
 extern uint64_t get_free_gppn(uint64_t num_gppn, iohgatp_t iohgatp);
 extern uint64_t add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,
            uint8_t dtf, uint8_t prpr,
-           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
+           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl, uint8_t gipc,
            uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
            uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask,
            uint64_t msi_addr_pattern);
