@@ -245,6 +245,13 @@ in the device context.
                     system-on-chip.
 | SPA             | Supervisor Physical Address: Physical address used to
                     to access memory and memory-mapped resources.
+| TLB             | Translation Lookaside Buffer. A cache that stores
+                    virtual-to-physical address translations to reduce
+                    translation latency. On a TLB hit, the translation is
+                    completed without accessing the first-stage and/or
+                    second-stage page tables. On a TLB miss, a page table walk
+                    is performed. Some implementations cache non-leaf levels of
+                    the page tables, reducing the number of walks required.
 | TLP             | Transaction Layer Packet.
 | VA              | Virtual Address.
 | VM              | Virtual Machine: An efficient, isolated duplicate of a real
@@ -255,6 +262,11 @@ in the device context.
 | VMM             | Virtual Machine Monitor. Also referred to as hypervisor.
 | VS              | Virtual Supervisor: Supervisor privilege in virtualization
                     mode.
+| Walk            | A single memory access by the IOMMU to load a table entry.
+                    Each entry load--leaf or non-leaf--is one walk. The number
+                    of walks required to load the leaf entry depends on the
+                    number of table levels and may be fewer if non-leaf levels
+                    are already cached.
 | WARL            | Write Any values, Reads Legal values: Attribute of a
                     register field that is only defined for a subset of bit
                     encodings, but allow any value to be written while
