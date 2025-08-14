@@ -134,7 +134,7 @@ step_2:
          ((gpte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (gpte->PBMT == 3) ||
          (gpte->reserved != 0) ||
-         ((gpte->rsw60t59b !=0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
+         ((gpte->rsw60t59b != 0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
         return GST_PAGE_FAULT;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
