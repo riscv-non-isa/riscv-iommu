@@ -148,10 +148,15 @@ step_2:
     // 3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, or if any bits or
     //    encodings that are reserved for future standard use are set within pte,
     //    stop and raise a page-fault exception to the original access type.
+    //    The Svrsw60t59b extension is implemented if `capabilities.Svrsw60t59b`
+    //    (bit 14) is set to 1. If the Svrsw60t59b extension is implemented, then
+    //    bits 60-59 of the page table entries (PTEs) are reserved for use by
+    //    supervisor software and are ignored by the implementation.
     if ( (pte->V == 0) || (pte->R == 0 && pte->W == 1) ||
          ((pte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (pte->PBMT == 3) ||
-         (pte->reserved != 0) )
+         (pte->reserved != 0) ||
+         ((pte->rsw60t59b != 0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
         goto page_fault;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation

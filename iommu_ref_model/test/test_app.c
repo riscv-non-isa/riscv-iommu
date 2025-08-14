@@ -69,6 +69,7 @@ main(void) {
     cap.dbg = 1;
     cap.pas = 50;
     cap.pd20 = cap.pd17 = cap.pd8 = 1;
+    cap.Svrsw60t59b = 1;
     sv57_bare_sz = sv48_bare_sz = sv39_bare_sz = 0x40000000;
     sv32_bare_sz = 0x200000;
     fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0,
@@ -1521,6 +1522,35 @@ main(void) {
     gpte.PPN = 512UL * 512UL * 512UL * 512UL;
     write_memory_test((char *)&gpte, gpte_addr, 8);
 
+    gpte.reserved = 1;
+    write_memory_test((char *)&gpte, gpte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa >> 2) << 2)) < 0 ) );
+    gpte.reserved = 0;
+    write_memory_test((char *)&gpte, gpte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+
+    g_reg_file.capabilities.Svrsw60t59b = 1;
+    gpte.rsw60t59b = 1;
+    write_memory_test((char *)&gpte, gpte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+    iotinval(GVMA, 0, 0, 0, 0, 0, 0);
+    g_reg_file.capabilities.Svrsw60t59b = 0;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 21, ((gpa >> 2) << 2)) < 0 ) );
+    gpte.rsw60t59b = 0;
+    write_memory_test((char *)&gpte, gpte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+    iotinval(GVMA, 0, 0, 0, 0, 0, 0);
+
     access_viol_addr = gpte_addr;
     req.tr.read_writeAMO = WRITE;
     iommu_translate_iova(&req, &rsp);
@@ -1837,6 +1867,35 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) );
     pte.PBMT = 0;
     write_memory_test((char *)&pte, pte_addr, 8);
+
+    pte.reserved = 1;
+    write_memory_test((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) );
+    pte.reserved = 0;
+    write_memory_test((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+
+    g_reg_file.capabilities.Svrsw60t59b = 1;
+    pte.rsw60t59b = 1;
+    write_memory_test((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+    iotinval(VMA, 0, 0, 0, 0, 0, 0);
+    g_reg_file.capabilities.Svrsw60t59b = 0;
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 13, 0) < 0 ) );
+    pte.rsw60t59b = 0;
+    write_memory_test((char *)&pte, pte_addr, 8);
+    req.tr.read_writeAMO = READ;
+    iommu_translate_iova(&req, &rsp);
+    fail_if( ( rsp.status != SUCCESS ) );
+    iotinval(VMA, 0, 0, 0, 0, 0, 0);
 
     access_viol_addr = pte_addr;
 
