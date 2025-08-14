@@ -156,7 +156,7 @@ step_2:
          ((pte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
          (pte->PBMT == 3) ||
          (pte->reserved != 0) ||
-         ((pte->rsw60t59b !=0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
+         ((pte->rsw60t59b != 0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
         goto page_fault;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
