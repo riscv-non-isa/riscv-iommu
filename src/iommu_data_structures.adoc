@@ -152,7 +152,7 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-image::ddt-ext.svg[width=800,height=400, align="center"]
+::../ddt-ext.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
