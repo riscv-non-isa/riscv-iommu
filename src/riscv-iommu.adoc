@@ -13,6 +13,7 @@ include::../docs-resources/global-config.adoc[]
 :experimental:
 :reproducible:
 :imagesoutdir: images
+:imagesdir: images
 :bibtex-file: src/iommu.bib
 :bibtex-order: appearance
 :bibtex-style: ieee
