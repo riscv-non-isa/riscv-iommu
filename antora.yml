@@ -3,3 +3,4 @@ title: IOMMU Architecture
 version: v1.0
 nav:
 - modules/ROOT/nav.adoc
+- modules/iommu/index.adoc
