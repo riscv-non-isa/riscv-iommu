@@ -177,6 +177,8 @@ include::../ddt-ext.svg[width=800,height=400, align="center"]
 
 .Three, two and single-level device directory with base format `DC`
 
+Trying with 2 colons
+
 image::ddt-base.svg[width=800,height=400, align="center"]
 
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
