@@ -770,7 +770,7 @@ provides the PPN of the next level process-directory-table. The leaf
 process-directory-table entry holds the process-context (`PC`).
 
 .Three, two and single-level process directory
-image::images/pdt.svg[width=800,height=400]
+image::pdt.svg[width=800,height=400]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+   +-------+
