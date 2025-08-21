@@ -152,7 +152,7 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-//image::images/ddt-ext.svg[width=800,height=400, align="center"]
+//image::ddt-ext.svg[width=800,height=400, align="center"]
 
 image::ddt-ext.svg[width=800,height=400, align="center"]
 
@@ -180,7 +180,7 @@ image::ddt-ext.svg[width=800,height=400, align="center"]
 
 .Three, two and single-level device directory with base format `DC`
 
-//image::images/ddt-base.svg[width=800,height=400, align="center"]
+//image::ddt-base.svg[width=800,height=400, align="center"]
 
 image::ddt-base.svg[width=800,height=400, align="center"]
 
@@ -771,7 +771,7 @@ provides the PPN of the next level process-directory-table. The leaf
 process-directory-table entry holds the process-context (`PC`).
 
 .Three, two and single-level process directory
-image::images/pdt.svg[width=800,height=400]
+image::pdt.svg[width=800,height=400]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+   +-------+
