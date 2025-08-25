@@ -1,5 +1,6 @@
 name: iommuArch
 title: IOMMU Architecture
 version: v1.0
+pdf-url: https://github.com/riscv/docs.riscv.org/blob/main/static/pdf/riscv-iommu.pdf
 nav:
 - modules/ROOT/nav.adoc
