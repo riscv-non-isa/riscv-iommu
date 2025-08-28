@@ -17,6 +17,9 @@ Architecture:
 | <<ARINV, *Address Range Invalidation Extension*>>
                                                              |*1.0*
                                                                       |*Ratified*
+| <<SVRSW, *PTE Reserved-for-Software Bits 60-59*>>
+                                                             |*1.0*
+                                                                      |*Ratified*
 |===
 
 [[QOSID]]
@@ -223,3 +226,9 @@ register.
 Simpler implementations may invalidate all address-translation cache entries
 when the `S` bit is set to 1.
 ====
+
+[[SVRSW]]
+=== PTE Reserved-for-Software Bits 60-59, Version 1.0
+
+The Svrsw60t59b extension is implemented if `capabilities.Svrsw60t59b` (bit 14)
+is set to 1.
