@@ -227,6 +227,8 @@ Simpler implementations may invalidate all address-translation cache entries
 when the `S` bit is set to 1.
 ====
 
+<<<
+
 [[SVRSW]]
 === PTE Reserved-for-Software Bits 60-59, Version 1.0
 
