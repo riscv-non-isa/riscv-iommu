@@ -1,4 +1,52 @@
 == Preface
+[.big]*_Preface to Version 20250828_*
+
+This document describes the RISC-V IOMMU architecture. This release, version
+20250828, includes the following versions of the RISC-V IOMMU Base Architecture
+specification and standard extensions:
+
+[%autowidth,float="center",align="center",cols="^,^,^",options="header",]
+|===
+|       Specification                              |Version |Status
+|*RISC-V IOMMU Base Architecture Specification*   +
+ *Quality-of-Service (QoS) Identifiers Extension* +
+ *Non-leaf PTE Invalidation Extension*            +
+ *Address Range Invalidation Extension*           +
+ *PTE Reserved-for-Software Bits 60-59*
+                                                   |*1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*
+                                                            |*Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified*
+|===
+
+The following backward-compatible changes--comprising a set of clarifications
+and corrections--have been made since version 20250620:
+
+* Corrected typographic errors and made editorial updates.
+* Clarified the types of faults that may be caused by G-stage due to
+  implicit PDT accesses.
+* Updated the software guideline indicating that wired-signaled interrupts
+  are supported when `IGS` is either `WSI` or `BOTH`.
+* Clarified that ATS Translation responses with `U=1` include the granted
+  permissions.
+* Clarified that MSI PTEs do not include A/D bits, but these bits may be
+  assumed to be `1`.
+* Included definitions for TLB and Walk in the Glossary.
+
+The following change has been made which, while not strictly backwards
+compatible, is not expected to cause software portability issues in practice:
+
+* While the MSI address mask and pattern fields are 52 bits wide, any bits
+  beyond the maximum GPA width supported by the IOMMU are reserved for future
+  standard use.
+
+These changes were made through PR#569, cite:[PR569].
 
 [.big]*_Preface to Version 20250620_*
 
