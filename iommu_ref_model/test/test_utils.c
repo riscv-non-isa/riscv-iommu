@@ -296,7 +296,7 @@ check_rsp_and_faults(
 uint64_t
 add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,
            uint8_t dtf, uint8_t prpr,
-           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
+           uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl, uint8_t gipc,
            uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
            uint8_t msiptp_mode, uint8_t msiptp_pages, uint64_t msi_addr_mask,
            uint64_t msi_addr_pattern) {
@@ -316,6 +316,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     DC.tc.DPE    = dpe;
     DC.tc.SBE    = sbe;
     DC.tc.SXL    = sxl;
+    DC.tc.GIPC   = gipc;
     if ( iohgatp_mode != IOHGATP_Bare ) {
         DC.iohgatp.GSCID = gscid;
         DC.iohgatp.PPN = get_free_ppn(4);
@@ -349,7 +350,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
     if ( pdt_mode != PDTP_Bare ) {
         DC.tc.PDTV = 1;
         DC.fsc.pdtp.MODE = pdt_mode;
-        if ( DC.iohgatp.MODE != IOHGATP_Bare ) {
+        if ((DC.iohgatp.MODE != IOHGATP_Bare) && !((DC.tc.GIPC == 1) && (g_reg_file.capabilities.GIPC == 1))) {
             gpte_t gpte;
             DC.fsc.pdtp.PPN = get_free_gppn(1, DC.iohgatp);
             gpte.raw = 0;
