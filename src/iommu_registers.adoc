@@ -37,6 +37,11 @@ If a register is optional, as determined by the corresponding `capabilities`
 register bit being 0, then a read from the memory-mapped register offset of
 the register returns 0 and writes to that offset are ignored.
 
+Registers and register fields designated for future standard use must be
+read-only zero. For forward compatibility, registers and register fields
+designated for custom use should be implemented as read-only zero if the
+implementation does not define a custom use for them.
+
 === Register layout
 
 .IOMMU Memory-mapped register layout
