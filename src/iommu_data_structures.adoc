@@ -1544,15 +1544,12 @@ that the entry is valid.
 Software is allowed to make updates to a data structure entry that has the `V`
 bit set to 1. However, some rules as outlined below must be followed.
 
-* It is generally unsafe for software to update fields of a valid data structure
-  entry using a set of stores of width less than the minimal single-copy atomic
-  memory access supported by an IOMMU as it is legal for an IOMMU to read the
-  entry at any time, including when only some of the partial stores have taken
-  effect. +
+* It may be unsafe for software to partially update the fields of a valid
+  data structure entry, as it is legal for an IOMMU to read the entry at any
+  time, including when only some of the partial updates have taken effect. +
 +
-* For an update to an IOMMU data structure entry to be atomic, software must use
-  a single store of width equal to the minimal single-copy atomic memory access
-  supported by an IOMMU. +
+* For an update to an IOMMU data structure entry to be atomically observed by the
+  IOMMU, software must use a store that results in a single memory operation. +
 +
 * If the update to a field will make the field inconsistent with another field
   of the entry then software must first set the `V` field to 0 and use the commands
