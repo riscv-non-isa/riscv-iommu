@@ -821,6 +821,10 @@ extern uint64_t g_sv57_bare_pg_sz;
 extern uint64_t g_sv48_bare_pg_sz;
 extern uint64_t g_sv39_bare_pg_sz;
 extern uint64_t g_sv32_bare_pg_sz;
+extern uint64_t g_sv57x4_bare_pg_sz;
+extern uint64_t g_sv48x4_bare_pg_sz;
+extern uint64_t g_sv39x4_bare_pg_sz;
+extern uint64_t g_sv32x4_bare_pg_sz;
 extern uint32_t g_iommu_qosid_mask;
 
 extern void process_commands(void);

@@ -25,7 +25,9 @@ extern int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_ma
                        uint8_t gxl_writeable, uint8_t fctl_be_writeable,
                        uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities,
                        fctl_t fctl, uint64_t sv57_bare_pg_sz, uint64_t sv48_bare_pg_sz,
-                       uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz);
+                       uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz,
+                       uint64_t sv57x4_bare_pg_sz, uint64_t sv48x4_bare_pg_sz,
+                       uint64_t sv39x4_bare_pg_sz, uint64_t sv32x4_bare_pg_sz);
 extern void iommu_translate_iova(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg);
 extern void handle_page_request(ats_msg_t *pr);
 extern uint8_t handle_invalidation_completion(ats_msg_t *inv_cc);

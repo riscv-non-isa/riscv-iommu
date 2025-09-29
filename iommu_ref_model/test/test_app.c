@@ -29,6 +29,7 @@ main(void) {
     uint64_t DC_addr, exp_iotval2, iofence_PPN, iofence_data, spa, gpa;
     uint64_t gva, gpte_addr, pte_addr, PC_addr, temp;
     uint64_t sv57_bare_sz, sv48_bare_sz, sv39_bare_sz, sv32_bare_sz;
+    uint64_t sv57x4_bare_sz, sv48x4_bare_sz, sv39x4_bare_sz, sv32x4_bare_sz;
     uint64_t g_pg_sz, vs_pg_sz, exp_trn_sz, exp_pa;
     volatile uint64_t temp1;
     device_context_t DC;
@@ -72,10 +73,13 @@ main(void) {
     cap.Svrsw60t59b = 1;
     sv57_bare_sz = sv48_bare_sz = sv39_bare_sz = 0x40000000;
     sv32_bare_sz = 0x200000;
+    sv57x4_bare_sz = sv48x4_bare_sz = sv39x4_bare_sz = 0x40000000;
+    sv32x4_bare_sz = 0x200000;
     fail_if( ( reset_iommu(8, 40, 0xff, 3, Off, DDT_3LVL, 0xFFFFFF, 0, 0,
                            (FILL_IOATC_ATS_T2GPA | FILL_IOATC_ATS_ALWAYS),
                            cap, fctl, sv57_bare_sz, sv48_bare_sz, sv39_bare_sz,
-                           sv32_bare_sz) < 0 ) );
+                           sv32_bare_sz, sv57x4_bare_sz, sv48x4_bare_sz, sv39x4_bare_sz,
+                           sv32x4_bare_sz) < 0 ) );
     for ( i = MSI_ADDR_0_OFFSET; i <= MSI_ADDR_7_OFFSET; i += 16 ) {
         write_register(i, 8, 0xFF);
         fail_if(( read_register(i, 8) != 0xFc ));
