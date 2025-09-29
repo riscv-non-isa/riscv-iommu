@@ -25,6 +25,10 @@ uint64_t g_sv57_bare_pg_sz;
 uint64_t g_sv48_bare_pg_sz;
 uint64_t g_sv39_bare_pg_sz;
 uint64_t g_sv32_bare_pg_sz;
+uint64_t g_sv57x4_bare_pg_sz;
+uint64_t g_sv48x4_bare_pg_sz;
+uint64_t g_sv39x4_bare_pg_sz;
+uint64_t g_sv32x4_bare_pg_sz;
 uint32_t g_iommu_qosid_mask;
 
 uint8_t
@@ -866,7 +870,9 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
             uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities,
             fctl_t fctl, uint64_t sv57_bare_pg_sz, uint64_t sv48_bare_pg_sz,
-            uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz) {
+            uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz,
+            uint64_t sv57x4_bare_pg_sz, uint64_t sv48x4_bare_pg_sz,
+            uint64_t sv39x4_bare_pg_sz, uint64_t sv32x4_bare_pg_sz) {
     int i;
 #ifdef DEBUG
     // Only PA upto 56 bits supported in RISC-V
@@ -999,5 +1005,9 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
     g_sv48_bare_pg_sz = sv48_bare_pg_sz;
     g_sv39_bare_pg_sz = sv39_bare_pg_sz;
     g_sv32_bare_pg_sz = sv32_bare_pg_sz;
+    g_sv57x4_bare_pg_sz = sv57x4_bare_pg_sz;
+    g_sv48x4_bare_pg_sz = sv48x4_bare_pg_sz;
+    g_sv39x4_bare_pg_sz = sv39x4_bare_pg_sz;
+    g_sv32x4_bare_pg_sz = sv32x4_bare_pg_sz;
     return 0;
 }

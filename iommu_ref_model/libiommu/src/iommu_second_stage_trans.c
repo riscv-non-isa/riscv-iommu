@@ -38,13 +38,13 @@ second_stage_address_translation(
         // is recommended that the translation range size be large, such
         // as 2 MiB or 1 GiB.
         if ( g_reg_file.capabilities.Sv57x4 == 1 )
-            *gst_page_sz = g_sv57_bare_pg_sz;
+            *gst_page_sz = g_sv57x4_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv48x4 == 1 )
-            *gst_page_sz = g_sv48_bare_pg_sz;
+            *gst_page_sz = g_sv48x4_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv39x4 == 1 && g_reg_file.fctl.gxl == 0)
-            *gst_page_sz = g_sv39_bare_pg_sz;
+            *gst_page_sz = g_sv39x4_bare_pg_sz;
         else if ( g_reg_file.capabilities.Sv32x4 == 1 && g_reg_file.fctl.gxl == 1)
-            *gst_page_sz = g_sv32_bare_pg_sz;
+            *gst_page_sz = g_sv32x4_bare_pg_sz;
         goto step_8;
     }
 
