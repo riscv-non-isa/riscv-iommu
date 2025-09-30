@@ -230,7 +230,7 @@ iommu_translate_iova(
     //    ◦ Let iohgatp be value in DC.iohgatp field
     if ( req->pid_valid == 0 || DC.fsc.pdtp.MODE == PDTP_Bare ) {
         iosatp.MODE = IOSATP_Bare;
-        SUM = 0;
+        SUM = req->pid_valid;
         iohgatp = DC.iohgatp;
         goto step_17;
     }
