@@ -659,6 +659,8 @@ The `msiptp.MODE` field is used to select the MSI address translation scheme.
 | 14-15| --       | Designated for custom use.
 |===
 
+When `DC.iohgatp.MODE` is `Bare`, the `msiptp.MODE` must be set to `Off`.
+
 [[MSI_ID]]
 ===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
 
@@ -761,6 +763,11 @@ misconfigured" (cause = 259).
 . `capabilities.QOSID` is 1 and `DC.ta.RCID` or `DC.ta.MCID` values
   are wider than that supported by the IOMMU.
 
+When `DC.iohgatp.MODE` is `Bare`, `DC.msiptp.MODE` must be set to `Off` by
+software. All other settings are reserved. Implementations are recommended
+to stop and report "DDT entry misconfigured" (cause = 259) if a reserved
+setting is detected.
+
 [NOTE]
 ====
 Some `DC` fields hold supervisor physical addresses or
@@ -774,6 +781,13 @@ Other implementations only detect such addresses to be invalid when the data
 structure referenced by these fields needs to be accessed. Such
 implementations may detect access-violation faults in the process of making
 the access.
+
+An earlier version of the specification did not recommend implementations to
+check that `msiptp.MODE` was set to `Off` when `iohgatp.MODE` was `Bare`.
+When `iohgatp.MODE` is `Bare`, second-stage address translation is
+effectively disabled and no valid `GSCID` exists to associate translations
+from an MSI page table with a VM address space. In such cases, software must
+set `msiptp.MODE` to `Off`.
 ====
 
 === Process-Directory-Table (PDT)
