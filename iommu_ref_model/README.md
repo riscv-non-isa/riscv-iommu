@@ -109,17 +109,17 @@ written is identified by the num_bytes parameter. The data to be written is prov
 in the data parameter. If the access is invalid then the function drops the write i.e.
 an abort response.
 
-3. **`int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_mask, uint8_t num_vec_bits, uint8_t reset_iommu_mode, capabilities_t capabilities, fctrl_t fctrl)`**
+3. **`int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit, uint8_t num_vec_bits, uint8_t reset_iommu_mode, uint8_t max_iommu_mode, uint32_t max_devid_mask, uint8_t gxl_writeable, uint8_t fctl_be_writeable, uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities, fctl_t fctl, uint64_t sv57_bare_pg_sz, uint64_t sv48_bare_pg_sz, uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz, uint64_t sv57x4_bare_pg_sz, uint64_t sv48x4_bare_pg_sz, uint64_t sv39x4_bare_pg_sz, uint64_t sv32x4_bare_pg_sz);`**
 
 This function is provided by the reference model to establish the resset default state.
 The num_hpm indicates the number of hardware performace monitoring counters to be
 implemented by the model and the hpmctr_bits indicates the width of the counters in bits.
-The eventID_mask indicates the width of the eventID field in the hardware performance
+The eventID_limit indicates the width of the eventID field in the hardware performance
 monitoring event registers that should be implemented by the reference model. The
 num_vec_bits indicates the width in bits of the vector field of the ICVEC register. The
 default IOMMU mode - Off or Bare - is selected by the reset_iommu_mode parameter. The
 capabilities of the IOMMU that should be implemented are specified by the capabilities
-parameter. The default value of the feature control register is provided by the fctrl
+parameter. The default value of the feature control register is provided by the fctl
 parameter. The function returns 0 if the reference model could be successfully initialized
 with the provided parameters.
 
