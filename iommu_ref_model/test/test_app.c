@@ -1568,6 +1568,7 @@ main(void) {
     tr_req_ctrl.PV = 0;
     tr_req_ctrl.NW = 1;
     tr_req_ctrl.go_busy = 1;
+    tr_req_ctrl.Exe = 0;
     tr_req_iova.raw = req.tr.iova;
     write_register(TR_REQ_IOVA_OFFSET, 8, tr_req_iova.raw);
     write_register(TR_REQ_CTRL_OFFSET, 8, tr_req_ctrl.raw);
