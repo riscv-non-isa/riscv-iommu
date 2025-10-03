@@ -110,8 +110,8 @@ main(void) {
     cqcsr.cqen = 0;
     write_register(CQCSR_OFFSET, 4, cqcsr.raw);
     cqcsr.raw = read_register(CQCSR_OFFSET, 4);
-    if ( cqcsr.cqen == 0 ) return -1;
-    if ( cqcsr.cqon == 0 ) return -1;
+    fail_if( ( cqcsr.cqen == 0 ) );
+    fail_if( ( cqcsr.cqon == 0 ) );
     g_reg_file.cqcsr.busy = 0;
 
     // Enable fault queue
@@ -122,8 +122,8 @@ main(void) {
     fqcsr.fqen = 0;
     write_register(FQCSR_OFFSET, 4, fqcsr.raw);
     fqcsr.raw = read_register(FQCSR_OFFSET, 4);
-    if ( fqcsr.fqen == 0 ) return -1;
-    if ( fqcsr.fqon == 0 ) return -1;
+    fail_if( ( fqcsr.fqen == 0 ) );
+    fail_if( ( fqcsr.fqon == 0 ) );
     g_reg_file.fqcsr.busy = 0;
 
     // Enable page queue
@@ -3147,8 +3147,8 @@ main(void) {
     pqcsr.pqen = 0;
     write_register(PQCSR_OFFSET, 4, pqcsr.raw);
     pqcsr.raw = read_register(PQCSR_OFFSET, 4);
-    if ( pqcsr.pqen == 0 ) return -1;
-    if ( pqcsr.pqon == 0 ) return -1;
+    fail_if( ( pqcsr.pqen == 0 ) );
+    fail_if( ( pqcsr.pqon == 0 ) );
     g_reg_file.pqcsr.busy = 0;
 
     // PRI enabled - should queue in PQ
