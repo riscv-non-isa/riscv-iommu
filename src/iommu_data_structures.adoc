@@ -19,7 +19,7 @@ then only the first-stage suffices to perform necessary address translations and
 protections; the second-stage scheme may be effectively disabled for the device by
 programming the second-stage address translation scheme to be `Bare`.
 
-When second-stage address translation is not Bare, the `DC` holds the PPN of the
+When second-stage address translation is not Bare, the `iohgatp` holds the PPN of the
 root second-stage page table; a guest-soft-context-ID (`GSCID`), which
 facilitates invalidation of cached address translations on a per-virtual-machine
 basis; and the second-stage address translation scheme.
@@ -39,6 +39,9 @@ a data structure called the Process Context (`PC`).
 
 When a PDT is active, the controls for first-stage address translation are held
 in the (`PC`).
+
+When a PDT is active with GIPC enabled, the controls for first-stage
+and second-stage address translation are held in the (`PC`).
 
 When a PDT is not active, the controls for first-stage address translation are
 held in the `DC` itself.
@@ -109,7 +112,7 @@ maximum width of the `process_id` supported by that device.  The partitioning
 of the `process_id` to obtain the process directory indices (PDI) to traverse
 the PDT radix-tree are as follows:
 
-.`process_id` partitioning for PDT radix-tree traversal
+.Base format `process_id` partitioning for PDT radix-tree traversal
 
 [wavedrom, , ]
 ....
@@ -119,6 +122,18 @@ the PDT radix-tree are as follows:
   {bits: 3, name: 'PDI[2]'},
 ], config:{lanes: 1, hspace:1024, fontsize: 16}}
 ....
+
+.Extended format `process_id` partitioning for PDT radix-tree traversal when `DC.tc.GIPC=1`
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 7, name: 'PDI[0]'},
+  {bits: 9, name: 'PDI[1]'},
+  {bits: 4, name: 'PDI[2]'},
+], config:{lanes: 1, hspace:1024, fontsize: 16}}
+....
+
 [NOTE]
 ====
 The `process_id` partitioning is designed to require a maximum of 4 KiB, a
@@ -273,7 +288,8 @@ order.
   {bits: 1,  name: 'DPE'},
   {bits: 1,  name: 'SBE'},
   {bits: 1,  name: 'SXL'},
-  {bits: 12, name: 'reserved'},
+  {bits: 1,  name: 'GIPC'},
+  {bits: 11, name: 'reserved'},
   {bits: 8, name: 'custom'},
   {bits: 32, name: 'reserved'},
 ], config:{lanes: 4, hspace: 1024, fontsize: 16, fontsize: 16}}
@@ -387,6 +403,9 @@ When `PDTV` is 1, the `DPE` bit may set to 1 to enable the use of 0 as the
 default value of `process_id` for translating requests without a valid
 `process_id`. When `PDTV` is 0, the `DPE` bit is reserved for future standard
 extension.
+
+The `GIPC` bit is expected to be set to 1 when `PC` is associated with iohgatp.
+The `DC.tc.GIPC` depends on `capabilities.GIPC`.
 
 The IOMMU supports the 1 setting of `GADE` and `SADE` bits if
 `capabilities.AMO_HWAD` is 1. When `capabilities.AMO_HWAD` is 0, these bits are
@@ -599,13 +618,19 @@ determines the number of levels of the PDT.
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-When second-stage address translation is not Bare, the `pdtp.PPN` field holds a
+When second-stage address translation is not Bare and GIPC is disabled, the `pdtp.PPN` field holds a
 guest PPN. The GPA of the root PDT is then converted by guest physical address
 translation process, as controlled by the `iohgatp`, into a supervisor physical
 address. Translating addresses of PDT using a second-stage page table, allows the
 PDT to be held in memory allocated by the guest OS and allows the guest OS to
 directly edit the PDT to associate a virtual-address space identified by a
 first-stage page table with a `process_id`.
+
+When `GIPC` is enabled, the `pdtp.PPN` field holds a supervisor PPN. The supervisor physical
+address of PDT root page, allows the PDT to be configured into the supervisor physical
+address space to allow the guest OS to use vIOMMU API edit the PDT in hypervisor to
+associate a virtual-address space identified by a VS-stage page table with a
+`process_id`.
 
 [[PDTP_MODE_ENC]]
 .Encodings of `pdtp.MODE` field
@@ -614,14 +639,28 @@ first-stage page table with a `process_id`.
 |===
 ^|Value ^| Name     ^| Description
 | 0    | `Bare`   | No first-stage address translation or protection.
-| 1    | `PD8`    | 8-bit process ID enabled. The directory has 1 levels with
-                    256 entries.The bits 19:8 of `process_id` must be 0.
-| 2    | `PD17`   | 17-bit process ID enabled. The directory has 2 levels.
-                    The root PDT page has 512 entries and leaf level has
-                    256 entries. The bits 19:17 of `process_id` must be 0.
-| 3    | `PD20`   | 20-bit process ID enabled. The directory has 3 levels.
-                    The root PDT has 8 entries and the next non-leaf
-                    level has 512 entries. The leaf level has 256 entries.
+| 1    | `PD8`    | 8-bit process ID enabled when `GIPC` is disabled. The
+                    directory has 1 levels with 256 entries. The bits 19:8
+                    of `process_id` must be 0.
+                    7-bit process ID enabled when `GIPC` is enabled. The
+                    directory has 1 levels with 128 entries. The bits 19:7
+                    of `process_id` must be 0.
+| 2    | `PD17`   | 17-bit process ID enabled when `GIPC` is disabled. The
+                    directory has 2 levels. The root PDT page has 512
+                    entries and leaf level has 256 entries. The bits 19:17
+                    of `process_id` must be 0.
+                    16-bit process ID enabled when `GIPC` is enabled. The
+                    directory has 2 levels. The root PDT page has 512
+                    entries and leaf level has 128 entries. The bits 19:16
+                    of `process_id` must be 0.
+| 3    | `PD20`   | 20-bit process ID enabled when `GIPC` is disabled. The
+                    directory has 3 levels. The root PDT has 8 entries and
+                    the next non-leaf level has 512 entries. The leaf level
+                    has 256 entries.
+                    20-bit process ID enabled when `GIPC` is enabled. The
+                    directory has 3 levels. The root PDT has 16 entries and
+                    the next non-leaf level has 512 entries. The leaf level
+                    has 128 entries.
 |  4-13| --       | Reserved for standard use.
 | 14-15| --       | Designated for custom use.
 |===
@@ -829,9 +868,9 @@ A valid (`V==1`) non-leaf PDT entry holds the PPN of the next-level PDT.
 
 ==== Leaf PDT entry
 The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
-(`PC`).
+(`PC`) when `DC.tc.GIPC = 0`.
 
-.Process-context
+.Base-format process-context
 
 [wavedrom, , ]
 ....
@@ -841,7 +880,22 @@ The leaf PDT page is indexed by `PDI[0]` and holds the 16-byte process-context
 ], config:{lanes: 2, hspace: 1024, fontsize: 16}}
 ....
 
-The `PC` is interpreted as two 64-bit doublewords. The byte order of each of the
+The leaf PDT page is indexed by `PDI[0]` and holds the 32-byte process-context
+(`PC`) when `DC.tc.GIPC = 1`.
+
+.Extended-format process-context
+
+[wavedrom, , ]
+....
+{reg: [
+  {bits: 64,  name: 'reserved'},
+  {bits: 64,  name: 'IO Hypervisor guest address translation and protection (iohgatp)'},
+  {bits: 64,  name: 'Translation-attributes (ta)'},
+  {bits: 64,  name: 'First-stage-context (fsc)'},
+], config:{lanes: 2, hspace: 1024, fontsize: 16}}
+....
+
+The `PC` is interpreted as multi 64-bit doublewords. The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
 determined by `DC.tc.SBE`. The IOMMU may read the `PC` fields in any order.
 
@@ -906,7 +960,7 @@ holds the PPN of the root page of a first-stage page table.
 When second-stage address translation is not Bare, the `PC.fsc.PPN` field holds
 a guest PPN of the root of a first-stage page table. Addresses of the first-stage
 page table entries are then converted by guest physical address translation
-process, as controlled by the `DC.iohgatp`, into a supervisor physical address.
+process, as controlled by the `iohgatp`, into a supervisor physical address.
 A guest OS may thus directly edit the first-stage page table to limit access by
 the device to a subset of its memory and specify permissions for the device
 accesses.
@@ -919,6 +973,9 @@ are not identical then it is unpredictable whether the IOMMU uses the PTEs from
 the first page table or the second page table. These are the only expected
 behaviors.
 ====
+
+===== IO hypervisor guest address translation and protection (`iohgatp`)
+The same as `DC.iohgatp`.
 
 [[PC_MISCONFIG]]
 ==== Process-context configuration checks
@@ -1001,7 +1058,8 @@ The process to translate an `IOVA` is as follows:
 .. Let `A` be the `IOVA` (the `IOVA` is a GPA).
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage is Bare.
-.. Let `iohgatp` be the value in the `DC.iohgatp` field
+.. Let `iohgatp` be the value in the `DC.iohgatp` field if `DC.tc.GIPC` is 0.
+.. Let `iohgatp` be the value in the `PC.iohgatp` field if `DC.tc.GIPC` is actived.
 . If `DC.tc.PDTV` is set to 0 then go to step 17 with the following page table
   information:
 .. Let `iosatp.MODE` be the value in the `DC.fsc.MODE` field
@@ -1028,7 +1086,8 @@ The process to translate an `IOVA` is as follows:
 .. Let `iosatp.MODE` be the value in the `PC.fsc.MODE` field
 .. Let `iosatp.PPN` be the value in the `PC.fsc.PPN` field
 .. Let `PSCID` be the value in the `PC.ta.PSCID` field
-.. Let `iohgatp` be the value in the `DC.iohgatp` field
+.. Let `iohgatp` be the value in the `DC.iohgatp` field if `DC.tc.GIPC` is 0.
+.. Let `iohgatp` be the value in the `PC.iohgatp` field if `DC.tc.GIPC` is actived.
 . Use the process specified in Section "Two-Stage Address Translation" of the
   RISC-V Privileged specification cite:[PRIV] to determine the GPA accessed by
   the transaction. If a fault is detected by the first stage address translation
@@ -1098,9 +1157,9 @@ is as follows:
 ==== Process to locate the Process-context
 
 The device-context provides the PDT root page PPN (`pdtp.ppn`).  When
-`DC.iohgatp.mode` is not `Bare`, `pdtp.PPN` as well as `pdte.PPN` are Guest
+`iohgatp.mode` is not `Bare` and `DC.tc.GIPC` is 0, `pdtp.PPN` as well as `pdte.PPN` are Guest
 Physical Addresses (GPA) which must be translated into Supervisor Physical
-Addresses (SPA) using the second-stage page table pointed to by `DC.iohgatp`.
+Addresses (SPA) using the second-stage page table pointed to by `iohgatp`.
 The memory accesses to the PDT are treated as implicit read memory accesses
 by the second-stage. However, any guest-page fault exception raised by the
 second stage is always reported using the original access type (instruction,
@@ -1109,17 +1168,21 @@ entry load access fault" (`cause = 265`). If the second-stage accesses detect
 data corruption (i.e., poisoned data), it is reported as "PDT data corruption"
 (`cause = 269`).
 
+When `iohgatp.mode` is not `Bare` and `DC.tc.GIPC` is actived, `pdtp.PPN` as well
+as `pdte.PPN` are Supervisor Physical Addresses (SPA).
+
 The process to locate the Process-context for a transaction using its
 `process_id` is as follows:
 
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
+. If `iohgatp.mode != Bare` and `DC.tc.GIPC` is 0, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
   second-stage address translation of `a` then stop and report the fault detected
   by the second-stage address translation process. The translated `a` is used in
   subsequent steps.
+. If `iohgatp.mode == Bare` or `DC.tc.GIPC` is actived, then `a` is a SPA.
 . If `i == 0` go to step 9.
 . Let `pdte` be the value of the eight bytes at address `a + PDI[i] x 8`. If
   accessing `pdte` violates a PMA or PMP check, then stop and report
@@ -1130,7 +1193,12 @@ The process to locate the Process-context for a transaction using its
 . If any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
-. Let `PC` be the value of the 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
+. Let `PC` be the value of the 16 bytes at address `a + PDI[0] x 16` when `DC.tc.GIPC` is 0.
+  If accessing `PC` violates a PMA or PMP check, then stop and report "PDT entry load access
+  fault" (cause = 265). If `PC` access detects a data corruption
+  (a.k.a. poisoned data), then stop and report "PDT data corruption"
+  (cause = 269).
+. Let `PC` be the value of the 32 bytes at address `a + PDI[0] x 32` when `DC.tc.GIPC` is actived. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access
   fault" (cause = 265). If `PC` access detects a data corruption
   (a.k.a. poisoned data), then stop and report "PDT data corruption"
