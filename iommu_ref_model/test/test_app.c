@@ -790,7 +790,6 @@ main(void) {
     DC.iohgatp.MODE = temp;
     write_memory_test((char *)&DC, DC_addr, 64);
 
-
     DC.tc.PDTV = 1;
     temp = DC.fsc.pdtp.MODE;
 
@@ -978,6 +977,38 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
     g_reg_file.fctl.be = 0;
     g_reg_file.capabilities.end = 0;
+
+    temp = DC.iohgatp.MODE;
+    temp1 = DC.msiptp.MODE;
+    DC.iohgatp.MODE = IOHGATP_Bare;
+    DC.msiptp.MODE = MSIPTP_Flat;
+    write_memory_test((char *)&DC, DC_addr, 64);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    DC.iohgatp.MODE = temp;
+    DC.msiptp.MODE = temp1;
+    write_memory_test((char *)&DC, DC_addr, 64);
+
+    g_reg_file.capabilities.qosid = 1;
+    g_iommu_qosid_mask.rcid = 0x3;
+    g_iommu_qosid_mask.mcid = 0x3;
+    DC.ta.rcid = 0x7;
+    DC.ta.mcid = 0x3;
+    write_memory_test((char *)&DC, DC_addr, 64);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    DC.ta.rcid = 0x3;
+    DC.ta.mcid = 0x7;
+    write_memory_test((char *)&DC, DC_addr, 64);
+    send_translation_request(0x012345, pid_valid, 0x99, no_write, exec_req,
+                             priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
+    fail_if( ( check_rsp_and_faults(&req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
+    DC.ta.rcid = 0x0;
+    DC.ta.mcid = 0x0;
+    write_memory_test((char *)&DC, DC_addr, 64);
+    g_reg_file.capabilities.qosid = 0;
 
     iodir(INVAL_DDT, 1, 0x012345, 0);
 
@@ -1474,6 +1505,7 @@ main(void) {
     gpte.D = 0;
     gpte.PBMT = PMA;
     DC.iohgatp.MODE = IOHGATP_Sv57x4;
+    DC.msiptp.MODE = MSIPTP_Flat;
     gpa = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
     gpa = gpa * 16;
     write_memory_test((char *)&DC, DC_addr, 64);
@@ -1643,7 +1675,7 @@ main(void) {
     DC_addr = add_device(0x012349, 1, 1, 1, 0, 0, 1,
                          1, 1, 0, 0, 0,
                          IOHGATP_Bare, IOSATP_Sv57, PDTP_Bare,
-                         MSIPTP_Flat, 1, 0xF0F00FF0FF, 0x1903020124);
+                         MSIPTP_Off, 1, 0xF0F00FF0FF, 0x1903020124);
     read_memory_test(DC_addr, 64, (char *)&DC);
     DC.ta.PSCID = 10;
     write_memory_test((char *)&DC, DC_addr, 64);
@@ -4391,7 +4423,7 @@ main(void) {
     fail_if( ( read_register(ICVEC_OFFSET, 8) != 0x0000000000005555) );
     // test iommu_qosid
     g_reg_file.capabilities.qosid = 1;
-    g_iommu_qosid_mask = 0x00FF00FF;
+    g_iommu_qosid_mask.raw = 0x00FF00FF;
     write_register(IOMMU_QOSID_OFFSET, 4, 0x01230456);
     fail_if( ( read_register(IOMMU_QOSID_OFFSET, 4) != 0x00230056) );
     g_reg_file.capabilities.qosid = 0;
