@@ -29,7 +29,7 @@ uint64_t g_sv57x4_bare_pg_sz;
 uint64_t g_sv48x4_bare_pg_sz;
 uint64_t g_sv39x4_bare_pg_sz;
 uint64_t g_sv32x4_bare_pg_sz;
-uint32_t g_iommu_qosid_mask;
+iommu_qosid_t g_iommu_qosid_mask;
 
 uint8_t
 is_access_valid(
@@ -735,7 +735,7 @@ write_register(
             // This register is read-only zero if qosid extension is not
             // supported. The RCID and MCID fields of the register are WARL
             if ( g_reg_file.capabilities.qosid == 1 ) {
-                g_reg_file.iommu_qosid.raw = data4 & g_iommu_qosid_mask;
+                g_reg_file.iommu_qosid.raw = data4 & g_iommu_qosid_mask.raw;
             }
             break;
         case ICVEC_OFFSET:

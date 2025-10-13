@@ -350,5 +350,21 @@ do_device_context_configuration_checks(
         return 1;
     }
 
+    //22. `capabilities.QOSID` is 1 and `DC.ta.RCID` or `DC.ta.MCID` values are wider
+    //    than that supported by the IOMMU.
+    if ( (g_reg_file.capabilities.qosid == 1) &&
+         (((DC->ta.rcid & ~g_iommu_qosid_mask.rcid) != 0) ||
+          ((DC->ta.mcid & ~g_iommu_qosid_mask.mcid) != 0)) ) {
+        return 1;
+    }
+
+    // When `DC.iohgatp.MODE` is `Bare`, `DC.msiptp.MODE` must be set to `Off` by
+    // software. All other settings are reserved. Implementations are recommended
+    // to stop and report "DDT entry misconfigured" (cause = 259) if a reserved
+    // setting is detected.
+    if ( (DC->iohgatp.MODE == IOHGATP_Bare) && (DC->msiptp.MODE != MSIPTP_Off) ) {
+        return 1;
+    }
+
     return 0;
 }
