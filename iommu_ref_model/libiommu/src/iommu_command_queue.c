@@ -478,7 +478,7 @@ do_iotinval_gvma(
         // If the cache holds a VA -> SPA translation i.e. PSCV == 1 then invalidate
         // it. If PSCV is 0 then it holds a GPA. If AV is 0 then all entries are
         // eligible else match the address
-        if ( (tlb[i].PSCV == 1) || (AV == 0) ||
+        if ( (tlb[i].PSCV == 1) || (AV == 0) || (GV == 0) ||
              (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, S, tlb[i].vpn, tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && addr_match )
