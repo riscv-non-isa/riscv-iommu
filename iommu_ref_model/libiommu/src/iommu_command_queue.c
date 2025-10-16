@@ -22,6 +22,7 @@ process_commands(
     void) {
     uint8_t status, itag;
     uint64_t a;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     command_t command;
 
     // Command queue is used by software to queue commands to be processed by
@@ -64,7 +65,9 @@ process_commands(
         return;
 
     a = g_reg_file.cqb.ppn * PAGESIZE | (g_reg_file.cqh.index * CQ_ENTRY_SZ);
-    status = read_memory(a, CQ_ENTRY_SZ, (char *)&command,
+    status = (a  & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory(a, CQ_ENTRY_SZ, (char *)&command,
                          g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid,
                          PMA);
     if ( status != 0 ) {
@@ -545,6 +548,7 @@ do_iofence_c(
     uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_BIT, uint64_t ADDR, uint32_t DATA) {
 
     uint8_t status;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     // The IOMMU fetches commands from the CQ in order but the IOMMU may execute the fetched
     // commands out of order. The IOMMU advancing cqh is not a guarantee that the commands
     // fetched by the IOMMU have been executed or committed. A IOFENCE.C command guarantees
@@ -585,7 +589,9 @@ do_iofence_c(
     // If AV=1, the IOMMU writes DATA to memory at a 4-byte aligned address ADDR[63:2] * 4 as
     // a 4-byte store.
     if ( AV == 1 ) {
-        status = write_memory((char *)&DATA, ADDR, 4, g_reg_file.iommu_qosid.rcid,
+        status = (ADDR & ~pa_mask) ?
+                 ACCESS_FAULT :
+                 write_memory((char *)&DATA, ADDR, 4, g_reg_file.iommu_qosid.rcid,
                               g_reg_file.iommu_qosid.mcid, PMA);
         if ( status != 0 ) {
             if ( g_reg_file.cqcsr.cqmf == 0 ) {

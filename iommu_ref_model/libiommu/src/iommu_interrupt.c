@@ -10,7 +10,10 @@ static void
 do_msi(
     uint32_t msi_data, uint64_t msi_addr) {
     uint8_t  status;
-    status = write_memory((char *)&msi_data, msi_addr, 4,
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    status = (msi_addr & ~pa_mask) ?
+             ACCESS_FAULT :
+             write_memory((char *)&msi_data, msi_addr, 4,
                           g_reg_file.iommu_qosid.rcid,
                           g_reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {

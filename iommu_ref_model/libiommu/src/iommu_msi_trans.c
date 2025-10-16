@@ -25,6 +25,7 @@ msi_address_translation(
     uint32_t rcid, uint32_t mcid) {
 
     uint64_t A, m, I;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     uint8_t status;
     msipte_t msipte;
 
@@ -65,10 +66,15 @@ msi_address_translation(
     // 6. Let `m` be `(DC.msiptp.PPN x 2^12^)`.
     m = DC->msiptp.PPN * PAGESIZE;
 
+
     // 7. Let `msipte` be the value of sixteen bytes at address `(m | (I x 16))`. If
     //    accessing `msipte` violates a PMA or PMP check, then stop and report
     //    "MSI PTE load access fault" (cause = 261).
-    status = read_memory((m | (I * 16)), 16, (char *)&msipte.raw, rcid, mcid, PMA);
+    //    If the address is beyond the maximum physical address width of the machine
+    //    then an access fault occurs
+    status = ((m | (I * 16)) & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory((m | (I * 16)), 16, (char *)&msipte.raw, rcid, mcid, PMA);
     if ( status & ACCESS_FAULT ) {
         *cause = 261;     // MSI PTE load access fault
         return 1;
