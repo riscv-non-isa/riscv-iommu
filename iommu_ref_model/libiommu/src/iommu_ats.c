@@ -108,6 +108,7 @@ handle_page_request(
     uint64_t pqb;
     uint32_t pqh;
     uint32_t pqt;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
 
     PRPR = 0;
     device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
@@ -277,7 +278,9 @@ handle_page_request(
     prec.reserved0= 0;
     prec.reserved1= 0;
     prec_addr = ((pqb * PAGESIZE) | (pqt * PQ_ENTRY_SZ));
-    status = write_memory((char *)&prec, prec_addr, 16,
+    status = (prec_addr & ~pa_mask) ?
+             ACCESS_FAULT :
+             write_memory((char *)&prec, prec_addr, 16,
                           g_reg_file.iommu_qosid.rcid,
                           g_reg_file.iommu_qosid.mcid, PMA);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {

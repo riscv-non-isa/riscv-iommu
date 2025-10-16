@@ -14,6 +14,7 @@ locate_process_context(
     uint32_t *cause, uint64_t *iotval2, uint8_t TTYP,
     uint8_t is_orig_read, uint8_t is_orig_write, uint8_t is_orig_exec) {
     uint64_t a, gst_page_sz;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     uint8_t i, LEVELS, status, gst_fault;
     gpte_t g_pte;
     pdte_t pdte;
@@ -119,7 +120,9 @@ step_2:
     // 4. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
     //    accessing `pdte` violates a PMA or PMP check, then stop and report
     //    "PDT entry load access fault" (cause = 265).
-    status = read_memory(a, 8, (char *)&pdte.raw, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
+    status = (a & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory(a, 8, (char *)&pdte.raw, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
@@ -159,7 +162,9 @@ step_9:
     //    fault" (cause = 265).If `PC` access detects a data corruption
     //    (a.k.a. poisoned data), then stop and report "PDT data corruption"
     //    (cause = 269).
-    status = read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
+    status = (a & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;

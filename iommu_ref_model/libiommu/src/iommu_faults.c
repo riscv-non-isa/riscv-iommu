@@ -13,6 +13,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     uint32_t fqt;
     uint64_t fqb;
     uint64_t frec_addr;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     uint8_t status;
 
     // The fault-queue enable bit enables the fault-queue when set to 1.
@@ -138,7 +139,9 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // from 0 to 1 or when a new fault record is produced in the fault-queue, fault
     // interrupt pending (fip) bit is set in the fqcsr.
     frec_addr = ((fqb * PAGESIZE) | (fqt * FQ_ENTRY_SZ));
-    status = write_memory((char *)&frec, frec_addr, 32,
+    status = (frec_addr & ~pa_mask) ?
+             ACCESS_FAULT :
+             write_memory((char *)&frec, frec_addr, 32,
                           g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid, PMA);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         g_reg_file.fqcsr.fqmf = 1;

@@ -11,6 +11,7 @@ locate_device_context(
     device_context_t *DC, uint32_t device_id,
     uint8_t pid_valid, uint32_t process_id, uint32_t *cause) {
     uint64_t a;
+    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
     uint8_t i, LEVELS, status, DC_SIZE;
     ddte_t ddte;
     uint16_t DDI[3];
@@ -108,7 +109,9 @@ step_2:
     // 3. Let `ddte` be value of eight bytes at address `a + DDI[i] x 8`. If accessing
     //    `ddte` violates a PMA or PMP check, then stop and report "DDT entry load
     //     access fault" (cause = 257).
-    status = read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw,
+    status = (a  & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw,
                          g_reg_file.iommu_qosid.rcid,
                          g_reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {
@@ -155,7 +158,9 @@ step_8:
     //    (cause = 268). This fault is detected if the IOMMU supports the RAS capability
     //    (`capabilities.RAS == 1`).
     DC_SIZE = ( g_reg_file.capabilities.msi_flat == 1 ) ? EXT_FORMAT_DC_SIZE : BASE_FORMAT_DC_SIZE;
-    status = read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC,
+    status = ((a + (DDI[0] * DC_SIZE)) & ~pa_mask) ?
+             ACCESS_FAULT :
+             read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC,
                          g_reg_file.iommu_qosid.rcid,
                          g_reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {
