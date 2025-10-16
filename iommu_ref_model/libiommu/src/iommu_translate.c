@@ -27,6 +27,7 @@ iommu_translate_iova(
     gpte_t g_pte;
     uint8_t ioatc_status, gst_fault, is_implicit, pasid_valid;
     uint64_t napot_ppn, napot_iova, napot_gpa;
+    uint8_t is_GIPC;
 
     // Classify transaction type
     iotval2 = 0;
@@ -156,12 +157,14 @@ iommu_translate_iova(
         goto stop_and_report_fault;
     }
 
+    is_GIPC = (DC.tc.GIPC == 1) && (g_reg_file.capabilities.GIPC == 1);
+
     if ( req->pid_valid && DC.tc.PDTV == 1 ) {
-        if ( DC.fsc.pdtp.MODE == PD17 && req->process_id > ((1UL << 17) - 1) ) {
+        if ( DC.fsc.pdtp.MODE == PD17 && req->process_id > ((1UL << (is_GIPC ? 16 : 17)) - 1) ) {
             cause = 260; // "Transaction type disallowed"
             goto stop_and_report_fault;
         }
-        if ( DC.fsc.pdtp.MODE == PD8 && (req->process_id > ((1UL << 8) - 1)) ) {
+        if ( DC.fsc.pdtp.MODE == PD8 && (req->process_id > ((1UL << (is_GIPC ? 7 : 8)) - 1)) ) {
             cause = 260; // "Transaction type disallowed"
             goto stop_and_report_fault;
         }
@@ -260,7 +263,8 @@ iommu_translate_iova(
     iosatp.PPN = PC.fsc.iosatp.PPN;
     PSCID = PC.ta.PSCID;
     SUM = PC.ta.SUM;
-    iohgatp = DC.iohgatp;
+    iohgatp = is_GIPC ? PC.iohgatp : DC.iohgatp;
+
     goto step_17;
 
 step_17:

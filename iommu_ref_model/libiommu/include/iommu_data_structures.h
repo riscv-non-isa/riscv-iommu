@@ -101,7 +101,12 @@ typedef union {
         //   to the original access type occurs if the incoming GPA has bits set beyond bit 33.
         uint64_t SXL:1;
 
-        uint64_t reserved0:12;
+        // The GIPC field controls using 32-bytes extended process context for PDT leaf entry.
+        // If DC.tc.GIPC is 1 then the process context uses PC.iohgatp instead of DC.iohgatp.
+        // Every Process Context has its own G-stage Table: G-stage table In Process Context (GIPC)
+        uint64_t GIPC:1;
+
+        uint64_t reserved0:11;
         uint64_t custom:8;
         uint64_t reserved1:32;
     };
@@ -386,6 +391,8 @@ typedef union {
 typedef struct {
     pc_ta_t  ta;
     pc_fsc_t fsc;
+    iohgatp_t iohgatp;
+    uint64_t  reserved;
 } process_context_t;
 
 #endif // __IOMMU_DATA_STRUCTURES_H__
