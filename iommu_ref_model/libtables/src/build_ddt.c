@@ -7,6 +7,7 @@
 
 uint64_t
 add_dev_context(
+    iommu_t *iommu,
     device_context_t *DC, uint32_t device_id) {
     uint64_t a;
     uint8_t i, LEVELS, DC_SIZE;
@@ -16,7 +17,7 @@ add_dev_context(
     // radix-table depending on the maximum width of the device_id supported.
     // The partitioning of the device_id to obtain the device directory indexes
     // (DDI) to traverse the DDT radix-tree table are as follows:
-    if ( g_reg_file.capabilities.msi_flat == 0 ) {
+    if ( iommu->reg_file.capabilities.msi_flat == 0 ) {
         DDI[0] = get_bits(6,   0, device_id);
         DDI[1] = get_bits(15,  7, device_id);
         DDI[2] = get_bits(23, 16, device_id);
@@ -27,10 +28,10 @@ add_dev_context(
         DDI[2] = get_bits(23, 15, device_id);
         DC_SIZE = EXT_FORMAT_DC_SIZE;
     }
-    a = g_reg_file.ddtp.ppn * PAGESIZE;
-    if ( g_reg_file.ddtp.iommu_mode == DDT_3LVL ) LEVELS = 3;
-    if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL ) LEVELS = 2;
-    if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL ) LEVELS = 1;
+    a = iommu->reg_file.ddtp.ppn * PAGESIZE;
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_3LVL ) LEVELS = 3;
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_2LVL ) LEVELS = 2;
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_1LVL ) LEVELS = 1;
     i = LEVELS - 1;
     while ( i > 0 ) {
         ddte.raw = 0;

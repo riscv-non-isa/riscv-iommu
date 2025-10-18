@@ -6,6 +6,7 @@
 #include "tables_api.h"
 uint64_t
 add_vs_stage_pte (
+    iommu_t *iommu,
     iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level,
     iohgatp_t iohgatp, uint8_t SXL) {
 
@@ -66,7 +67,7 @@ add_vs_stage_pte (
             gpte.PBMT = PMA;
             gpte.PPN = get_free_ppn(1);
 
-            if ( add_g_stage_pte(iohgatp, (PAGESIZE * nl_pte.PPN), gpte, 0) == -1) return -1;
+            if ( add_g_stage_pte(iommu, iohgatp, (PAGESIZE * nl_pte.PPN), gpte, 0) == -1) return -1;
 
             if ( write_memory_test((char *)&nl_pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
         }

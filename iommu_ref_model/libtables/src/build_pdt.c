@@ -7,6 +7,7 @@
 
 uint64_t
 add_process_context(
+    iommu_t *iommu,
     device_context_t *DC, process_context_t *PC, uint32_t process_id) {
     uint64_t a;
     uint8_t i, LEVELS;
@@ -47,7 +48,7 @@ add_process_context(
                 gpte.PBMT = PMA;
                 gpte.PPN = get_free_ppn(1);
 
-                if ( add_g_stage_pte(DC->iohgatp, (PAGESIZE * pdte.PPN), gpte, 0) == -1 ) return -1;
+                if ( add_g_stage_pte(iommu, DC->iohgatp, (PAGESIZE * pdte.PPN), gpte, 0) == -1 ) return -1;
             } else {
                 pdte.PPN = get_free_ppn(1);
             }

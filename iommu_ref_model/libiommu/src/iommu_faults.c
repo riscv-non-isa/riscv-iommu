@@ -6,19 +6,20 @@
 #include "iommu.h"
 
 void
-report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, uint8_t dtf,
+report_fault(iommu_t *iommu,
+             uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, uint8_t dtf,
              uint32_t device_id, uint8_t pid_valid, uint32_t process_id, uint8_t priv_req) {
     fault_rec_t frec;
     uint32_t fqh;
     uint32_t fqt;
     uint64_t fqb;
     uint64_t frec_addr;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t status;
 
     // The fault-queue enable bit enables the fault-queue when set to 1.
     // The fault-queue is active if fqon reads 1.
-    if ( g_reg_file.fqcsr.fqon == 0 || g_reg_file.fqcsr.fqen == 0 )
+    if ( iommu->reg_file.fqcsr.fqon == 0 || iommu->reg_file.fqcsr.fqen == 0 )
         return;
 
     // The fqmf bit is set to 1 if the IOMMU encounters an access fault
@@ -27,7 +28,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // are generated until software clears fqmf bit by writing 1 to the bit.
     // An interrupt is generated if enabled and not already pending (i.e.
     // ipsr.fip == 1) and not masked (i.e. fqsr.fie == 0).
-    if ( g_reg_file.fqcsr.fqmf == 1 )
+    if ( iommu->reg_file.fqcsr.fqmf == 1 )
         return;
 
     // The fault-queue-overflow bit is set to 1 if the IOMMU needs to
@@ -36,7 +37,7 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // generated till software clears fqof by writing 1 to the bit. An
     // interrupt is generated if not already pending (i.e. ipsr.fip == 1)
     // and not masked (i.e. fqsr.fie == 0)
-    if ( g_reg_file.fqcsr.fqof == 1 )
+    if ( iommu->reg_file.fqcsr.fqof == 1 )
         return;
 
     // Setting the disable-translation-fault - DTF - bit to 1 disables reporting of
@@ -119,12 +120,12 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     // should process next. Subsequent to processing fault record(s) software advances
     // the fqh by the count of the number of fault records processed. If fqh == fqt, the
     // fault-queue is empty. If fqt == (fqh - 1) the fault-queue is full.
-    fqh = g_reg_file.fqh.index;
-    fqt = g_reg_file.fqt.index;
-    fqb = g_reg_file.fqb.ppn;
-    if ( ((fqt + 1) & ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1)) == fqh ) {
-        g_reg_file.fqcsr.fqof = 1;
-        generate_interrupt(FAULT_QUEUE);
+    fqh = iommu->reg_file.fqh.index;
+    fqt = iommu->reg_file.fqt.index;
+    fqb = iommu->reg_file.fqb.ppn;
+    if ( ((fqt + 1) & ((1UL << (iommu->reg_file.fqb.log2szm1 + 1)) - 1)) == fqh ) {
+        iommu->reg_file.fqcsr.fqof = 1;
+        generate_interrupt(iommu, FAULT_QUEUE);
         return;
     }
     // The IOMMU may be unable to report faults through the fault-queue due to error
@@ -142,13 +143,13 @@ report_fault(uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, ui
     status = (frec_addr & ~pa_mask) ?
              ACCESS_FAULT :
              write_memory((char *)&frec, frec_addr, 32,
-                          g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.rcid, iommu->reg_file.iommu_qosid.mcid, PMA);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
-        g_reg_file.fqcsr.fqmf = 1;
+        iommu->reg_file.fqcsr.fqmf = 1;
     } else {
-        fqt = (fqt + 1) & ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1);
-        g_reg_file.fqt.index = fqt;
+        fqt = (fqt + 1) & ((1UL << (iommu->reg_file.fqb.log2szm1 + 1)) - 1);
+        iommu->reg_file.fqt.index = fqt;
     }
-    generate_interrupt(FAULT_QUEUE);
+    generate_interrupt(iommu, FAULT_QUEUE);
     return;
 }

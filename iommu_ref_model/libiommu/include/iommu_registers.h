@@ -805,27 +805,5 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
 #define DDT_2LVL 3
 #define DDT_3LVL 4
 
-extern iommu_regs_t g_reg_file;
-extern uint8_t g_num_hpm;
-extern uint8_t g_hpmctr_bits;
-extern uint8_t g_eventID_limit;
-extern uint8_t g_num_vec_bits;
-extern uint8_t g_gxl_writeable;
-extern uint8_t g_fctl_be_writeable;
-extern uint8_t g_offset_to_size[4096];
-extern uint8_t g_max_iommu_mode;
-extern uint8_t g_fill_ats_trans_in_ioatc;
-extern uint32_t g_max_devid_mask;
-extern uint8_t g_trans_for_debug;
-extern uint64_t g_sv57_bare_pg_sz;
-extern uint64_t g_sv48_bare_pg_sz;
-extern uint64_t g_sv39_bare_pg_sz;
-extern uint64_t g_sv32_bare_pg_sz;
-extern uint64_t g_sv57x4_bare_pg_sz;
-extern uint64_t g_sv48x4_bare_pg_sz;
-extern uint64_t g_sv39x4_bare_pg_sz;
-extern uint64_t g_sv32x4_bare_pg_sz;
-extern iommu_qosid_t g_iommu_qosid_mask;
-
-extern void process_commands(void);
+extern void process_commands(iommu_t *iommu);
 #endif //_IOMMU_REGS_H_

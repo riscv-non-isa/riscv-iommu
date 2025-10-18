@@ -12,6 +12,6 @@
 
 #define MSI_VEC_CTRL_MASK_BIT 1
 
-extern void generate_interrupt(uint8_t unit);
-extern void release_pending_interrupt(uint8_t vec);
+extern void generate_interrupt(iommu_t *iommu, uint8_t unit);
+extern void release_pending_interrupt(iommu_t *iommu, uint8_t vec);
 #endif // __IOMMU_INTERRUPT_H__

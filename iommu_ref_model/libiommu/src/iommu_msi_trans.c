@@ -18,14 +18,14 @@ extract(uint64_t data, uint64_t mask) {
 }
 uint8_t
 msi_address_translation(
-    uint64_t gpa, uint8_t is_exec, device_context_t *DC,
+    iommu_t *iommu, uint64_t gpa, uint8_t is_exec, device_context_t *DC,
     uint8_t *is_msi, uint8_t *is_mrif, uint32_t *mrif_nid, uint64_t *dest_mrif_addr,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
     uint64_t *page_sz, gpte_t *g_pte, uint8_t check_access_perms,
     uint32_t rcid, uint32_t mcid) {
 
     uint64_t A, m, I;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t status;
     msipte_t msipte;
 
@@ -137,7 +137,7 @@ msi_address_translation(
     //    is as follows:
     //    a. If `capabilities.MSI_MRIF == 0`, stop and report "MSI PTE misconfigured"
     //       (cause = 263).
-    if ( g_reg_file.capabilities.msi_mrif == 0 ) {
+    if ( iommu->reg_file.capabilities.msi_mrif == 0 ) {
         *cause = 263;
         return 1;
     }

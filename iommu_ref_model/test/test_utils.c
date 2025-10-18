@@ -46,6 +46,7 @@ log2szm1(uint32_t n) {
 }
 int8_t
 enable_cq(
+    iommu_t *iommu,
     uint32_t nppn) {
     cqb_t cqb;
     cqcsr_t cqcsr;
@@ -53,9 +54,9 @@ enable_cq(
     cqb.raw = 0;
     cqb.ppn = get_free_ppn(nppn);
     cqb.log2szm1 = log2szm1((nppn * PAGESIZE)/CQ_ENTRY_SZ);
-    write_register(CQB_OFFSET, 8, cqb.raw);
+    write_register(iommu, CQB_OFFSET, 8, cqb.raw);
     do {
-        cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+        cqcsr.raw = read_register(iommu, CQCSR_OFFSET, 4);
     } while ( cqcsr.busy == 1 );
     cqcsr.raw = 0;
     cqcsr.cie = 1;
@@ -64,9 +65,9 @@ enable_cq(
     cqcsr.cmd_to = 1;
     cqcsr.cmd_ill = 1;
     cqcsr.fence_w_ip = 1;
-    write_register(CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(iommu, CQCSR_OFFSET, 4, cqcsr.raw);
     do {
-        cqcsr.raw = read_register(CQCSR_OFFSET, 4);
+        cqcsr.raw = read_register(iommu, CQCSR_OFFSET, 4);
     } while ( cqcsr.busy == 1 );
     if ( cqcsr.cqon != 1 ) {
         printf("CQ enable failed\n");
@@ -77,6 +78,7 @@ enable_cq(
 
 int8_t
 enable_fq(
+    iommu_t *iommu,
     uint32_t nppn) {
     fqb_t fqb;
     fqcsr_t fqcsr;
@@ -84,18 +86,18 @@ enable_fq(
     fqb.raw = 0;
     fqb.ppn = get_free_ppn(nppn);
     fqb.log2szm1 = log2szm1((nppn * PAGESIZE)/FQ_ENTRY_SZ);
-    write_register(FQB_OFFSET, 8, fqb.raw);
+    write_register(iommu, FQB_OFFSET, 8, fqb.raw);
     do {
-        fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+        fqcsr.raw = read_register(iommu, FQCSR_OFFSET, 4);
     } while ( fqcsr.busy == 1 );
     fqcsr.raw = 0;
     fqcsr.fie = 1;
     fqcsr.fqen = 1;
     fqcsr.fqmf = 1;
     fqcsr.fqof = 1;
-    write_register(FQCSR_OFFSET, 4, fqcsr.raw);
+    write_register(iommu, FQCSR_OFFSET, 4, fqcsr.raw);
     do {
-        fqcsr.raw = read_register(FQCSR_OFFSET, 4);
+        fqcsr.raw = read_register(iommu, FQCSR_OFFSET, 4);
     } while ( fqcsr.busy == 1 );
     if ( fqcsr.fqon != 1 ) {
         printf("FQ enable failed\n");
@@ -106,6 +108,7 @@ enable_fq(
 
 int8_t
 enable_disable_pq(
+    iommu_t *iommu,
     uint32_t nppn, uint8_t enable_disable) {
     pqb_t pqb;
     pqcsr_t pqcsr;
@@ -114,19 +117,19 @@ enable_disable_pq(
         pqb.raw = 0;
         pqb.ppn = get_free_ppn(nppn);
         pqb.log2szm1 = log2szm1((nppn * PAGESIZE)/PQ_ENTRY_SZ);
-        write_register(PQB_OFFSET, 8, pqb.raw);
+        write_register(iommu, PQB_OFFSET, 8, pqb.raw);
     }
     do {
-        pqcsr.raw = read_register(PQCSR_OFFSET, 4);
+        pqcsr.raw = read_register(iommu, PQCSR_OFFSET, 4);
     } while ( pqcsr.busy == 1 );
     pqcsr.raw = 0;
     pqcsr.pie = 1;
     pqcsr.pqen = enable_disable;
     pqcsr.pqmf = 1;
     pqcsr.pqof = 1;
-    write_register(PQCSR_OFFSET, 4, pqcsr.raw);
+    write_register(iommu, PQCSR_OFFSET, 4, pqcsr.raw);
     do {
-        pqcsr.raw = read_register(PQCSR_OFFSET, 4);
+        pqcsr.raw = read_register(iommu, PQCSR_OFFSET, 4);
     } while ( pqcsr.busy == 1 );
     if ( pqcsr.pqon != 1 && enable_disable == 1) {
         printf("PQ enable failed\n");
@@ -141,6 +144,7 @@ enable_disable_pq(
 
 int8_t
 enable_iommu(
+    iommu_t *iommu,
     uint8_t iommu_mode) {
     ddtp_t ddtp;
     uint32_t i;
@@ -148,7 +152,7 @@ enable_iommu(
 
     // Allocate a page for DDT root page
     do {
-        ddtp.raw = read_register(DDTP_OFFSET, 8);
+        ddtp.raw = read_register(iommu, DDTP_OFFSET, 8);
     } while ( ddtp.busy == 1 );
 
     ddtp.raw = 0;
@@ -158,14 +162,14 @@ enable_iommu(
         write_memory_test((char *)&zero, (ddtp.ppn * PAGESIZE) | (i * 8), 8);
 
     ddtp.iommu_mode = iommu_mode;
-    write_register(DDTP_OFFSET, 8, ddtp.raw);
+    write_register(iommu, DDTP_OFFSET, 8, ddtp.raw);
     do {
-        ddtp.raw = read_register(DDTP_OFFSET, 8);
+        ddtp.raw = read_register(iommu, DDTP_OFFSET, 8);
     } while ( ddtp.busy == 1 );
     return (ddtp.iommu_mode == iommu_mode) ? 0 : -1;
 }
 void
-send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
+send_translation_request(iommu_t *iommu, uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t no_write,
     uint8_t exec_req, uint8_t priv_req, uint8_t is_cxl_dev, addr_type_t at, uint64_t iova,
     uint32_t length, uint8_t read_writeAMO,
     hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp) {
@@ -181,19 +185,19 @@ send_translation_request(uint32_t did, uint8_t pid_valid, uint32_t pid, uint8_t 
     req->tr.iova          = iova;
     req->tr.length        = length;
     req->tr.read_writeAMO = read_writeAMO;
-    iommu_translate_iova(req, rsp);
+    iommu_translate_iova(iommu, req, rsp);
     return;
 }
 int8_t
-check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t EXEC,
+check_exp_pq_rec(iommu_t *iommu, uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t EXEC,
                  uint16_t reserved0, uint8_t reserved1, uint64_t PLOAD)
 {
     page_rec_t page_rec;
     pqb_t pqb;
     pqh_t pqh;
-    if ( read_register(PQH_OFFSET, 4) == read_register(PQT_OFFSET, 4) ) return -1;
-    pqh.raw = read_register(PQH_OFFSET, 4);
-    pqb.raw = read_register(PQB_OFFSET, 8);
+    if ( read_register(iommu, PQH_OFFSET, 4) == read_register(iommu, PQT_OFFSET, 4) ) return -1;
+    pqh.raw = read_register(iommu, PQH_OFFSET, 4);
+    pqb.raw = read_register(iommu, PQB_OFFSET, 8);
     read_memory_test(((pqb.ppn * PAGESIZE) | (pqh.index * PQ_ENTRY_SZ)), PQ_ENTRY_SZ, (char *)&page_rec);
     if ( page_rec.DID != DID ) return -1;
     if ( page_rec.PID != PID ) return -1;
@@ -203,33 +207,34 @@ check_exp_pq_rec(uint32_t DID, uint32_t PID, uint8_t PV, uint8_t PRIV, uint8_t E
     if ( page_rec.reserved0 != reserved0 ) return -1;
     if ( page_rec.reserved1 != reserved1 ) return -1;
     if ( page_rec.PAYLOAD != PLOAD ) return -1;
-    write_register(PQH_OFFSET, 4, pqh.raw + 1);
+    write_register(iommu, PQH_OFFSET, 4, pqh.raw + 1);
     return 0;
 }
 int8_t
 check_faults(
+    iommu_t *iommu,
     uint16_t cause, uint8_t  exp_PV, uint32_t exp_PID, uint8_t  exp_PRIV,
     uint32_t exp_DID, uint64_t exp_iotval, uint8_t ttyp, uint64_t exp_iotval2) {
     fault_rec_t fault_rec;
     fqb_t fqb;
     fqh_t fqh;
 
-    fqh.raw = read_register(FQH_OFFSET, 4);
-    if ( (fqh.raw >= read_register(FQT_OFFSET, 4)) && (cause != 0) ) {
+    fqh.raw = read_register(iommu, FQH_OFFSET, 4);
+    if ( (fqh.raw >= read_register(iommu, FQT_OFFSET, 4)) && (cause != 0) ) {
         printf("No faults logged\n");
         return -1;
     }
-    if ( (fqh.raw < read_register(FQT_OFFSET, 4)) && (cause == 0) ) {
+    if ( (fqh.raw < read_register(iommu, FQT_OFFSET, 4)) && (cause == 0) ) {
         printf("Unexpected fault logged\n");
         return -1;
     }
 
-    fqb.raw = read_register(FQB_OFFSET, 8);
+    fqb.raw = read_register(iommu, FQB_OFFSET, 8);
     read_memory_test(((fqb.ppn * PAGESIZE) | (fqh.index * FQ_ENTRY_SZ)), FQ_ENTRY_SZ, (char *)&fault_rec);
 
     // pop the fault record
     fqh.index++;
-    write_register(FQH_OFFSET, 4, fqh.raw);
+    write_register(iommu, FQH_OFFSET, 4, fqh.raw);
 
     if ( fault_rec.CAUSE != cause || fault_rec.DID != exp_DID ||
          fault_rec.iotval != exp_iotval ||
@@ -249,6 +254,7 @@ check_faults(
 }
 int8_t
 check_rsp_and_faults(
+    iommu_t *iommu,
     hb_to_iommu_req_t *req,
     iommu_to_hb_rsp_t *rsp,
     status_t status,
@@ -279,22 +285,22 @@ check_rsp_and_faults(
         EXP_TTYP = PCIE_ATS_TRANSLATION_REQUEST;
     if ( rsp->status != status ) return -1;
 
-    fqh.raw = read_register(FQH_OFFSET, 4);
-    if ( (fqh.raw >= read_register(FQT_OFFSET, 4)) && (cause != 0) ) {
+    fqh.raw = read_register(iommu, FQH_OFFSET, 4);
+    if ( (fqh.raw >= read_register(iommu, FQT_OFFSET, 4)) && (cause != 0) ) {
         printf("No faults logged\n");
         return -1;
     }
-    if ( (fqh.raw < read_register(FQT_OFFSET, 4)) && (cause == 0) ) {
+    if ( (fqh.raw < read_register(iommu, FQT_OFFSET, 4)) && (cause == 0) ) {
         printf("Unexpected fault logged\n");
         return -1;
     }
 
     if ( cause == 0 ) return 0;
-    return check_faults(cause, req->pid_valid, req->process_id, req->priv_req,
+    return check_faults(iommu, cause, req->pid_valid, req->process_id, req->priv_req,
                  req->device_id, req->tr.iova, EXP_TTYP, exp_iotval2);
 }
 uint64_t
-add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,
+add_device(iommu_t *iommu, uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, uint8_t t2gpa,
            uint8_t dtf, uint8_t prpr,
            uint8_t gade, uint8_t sade, uint8_t dpe, uint8_t sbe, uint8_t sxl,
            uint8_t iohgatp_mode, uint8_t iosatp_mode, uint8_t pdt_mode,
@@ -340,7 +346,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
             gpte.PBMT = PMA;
             gpte.PPN = get_free_ppn(1);
             write_memory_test(zero, gpte.PPN * PAGESIZE, 4096);
-            add_g_stage_pte(DC.iohgatp, (PAGESIZE * DC.fsc.iosatp.PPN), gpte, 0);
+            add_g_stage_pte(iommu, DC.iohgatp, (PAGESIZE * DC.fsc.iosatp.PPN), gpte, 0);
         } else {
             DC.fsc.iosatp.PPN = get_free_ppn(1);
             write_memory_test(zero, DC.fsc.iosatp.PPN * PAGESIZE, 4096);
@@ -364,7 +370,7 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
             gpte.PBMT = PMA;
             gpte.PPN = get_free_ppn(1);
             write_memory_test(zero, gpte.PPN * PAGESIZE, 4096);
-            add_g_stage_pte(DC.iohgatp, (PAGESIZE * DC.fsc.pdtp.PPN), gpte, 0);
+            add_g_stage_pte(iommu, DC.iohgatp, (PAGESIZE * DC.fsc.pdtp.PPN), gpte, 0);
         } else {
             DC.fsc.pdtp.PPN = get_free_ppn(1);
             write_memory_test(zero, DC.fsc.pdtp.PPN * PAGESIZE, 4096);
@@ -377,10 +383,11 @@ add_device(uint32_t device_id, uint32_t gscid, uint8_t en_ats, uint8_t en_pri, u
        DC.msi_addr_mask.mask = msi_addr_mask;
        DC.msi_addr_pattern.pattern = msi_addr_pattern;
     }
-    return add_dev_context(&DC, device_id);
+    return add_dev_context(iommu, &DC, device_id);
 }
 void
 iotinval(
+    iommu_t *iommu,
     uint8_t f3, uint8_t GV, uint8_t AV, uint8_t PSCV, uint32_t GSCID, uint32_t PSCID, uint64_t address) {
     command_t cmd;
     cqb_t cqb;
@@ -399,18 +406,19 @@ iotinval(
     cmd.iotinval.gscid = GSCID;
     cmd.iotinval.pscid = PSCID;
     cmd.iotinval.addr_63_12 = address / PAGESIZE;
-    cqb.raw = read_register(CQB_OFFSET, 8);
-    cqt.raw = read_register(CQT_OFFSET, 4);
+    cqb.raw = read_register(iommu, CQB_OFFSET, 8);
+    cqt.raw = read_register(iommu, CQT_OFFSET, 4);
     write_memory_test((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
-    write_register(CQT_OFFSET, 4, cqt.raw);
-    process_commands();
+    write_register(iommu, CQT_OFFSET, 4, cqt.raw);
+    process_commands(iommu);
     return;
 }
 void
 ats_command(
+    iommu_t *iommu,
     uint8_t f3, uint8_t DSV, uint8_t PV, uint32_t PID, uint8_t DSEG, uint16_t RID, uint64_t payload) {
     command_t cmd;
     cqb_t cqb;
@@ -430,37 +438,39 @@ ats_command(
     cmd.ats.dseg = DSEG;
     cmd.ats.payload = payload;
 
-    cqb.raw = read_register(CQB_OFFSET, 8);
-    cqt.raw = read_register(CQT_OFFSET, 4);
+    cqb.raw = read_register(iommu, CQB_OFFSET, 8);
+    cqt.raw = read_register(iommu, CQT_OFFSET, 4);
     write_memory_test((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
-    write_register(CQT_OFFSET, 4, cqt.raw);
-    process_commands();
+    write_register(iommu, CQT_OFFSET, 4, cqt.raw);
+    process_commands(iommu);
     return;
 }
 void
 generic_any(
+    iommu_t *iommu,
     command_t cmd) {
     cqb_t cqb;
     cqt_t cqt;
     uint64_t temp, temp1;
     temp = access_viol_addr;
     temp1 = data_corruption_addr;
-    cqb.raw = read_register(CQB_OFFSET, 8);
-    cqt.raw = read_register(CQT_OFFSET, 4);
+    cqb.raw = read_register(iommu, CQB_OFFSET, 8);
+    cqt.raw = read_register(iommu, CQT_OFFSET, 4);
     write_memory_test((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
-    write_register(CQT_OFFSET, 4, cqt.raw);
-    process_commands();
+    write_register(iommu, CQT_OFFSET, 4, cqt.raw);
+    process_commands(iommu);
     return;
 }
 
 void
 iodir(
+    iommu_t *iommu,
     uint8_t f3, uint8_t DV, uint32_t DID, uint32_t PID) {
     command_t cmd;
     cqb_t cqb;
@@ -476,18 +486,19 @@ iodir(
     cmd.iodir.dv = DV;
     cmd.iodir.did = DID;
     cmd.iodir.pid = PID;
-    cqb.raw = read_register(CQB_OFFSET, 8);
-    cqt.raw = read_register(CQT_OFFSET, 4);
+    cqb.raw = read_register(iommu, CQB_OFFSET, 8);
+    cqt.raw = read_register(iommu, CQT_OFFSET, 4);
     write_memory_test((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
-    write_register(CQT_OFFSET, 4, cqt.raw);
-    process_commands();
+    write_register(iommu, CQT_OFFSET, 4, cqt.raw);
+    process_commands(iommu);
     return;
 }
 void
 iofence(
+    iommu_t *iommu,
     uint8_t f3, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_bit, uint64_t addr, uint32_t data) {
     command_t cmd;
     cqb_t cqb;
@@ -506,14 +517,14 @@ iofence(
     cmd.iofence.wsi = WSI_bit;
     cmd.iofence.addr_63_2 = addr >> 2;
     cmd.iofence.data = data;
-    cqb.raw = read_register(CQB_OFFSET, 8);
-    cqt.raw = read_register(CQT_OFFSET, 4);
+    cqb.raw = read_register(iommu, CQB_OFFSET, 8);
+    cqt.raw = read_register(iommu, CQT_OFFSET, 4);
     write_memory_test((char *)&cmd, ((cqb.ppn * PAGESIZE) | (cqt.index * CQ_ENTRY_SZ)), CQ_ENTRY_SZ);
     access_viol_addr = temp;
     data_corruption_addr = temp1;
     cqt.index++;
-    write_register(CQT_OFFSET, 4, cqt.raw);
-    process_commands();
+    write_register(iommu, CQT_OFFSET, 4, cqt.raw);
+    process_commands(iommu);
     return;
 }
 uint64_t

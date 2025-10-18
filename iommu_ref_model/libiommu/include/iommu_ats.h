@@ -79,7 +79,7 @@ typedef struct {
 } itag_tracker_t;
 
 #define MAX_ITAGS 2
-extern uint8_t allocate_itag(uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag);
+extern uint8_t allocate_itag(iommu_t *iommu, uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag);
 extern void send_msg_iommu_to_hb(ats_msg_t *msg);
-extern uint8_t any_ats_invalidation_requests_pending(void);
+extern uint8_t any_ats_invalidation_requests_pending(iommu_t *iommu);
 #endif //__IOMMU_ATS_H__

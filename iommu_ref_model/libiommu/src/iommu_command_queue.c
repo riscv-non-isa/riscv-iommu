@@ -3,26 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Author: ved@rivosinc.com
 #include "iommu.h"
-uint8_t g_command_queue_stall_for_itag = 0;
-uint8_t g_ats_inv_req_timeout = 0;
-uint8_t g_iofence_wait_pending_inv = 0;
-uint8_t g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV, g_iofence_pending_WSI_BIT;
-uint64_t g_iofence_pending_ADDR;
-uint32_t g_iofence_pending_DATA;
-
-uint8_t g_pending_inval_req_DSV;
-uint8_t g_pending_inval_req_DSEG;
-uint16_t g_pending_inval_req_RID;
-uint8_t g_pending_inval_req_PV;
-uint32_t g_pending_inval_req_PID;
-uint64_t g_pending_inval_req_PAYLOAD;
 
 void
 process_commands(
-    void) {
+    iommu_t *iommu) {
     uint8_t status, itag;
     uint64_t a;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     command_t command;
 
     // Command queue is used by software to queue commands to be processed by
@@ -50,25 +37,25 @@ process_commands(
     // The command-queue is active if cqon is 1.
     // Sometimes the command queue may stall due to unavailability of internal
     // resources - e.g. ITAG trackers
-    if ( (g_reg_file.cqcsr.cqon == 0) ||
-         (g_reg_file.cqcsr.cqen == 0) ||
-         (g_reg_file.cqcsr.cqmf != 0) ||
-         (g_reg_file.cqcsr.cmd_ill != 0) ||
-         (g_reg_file.cqcsr.cmd_to != 0) ||
-         (g_command_queue_stall_for_itag != 0) ||
-         (g_iofence_wait_pending_inv != 0) )
+    if ( (iommu->reg_file.cqcsr.cqon == 0) ||
+         (iommu->reg_file.cqcsr.cqen == 0) ||
+         (iommu->reg_file.cqcsr.cqmf != 0) ||
+         (iommu->reg_file.cqcsr.cmd_ill != 0) ||
+         (iommu->reg_file.cqcsr.cmd_to != 0) ||
+         (iommu->command_queue_stall_for_itag != 0) ||
+         (iommu->iofence_wait_pending_inv != 0) )
         return;
 
     // If cqh == cqt, the command-queue is empty.
     // If cqt == (cqh - 1) the command-queue is full.
-    if ( g_reg_file.cqh.index == g_reg_file.cqt.index )
+    if ( iommu->reg_file.cqh.index == iommu->reg_file.cqt.index )
         return;
 
-    a = g_reg_file.cqb.ppn * PAGESIZE | (g_reg_file.cqh.index * CQ_ENTRY_SZ);
+    a = iommu->reg_file.cqb.ppn * PAGESIZE | (iommu->reg_file.cqh.index * CQ_ENTRY_SZ);
     status = (a  & ~pa_mask) ?
              ACCESS_FAULT :
              read_memory(a, CQ_ENTRY_SZ, (char *)&command,
-                         g_reg_file.iommu_qosid.rcid, g_reg_file.iommu_qosid.mcid,
+                         iommu->reg_file.iommu_qosid.rcid, iommu->reg_file.iommu_qosid.mcid,
                          PMA);
     if ( status != 0 ) {
         // If command-queue access leads to a memory fault then the
@@ -77,9 +64,9 @@ process_commands(
         // interrupt is generated if an interrupt is not already pending (i.e.,
         // ipsr.cip == 1) and not masked (i.e. cqsr.cie == 0). To reenable
         // command processing, software should clear this bit by writing 1
-        if ( g_reg_file.cqcsr.cqmf == 0 ) {
-            g_reg_file.cqcsr.cqmf = 1;
-            generate_interrupt(COMMAND_QUEUE);
+        if ( iommu->reg_file.cqcsr.cqmf == 0 ) {
+            iommu->reg_file.cqcsr.cqmf = 1;
+            generate_interrupt(iommu, COMMAND_QUEUE);
         }
 
         return;
@@ -107,12 +94,12 @@ process_commands(
             if ( command.iotinval.rsvd != 0 || command.iotinval.rsvd1 != 0 ||
                  command.iotinval.rsvd2 != 0 || command.iotinval.rsvd3 != 0 ||
                  command.iotinval.rsvd4 != 0 ||
-                 (g_reg_file.capabilities.nl == 0 && command.iotinval.nl != 0) ||
-                 (g_reg_file.capabilities.s  == 0 && command.iotinval.s  != 0) )
+                 (iommu->reg_file.capabilities.nl == 0 && command.iotinval.nl != 0) ||
+                 (iommu->reg_file.capabilities.s  == 0 && command.iotinval.s  != 0) )
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case VMA:
-                    do_iotinval_vma(command.iotinval.gv, command.iotinval.av,
+                    do_iotinval_vma(iommu, command.iotinval.gv, command.iotinval.av,
                                     command.iotinval.nl, command.iotinval.pscv,
                                     command.iotinval.gscid, command.iotinval.pscid,
                                     command.iotinval.addr_63_12, command.iotinval.s);
@@ -120,7 +107,7 @@ process_commands(
                 case GVMA:
                     // Setting PSCV to 1 with IOTINVAL.GVMA is illegal.
                     if ( command.iotinval.pscv != 0 ) goto command_illegal;
-                    do_iotinval_gvma(command.iotinval.gv, command.iotinval.av,
+                    do_iotinval_gvma(iommu, command.iotinval.gv, command.iotinval.av,
                                      command.iotinval.nl, command.iotinval.gscid,
                                      command.iotinval.addr_63_12, command.iotinval.s);
                     break;
@@ -139,10 +126,10 @@ process_commands(
                     // When DV operand is 1, the value of the DID operand must not
                     // be wider than that supported by the ddtp.iommu_mode.
                     if ( command.iodir.dv &&
-                         (command.iodir.did & ~g_max_devid_mask) ) {
+                         (command.iodir.did & ~iommu->max_devid_mask) ) {
                         goto command_illegal;
                     }
-                    do_inval_ddt(command.iodir.dv, command.iodir.did);
+                    do_inval_ddt(iommu, command.iodir.dv, command.iodir.did);
                     break;
                 case INVAL_PDT:
                     // The DV operand must be 1 for IODIR.INVAL_PDT else
@@ -152,20 +139,20 @@ process_commands(
                     if ( command.iodir.dv != 1 ) goto command_illegal;
                     // When DV operand is 1, the value of the DID operand must not
                     // be wider than that supported by the ddtp.iommu_mode.
-                    if ( command.iodir.did & ~g_max_devid_mask )
+                    if ( command.iodir.did & ~iommu->max_devid_mask )
                         goto command_illegal;
                     // The PID operand of IODIR.INVAL_PDT must not be wider than
                     // the width supported by the IOMMU (see Section 5.3)
-                    if ( g_reg_file.capabilities.pd20 == 0 &&
+                    if ( iommu->reg_file.capabilities.pd20 == 0 &&
                          command.iodir.pid > ((1UL << 17) - 1) ) {
                         goto command_illegal;
                     }
-                    if ( g_reg_file.capabilities.pd20 == 0 &&
-                         g_reg_file.capabilities.pd17 == 0 &&
+                    if ( iommu->reg_file.capabilities.pd20 == 0 &&
+                         iommu->reg_file.capabilities.pd17 == 0 &&
                          command.iodir.pid > ((1UL << 8) - 1) ) {
                         goto command_illegal;
                     }
-                    do_inval_pdt(command.iodir.did, command.iodir.pid);
+                    do_inval_pdt(iommu, command.iodir.did, command.iodir.pid);
                     break;
                 default: goto command_illegal;
             }
@@ -177,11 +164,11 @@ process_commands(
             // causes a wired-interrupt from the command
             // queue to be generated on completion of IOFENCE.C. This
             // bit is reserved if the IOMMU supports MSI.
-            if ( g_reg_file.fctl.wsi == 0 && command.iofence.wsi == 1)
+            if ( iommu->reg_file.fctl.wsi == 0 && command.iofence.wsi == 1)
                 goto command_illegal;
             switch ( command.any.func3 ) {
                 case IOFENCE_C:
-                    if ( do_iofence_c(command.iofence.pr, command.iofence.pw,
+                    if ( do_iofence_c(iommu, command.iofence.pr, command.iofence.pw,
                              command.iofence.av, command.iofence.wsi,
                              (command.iofence.addr_63_2 << 2UL), command.iofence.data) ) {
                         // If IOFENCE encountered a memory fault or timeout
@@ -199,28 +186,28 @@ process_commands(
             switch ( command.any.func3 ) {
                 case INVAL:
                     // Allocate a ITAG for the request
-                    if ( allocate_itag(command.ats.dsv, command.ats.dseg,
+                    if ( allocate_itag(iommu, command.ats.dsv, command.ats.dseg,
                             command.ats.rid, &itag) ) {
                         // No ITAG available, This command stays pending
                         // but since the reference implementation only
                         // has one deep pending command buffer the CQ
                         // is now stall till a completion or a timeout
                         // frees up pending ITAGs.
-                        g_pending_inval_req_DSV = command.ats.dsv;
-                        g_pending_inval_req_DSEG = command.ats.dseg;
-                        g_pending_inval_req_RID = command.ats.rid;
-                        g_pending_inval_req_PV = command.ats.pv;
-                        g_pending_inval_req_PID = command.ats.pid;
-                        g_pending_inval_req_PAYLOAD = command.ats.payload;
-                        g_command_queue_stall_for_itag = 1;
+                        iommu->pending_inval_req_DSV = command.ats.dsv;
+                        iommu->pending_inval_req_DSEG = command.ats.dseg;
+                        iommu->pending_inval_req_RID = command.ats.rid;
+                        iommu->pending_inval_req_PV = command.ats.pv;
+                        iommu->pending_inval_req_PID = command.ats.pid;
+                        iommu->pending_inval_req_PAYLOAD = command.ats.payload;
+                        iommu->command_queue_stall_for_itag = 1;
                     } else {
                         // ITAG allocated successfully, send invalidate request
-                        do_ats_msg(INVAL_REQ_MSG_CODE, itag, command.ats.dsv, command.ats.dseg,
+                        do_ats_msg(iommu, INVAL_REQ_MSG_CODE, itag, command.ats.dsv, command.ats.dseg,
                             command.ats.rid, command.ats.pv, command.ats.pid, command.ats.payload);
                     }
                     break;
                 case PRGR:
-                    do_ats_msg(PRGR_MSG_CODE, 0, command.ats.dsv, command.ats.dseg,
+                    do_ats_msg(iommu, PRGR_MSG_CODE, 0, command.ats.dsv, command.ats.dseg,
                         command.ats.rid, command.ats.pv, command.ats.pid, command.ats.payload);
                     break;
                 default: goto command_illegal;
@@ -232,8 +219,8 @@ process_commands(
     // controlled register called command-queue head (`cqh`). The `cqh` is an index
     // into the command queue that IOMMU should process next. Subsequent to reading
     // each command the IOMMU may advance the `cqh` by 1.
-    g_reg_file.cqh.index =
-        (g_reg_file.cqh.index + 1) & ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
+    iommu->reg_file.cqh.index =
+        (iommu->reg_file.cqh.index + 1) & ((1UL << (iommu->reg_file.cqb.log2szm1 + 1)) - 1);
     return;
 
 command_illegal:
@@ -243,15 +230,15 @@ command_illegal:
     // is set to 1, an interrupt is generated if not already pending (i.e.
     // ipsr.cip == 1) and not masked (i.e. cqsr.cie == 0). To reenable
     // command processing software should clear this bit by writing 1
-    if ( g_reg_file.cqcsr.cmd_ill == 0 ) {
-        g_reg_file.cqcsr.cmd_ill = 1;
-        generate_interrupt(COMMAND_QUEUE);
+    if ( iommu->reg_file.cqcsr.cmd_ill == 0 ) {
+        iommu->reg_file.cqcsr.cmd_ill = 1;
+        generate_interrupt(iommu, COMMAND_QUEUE);
     }
     return;
 }
 void
 do_inval_ddt(
-    uint8_t DV, uint32_t DID) {
+    iommu_t *iommu, uint8_t DV, uint32_t DID) {
     uint8_t i;
     // IOMMU operations cause implicit reads to DDT and/or PDT.
     // To reduce latency of such reads, the IOMMU may cache entries from
@@ -269,16 +256,16 @@ do_inval_ddt(
     // entry for the device identified by `DID` operand and all associated PDT entries.
     // The `PID` operand is reserved for `IODIR.INVAL_DDT`.
     for ( i = 0; i < DDT_CACHE_SIZE; i++ ) {
-        if ( ddt_cache[i].valid == 0 ) continue;
-        if ( DV == 0 ) ddt_cache[i].valid = 0;
-        if ( DV == 1 && (ddt_cache[i].DID == DID) )
-            ddt_cache[i].valid = 0;
+        if ( iommu->ddt_cache[i].valid == 0 ) continue;
+        if ( DV == 0 ) iommu->ddt_cache[i].valid = 0;
+        if ( DV == 1 && (iommu->ddt_cache[i].DID == DID) )
+            iommu->ddt_cache[i].valid = 0;
     }
     return;
 }
 void
 do_inval_pdt(
-    uint32_t DID, uint32_t PID) {
+    iommu_t *iommu, uint32_t DID, uint32_t PID) {
     int i;
 
     // IOMMU operations cause implicit reads to DDT and/or PDT.
@@ -295,14 +282,14 @@ do_inval_pdt(
     // The command invalidates cached leaf PDT entry for the specified `PID` and `DID`.
 
     for ( i = 0; i < PDT_CACHE_SIZE; i++ )
-        if ( pdt_cache[i].DID == DID && pdt_cache[i].PID == PID && pdt_cache[i].valid == 1)
-            pdt_cache[i].valid = 0;
+        if ( iommu->pdt_cache[i].DID == DID && iommu->pdt_cache[i].PID == PID && iommu->pdt_cache[i].valid == 1)
+            iommu->pdt_cache[i].valid = 0;
     return;
 }
 
 void
 do_iotinval_vma(
-    uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t GSCID,
+    iommu_t *iommu, uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t GSCID,
     uint32_t PSCID, uint64_t ADDR_63_12, uint8_t S) {
 
     // IOMMU operations cause implicit reads to PDT, first-stage and second-stage
@@ -376,20 +363,20 @@ do_iotinval_vma(
 
     for ( i = 0; i < TLB_SIZE; i++ ) {
         gscid_match = pscid_match = addr_match = global_match = 0;
-        if ( (GV == 0 && tlb[i].GV == 0 ) ||
-             (GV == 1 && tlb[i].GV == 1 && tlb[i].GSCID == GSCID) )
+        if ( (GV == 0 && iommu->tlb[i].GV == 0 ) ||
+             (GV == 1 && iommu->tlb[i].GV == 1 && iommu->tlb[i].GSCID == GSCID) )
             gscid_match = 1;
         if ( (PSCV == 0) ||
-             (PSCV == 1 && tlb[i].PSCV == 1 && tlb[i].PSCID == PSCID) )
+             (PSCV == 1 && iommu->tlb[i].PSCV == 1 && iommu->tlb[i].PSCID == PSCID) )
             pscid_match = 1;
         if ( (PSCV == 0) ||
-             (PSCV == 1 && tlb[i].G == 0) )
+             (PSCV == 1 && iommu->tlb[i].G == 0) )
             global_match = 1;
         if ( (AV == 0) ||
-             (AV == 1 && match_address_range(ADDR_63_12, S, tlb[i].vpn, tlb[i].S)) )
+             (AV == 1 && match_address_range(ADDR_63_12, S, iommu->tlb[i].vpn, iommu->tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && pscid_match && addr_match && global_match )
-            tlb[i].valid = 0;
+            iommu->tlb[i].valid = 0;
     }
     // This model implementation does not have non-leaf PTE caches. This
     // information is for documentation only.
@@ -423,7 +410,7 @@ do_iotinval_vma(
 }
 void
 do_iotinval_gvma(
-    uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID, uint64_t ADDR_63_12, uint8_t S) {
+    iommu_t *iommu, uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID, uint64_t ADDR_63_12, uint8_t S) {
 
     uint8_t i, gscid_match, addr_match;
     // Conceptually, an implementation might contain two address-translation
@@ -474,18 +461,18 @@ do_iotinval_gvma(
     // operand is 0 while all other bits are 1, the specified address range covers the entire
     // address space
     for ( i = 0; i < TLB_SIZE; i++ ) {
-        if ( tlb[i].valid == 0 ) continue;
-        if ( (GV == 0 && tlb[i].GV == 1) ||
-             (GV == 1 && tlb[i].GV == 1 && tlb[i].GSCID == GSCID) )
+        if ( iommu->tlb[i].valid == 0 ) continue;
+        if ( (GV == 0 && iommu->tlb[i].GV == 1) ||
+             (GV == 1 && iommu->tlb[i].GV == 1 && iommu->tlb[i].GSCID == GSCID) )
             gscid_match = 1;
         // If the cache holds a VA -> SPA translation i.e. PSCV == 1 then invalidate
         // it. If PSCV is 0 then it holds a GPA. If AV is 0 then all entries are
         // eligible else match the address
-        if ( (tlb[i].PSCV == 1) || (AV == 0) || (GV == 0) ||
-             (tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, S, tlb[i].vpn, tlb[i].S)) )
+        if ( (iommu->tlb[i].PSCV == 1) || (AV == 0) || (GV == 0) ||
+             (iommu->tlb[i].PSCV == 0 && AV == 1 && match_address_range(ADDR_63_12, S, iommu->tlb[i].vpn, iommu->tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && addr_match )
-            tlb[i].valid = 0;
+            iommu->tlb[i].valid = 0;
     }
     // This model implementation does not have non-leaf PTE caches. This
     // information is for documentation only.
@@ -511,7 +498,7 @@ do_iotinval_gvma(
 }
 void
 do_ats_msg(
-    uint8_t MSGCODE, uint8_t TAG, uint8_t DSV, uint8_t DSEG, uint16_t RID,
+    iommu_t *iommu, uint8_t MSGCODE, uint8_t TAG, uint8_t DSV, uint8_t DSEG, uint16_t RID,
     uint8_t PV, uint32_t PID, uint64_t PAYLOAD) {
     ats_msg_t msg;
     // The ATS.INVAL command instructs the IOMMU to send a “Invalidation Request” message
@@ -545,36 +532,36 @@ do_ats_msg(
 }
 uint8_t
 do_iofence_c(
-    uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_BIT, uint64_t ADDR, uint32_t DATA) {
+    iommu_t *iommu, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WSI_BIT, uint64_t ADDR, uint32_t DATA) {
 
     uint8_t status;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     // The IOMMU fetches commands from the CQ in order but the IOMMU may execute the fetched
     // commands out of order. The IOMMU advancing cqh is not a guarantee that the commands
     // fetched by the IOMMU have been executed or committed. A IOFENCE.C command guarantees
     // that all previous commands fetched from the CQ have been completed and committed.
-    g_iofence_wait_pending_inv = 1;
-    if ( any_ats_invalidation_requests_pending() ) {
+    iommu->iofence_wait_pending_inv = 1;
+    if ( any_ats_invalidation_requests_pending(iommu) ) {
         // if all previous ATS invalidation requests
         // have not completed then IOFENCE waits for
         // them to complete - or timeout
-        g_iofence_pending_PR = PR;
-        g_iofence_pending_PW = PW;
-        g_iofence_pending_AV = AV;
-        g_iofence_pending_WSI_BIT = WSI_BIT;
-        g_iofence_pending_ADDR = ADDR;
-        g_iofence_pending_DATA = DATA;
+        iommu->iofence_pending_PR = PR;
+        iommu->iofence_pending_PW = PW;
+        iommu->iofence_pending_AV = AV;
+        iommu->iofence_pending_WSI_BIT = WSI_BIT;
+        iommu->iofence_pending_ADDR = ADDR;
+        iommu->iofence_pending_DATA = DATA;
         return 1;
     }
     // All previous pending invalidation requests completed or timed out
-    g_iofence_wait_pending_inv = 0;
+    iommu->iofence_wait_pending_inv = 0;
     // If any ATC invalidation requests timed out then set command timeout
-    if ( g_ats_inv_req_timeout == 1 ) {
-        if ( g_reg_file.cqcsr.cmd_to == 0 ) {
-            g_reg_file.cqcsr.cmd_to = 1;
-            generate_interrupt(COMMAND_QUEUE);
+    if ( iommu->ats_inv_req_timeout == 1 ) {
+        if ( iommu->reg_file.cqcsr.cmd_to == 0 ) {
+            iommu->reg_file.cqcsr.cmd_to = 1;
+            generate_interrupt(iommu, COMMAND_QUEUE);
         }
-        g_ats_inv_req_timeout = 0;
+        iommu->ats_inv_req_timeout = 0;
         return 1;
     }
     // The commands may be used to order memory accesses from I/O devices connected to the IOMMU
@@ -591,56 +578,56 @@ do_iofence_c(
     if ( AV == 1 ) {
         status = (ADDR & ~pa_mask) ?
                  ACCESS_FAULT :
-                 write_memory((char *)&DATA, ADDR, 4, g_reg_file.iommu_qosid.rcid,
-                              g_reg_file.iommu_qosid.mcid, PMA);
+                 write_memory((char *)&DATA, ADDR, 4, iommu->reg_file.iommu_qosid.rcid,
+                              iommu->reg_file.iommu_qosid.mcid, PMA);
         if ( status != 0 ) {
-            if ( g_reg_file.cqcsr.cqmf == 0 ) {
-                g_reg_file.cqcsr.cqmf = 1;
-                generate_interrupt(COMMAND_QUEUE);
+            if ( iommu->reg_file.cqcsr.cqmf == 0 ) {
+                iommu->reg_file.cqcsr.cqmf = 1;
+                generate_interrupt(iommu, COMMAND_QUEUE);
             }
             return 1;
         }
     }
     // The wired-signaled-interrupt (WSI) bit when set to 1 causes a wired-interrupt from the command
     // queue to be generated on completion of IOFENCE.C. This bit is reserved if the IOMMU supports MSI
-    if ( g_reg_file.cqcsr.fence_w_ip == 0 && WSI_BIT == 1 ) {
-        g_reg_file.cqcsr.fence_w_ip = 1;
-        generate_interrupt(COMMAND_QUEUE);
+    if ( iommu->reg_file.cqcsr.fence_w_ip == 0 && WSI_BIT == 1 ) {
+        iommu->reg_file.cqcsr.fence_w_ip = 1;
+        generate_interrupt(iommu, COMMAND_QUEUE);
     }
     return 0;
 }
 // Retry a pending IOFENCE if all invalidations received
 void
-do_pending_iofence() {
-    if ( do_iofence_c(g_iofence_pending_PR, g_iofence_pending_PW, g_iofence_pending_AV,
-                 g_iofence_pending_WSI_BIT, g_iofence_pending_ADDR, g_iofence_pending_DATA) == 0 ) {
+do_pending_iofence(iommu_t *iommu) {
+    if ( do_iofence_c(iommu, iommu->iofence_pending_PR, iommu->iofence_pending_PW, iommu->iofence_pending_AV,
+                 iommu->iofence_pending_WSI_BIT, iommu->iofence_pending_ADDR, iommu->iofence_pending_DATA) == 0 ) {
         // If not still pending then advance the CQH
-        g_reg_file.cqh.index =
-            (g_reg_file.cqh.index + 1) & ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
+        iommu->reg_file.cqh.index =
+            (iommu->reg_file.cqh.index + 1) & ((1UL << (iommu->reg_file.cqb.log2szm1 + 1)) - 1);
     }
     // If IOFENCE is not pending and CQ was requested to be
     // turned off then turn it off now
-    if ( g_iofence_wait_pending_inv == 0 ) {
-        g_reg_file.cqcsr.cqon = g_reg_file.cqcsr.cqen;
-        g_reg_file.cqcsr.busy = 0;
+    if ( iommu->iofence_wait_pending_inv == 0 ) {
+        iommu->reg_file.cqcsr.cqon = iommu->reg_file.cqcsr.cqen;
+        iommu->reg_file.cqcsr.busy = 0;
     }
     return;
 }
 void
-queue_any_blocked_ats_inval_req() {
+queue_any_blocked_ats_inval_req(iommu_t *iommu) {
     uint8_t itag;
-    if ( g_command_queue_stall_for_itag == 1 ) {
+    if ( iommu->command_queue_stall_for_itag == 1 ) {
         // Allocate a ITAG for the request
-        if ( allocate_itag(g_pending_inval_req_DSV, g_pending_inval_req_DSEG,
-                           g_pending_inval_req_RID, &itag) )
+        if ( allocate_itag(iommu, iommu->pending_inval_req_DSV, iommu->pending_inval_req_DSEG,
+                           iommu->pending_inval_req_RID, &itag) )
             return;
         // ITAG allocated successfully, send invalidate request
-        do_ats_msg(INVAL_REQ_MSG_CODE, itag, g_pending_inval_req_DSV,
-                   g_pending_inval_req_DSEG, g_pending_inval_req_RID,
-                   g_pending_inval_req_PV, g_pending_inval_req_PID,
-                   g_pending_inval_req_PAYLOAD);
+        do_ats_msg(iommu, INVAL_REQ_MSG_CODE, itag, iommu->pending_inval_req_DSV,
+                   iommu->pending_inval_req_DSEG, iommu->pending_inval_req_RID,
+                   iommu->pending_inval_req_PV, iommu->pending_inval_req_PID,
+                   iommu->pending_inval_req_PAYLOAD);
         // Remove the command queue stall
-        g_command_queue_stall_for_itag = 0;
+        iommu->command_queue_stall_for_itag = 0;
     }
     return;
 }

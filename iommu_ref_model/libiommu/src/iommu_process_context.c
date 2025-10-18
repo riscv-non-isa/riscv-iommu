@@ -6,15 +6,15 @@
 #include "iommu.h"
 uint8_t
 do_process_context_configuration_checks(
-    device_context_t *DC, process_context_t *PC);
+    iommu_t *iommu, device_context_t *DC, process_context_t *PC);
 
 uint8_t
 locate_process_context(
-    process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id,
+    iommu_t *iommu, process_context_t *PC, device_context_t *DC, uint32_t device_id, uint32_t process_id,
     uint32_t *cause, uint64_t *iotval2, uint8_t TTYP,
     uint8_t is_orig_read, uint8_t is_orig_write, uint8_t is_orig_exec) {
     uint64_t a, gst_page_sz;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t i, LEVELS, status, gst_fault;
     gpte_t g_pte;
     pdte_t pdte;
@@ -64,7 +64,7 @@ locate_process_context(
     // using its process_id is as follows:
 
     // Determine if there is a cached device context
-    if ( lookup_ioatc_pc(device_id, process_id, PC) == IOATC_HIT )
+    if ( lookup_ioatc_pc(iommu, device_id, process_id, PC) == IOATC_HIT )
         return 0;
 
     // 1. Let a be pdtp.PPN x 2^12 and let i = LEVELS - 1. When pdtp.MODE
@@ -85,7 +85,7 @@ step_2:
     //    is used in subsequent steps.
     is_read = 1;
     is_write = is_exec = is_implicit = 0;
-    if ( ( gst_fault = second_stage_address_translation(a, 1, device_id, is_read, is_write,
+    if ( ( gst_fault = second_stage_address_translation(iommu, a, 1, device_id, is_read, is_write,
                            is_exec, is_implicit, 1, process_id, 0, 0,
                            ((DC->iohgatp.MODE == IOHGATP_Bare) ? 0 : 1),
                            DC->iohgatp.GSCID, DC->iohgatp, DC->tc.GADE, DC->tc.SADE,
@@ -115,7 +115,7 @@ step_2:
     if ( i == 0 ) goto step_9;
 
     // Count walks in PDT
-    count_events(1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
+    count_events(iommu, 1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
 
     // 4. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
     //    accessing `pdte` violates a PMA or PMP check, then stop and report
@@ -155,7 +155,7 @@ step_2:
 
 step_9:
     // Count walks in PDT
-    count_events(1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
+    count_events(iommu, 1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
 
     // 9. Let `PC` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
     //    violates a PMA or PMP check, then stop and report "PDT entry load access
@@ -181,18 +181,18 @@ step_9:
 
     //11. If the PC is misconfigured as determined by rules outlined in Section 2.2.4
     //    then stop and report "PDT entry misconfigured" (cause = 267).
-    if ( do_process_context_configuration_checks(DC, PC) ) {
+    if ( do_process_context_configuration_checks(iommu, DC, PC) ) {
         *cause = 267;     // PDT entry misconfigured
         return 1;
     }
 
     //12. The Process-context has been successfully located.
-    cache_ioatc_pc(device_id, process_id, PC);
+    cache_ioatc_pc(iommu, device_id, process_id, PC);
     return 0;
 }
 uint8_t
 do_process_context_configuration_checks(
-    device_context_t *DC, process_context_t *PC) {
+    iommu_t *iommu, device_context_t *DC, process_context_t *PC) {
     //1. If any bits or encoding that are reserved for future standard use are set
     if ( PC->ta.reserved0 != 0 || PC->ta.reserved1 != 0 ||
          PC->fsc.iosatp.reserved != 0 ) {
@@ -216,15 +216,15 @@ do_process_context_configuration_checks(
     //    b. capabilities.Sv48 is 0 and PC.fsc.MODE is Sv48
     //    c. capabilities.Sv57 is 0 and PC.fsc.MODE is Sv57
     if ( (DC->tc.SXL == 0) &&
-         (((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (g_reg_file.capabilities.Sv39 == 0)) ||
-          ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (g_reg_file.capabilities.Sv48 == 0)) ||
-          ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (g_reg_file.capabilities.Sv57 == 0))) ) {
+         (((PC->fsc.iosatp.MODE == IOSATP_Sv39) && (iommu->reg_file.capabilities.Sv39 == 0)) ||
+          ((PC->fsc.iosatp.MODE == IOSATP_Sv48) && (iommu->reg_file.capabilities.Sv48 == 0)) ||
+          ((PC->fsc.iosatp.MODE == IOSATP_Sv57) && (iommu->reg_file.capabilities.Sv57 == 0))) ) {
         return 1;
     }
     //4. DC.tc.SXL is 1 and PC.fsc.MODE is not one of the supported modes
     //   a. capabilities.Sv32 is 0 and PC.fsc.MODE is Sv32
     if ( (DC->tc.SXL == 1) &&
-         ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (g_reg_file.capabilities.Sv32 == 0)) ) {
+         ((PC->fsc.iosatp.MODE == IOSATP_Sv32) && (iommu->reg_file.capabilities.Sv32 == 0)) ) {
         return 1;
     }
     return 0;

@@ -4,60 +4,58 @@
 // Author: ved@rivosinc.com
 #include "iommu.h"
 
-itag_tracker_t itag_tracker[MAX_ITAGS] = {0};
-extern uint8_t g_iofence_wait_pending_inv;
-
 uint8_t
 allocate_itag(
+    iommu_t *iommu,
     uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag) {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].busy == 0 ) break;
+        if ( iommu->itag_tracker[i].busy == 0 ) break;
 
     if ( i == MAX_ITAGS )
         return 1;
 
-    itag_tracker[i].busy = 1;
-    itag_tracker[i].DSV = DSV;
-    itag_tracker[i].DSEG = DSEG;
-    itag_tracker[i].RID = RID;
-    itag_tracker[i].num_rsp_rcvd = 0;
+    iommu->itag_tracker[i].busy = 1;
+    iommu->itag_tracker[i].DSV = DSV;
+    iommu->itag_tracker[i].DSEG = DSEG;
+    iommu->itag_tracker[i].RID = RID;
+    iommu->itag_tracker[i].num_rsp_rcvd = 0;
     *itag = i;
     return 0;
 }
 uint8_t
-any_ats_invalidation_requests_pending() {
+any_ats_invalidation_requests_pending(iommu_t *iommu) {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ )
-        if ( itag_tracker[i].busy == 1 )
+        if ( iommu->itag_tracker[i].busy == 1 )
             return 1;
     return 0;
 }
 void
-do_pending_iofence_inval_reqs() {
+do_pending_iofence_inval_reqs(iommu_t *iommu) {
     uint8_t i, itags_busy;
 
     itags_busy = 0;
     // Check if there are more pending invalidations
     for ( i = 0; i < MAX_ITAGS; i++ ) {
-        if ( itag_tracker[i].busy == 1 )
+        if ( iommu->itag_tracker[i].busy == 1 )
             itags_busy = 1;
     }
     // No more pending invalidations - continue any pending IOFENCE.C
-    if ( g_iofence_wait_pending_inv == 1 && itags_busy == 0 ) {
-        do_pending_iofence();
+    if ( iommu->iofence_wait_pending_inv == 1 && itags_busy == 0 ) {
+        do_pending_iofence(iommu);
     }
-    if ( g_iofence_wait_pending_inv == 0 ) {
+    if ( iommu->iofence_wait_pending_inv == 0 ) {
         // If there were ATS.INVAL_REQ waiting on free
         // itags then unblock them if any itag is now
         // available unless a IOFENCE is blocking
-        queue_any_blocked_ats_inval_req();
+        queue_any_blocked_ats_inval_req(iommu);
     }
     return;
 }
 uint8_t
 handle_invalidation_completion(
-    ats_msg_t *inv_cc) {
+    iommu_t *iommu, ats_msg_t *inv_cc) {
 
     uint32_t itag_vector;
     uint8_t cc, i;
@@ -65,37 +63,38 @@ handle_invalidation_completion(
     cc = get_bits(34, 32, inv_cc->PAYLOAD);
     for ( i = 0; i < MAX_ITAGS; i++ ) {
         if ( itag_vector & (1UL << i) ) {
-            if ( itag_tracker[i].busy == 0 )
+            if ( iommu->itag_tracker[i].busy == 0 )
                 return 1; // Unexpected completion
-            if ( (itag_tracker[i].DSV == 1) &&
-                 (inv_cc->DSV != 1 || inv_cc->DSEG != itag_tracker[i].DSEG) )
+            if ( (iommu->itag_tracker[i].DSV == 1) &&
+                 (inv_cc->DSV != 1 || inv_cc->DSEG != iommu->itag_tracker[i].DSEG) )
                 return 1; // Unexpected completion
-            if ( itag_tracker[i].RID != inv_cc->RID )
+            if ( iommu->itag_tracker[i].RID != inv_cc->RID )
                 return 1; // Unexpected completion
-            itag_tracker[i].num_rsp_rcvd =
-                (itag_tracker[i].num_rsp_rcvd + 1) & 0x07;
-            if ( itag_tracker[i].num_rsp_rcvd == cc )  {
-                itag_tracker[i].busy = 0;
+            iommu->itag_tracker[i].num_rsp_rcvd =
+                (iommu->itag_tracker[i].num_rsp_rcvd + 1) & 0x07;
+            if ( iommu->itag_tracker[i].num_rsp_rcvd == cc )  {
+                iommu->itag_tracker[i].busy = 0;
             }
         }
     }
-    do_pending_iofence_inval_reqs();
+    do_pending_iofence_inval_reqs(iommu);
     return 0;
 }
 void
-do_ats_timer_expiry(uint32_t itag_vector) {
+do_ats_timer_expiry(iommu_t *iommu, uint32_t itag_vector) {
     uint8_t i;
     for ( i = 0; i < MAX_ITAGS; i++ ) {
         if ( itag_vector & (1UL << i) ) {
-            itag_tracker[i].busy = 0;
+            iommu->itag_tracker[i].busy = 0;
         }
     }
-    g_ats_inv_req_timeout = 1;
-    do_pending_iofence_inval_reqs();
+    iommu->ats_inv_req_timeout = 1;
+    do_pending_iofence_inval_reqs(iommu);
     return;
 }
 void
 handle_page_request(
+    iommu_t *iommu,
     ats_msg_t *pr) {
     ats_msg_t prgr;
     device_context_t DC;
@@ -108,20 +107,20 @@ handle_page_request(
     uint64_t pqb;
     uint32_t pqh;
     uint32_t pqt;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
 
     PRPR = 0;
     device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
-    if ( g_reg_file.ddtp.iommu_mode == Off ) {
+    if ( iommu->reg_file.ddtp.iommu_mode == Off ) {
         cause = 256; // "All inbound transactions disallowed"
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        report_fault(iommu, cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
-    if ( g_reg_file.ddtp.iommu_mode == DDT_Bare ) {
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_Bare ) {
         cause = 260; // "Transaction type disallowed"
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        report_fault(iommu, cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
@@ -129,7 +128,7 @@ handle_page_request(
     // 3. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses base-format device
     //    context. Let `DDI[0]` be `device_id[6:0]`, `DDI[1]` be `device_id[15:7]`, and
     //    `DDI[2]` be `device_id[23:16]`.
-    if ( g_reg_file.capabilities.msi_flat == 0 ) {
+    if ( iommu->reg_file.capabilities.msi_flat == 0 ) {
         DDI[0] = get_bits(6,  0, device_id);
         DDI[1] = get_bits(15, 7, device_id);
         DDI[2] = get_bits(23, 16, device_id);
@@ -137,7 +136,7 @@ handle_page_request(
     // 4. If `capabilities.MSI_FLAT` is 0 then the IOMMU uses extended-format device
     //    context. Let `DDI[0]` be `device_id[5:0]`, `DDI[1]` be `device_id[14:6]`, and
     //    `DDI[2]` be `device_id[23:15]`.
-    if ( g_reg_file.capabilities.msi_flat == 1 ) {
+    if ( iommu->reg_file.capabilities.msi_flat == 1 ) {
         DDI[0] = get_bits(5,  0, device_id);
         DDI[1] = get_bits(14, 6, device_id);
         DDI[2] = get_bits(23, 15, device_id);
@@ -147,16 +146,16 @@ handle_page_request(
     //    report "Transaction type disallowed" (cause = 260).
     //    a. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
     //    b. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
-    if ( g_reg_file.ddtp.iommu_mode == DDT_2LVL && DDI[2] != 0 ) {
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_2LVL && DDI[2] != 0 ) {
         cause = 260; // "Transaction type disallowed"
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        report_fault(iommu, cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
     }
-    if ( g_reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
+    if ( iommu->reg_file.ddtp.iommu_mode == DDT_1LVL && (DDI[2] != 0 || DDI[1] != 0) ) {
         cause = 260; // "Transaction type disallowed"
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+        report_fault(iommu, cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
@@ -164,8 +163,8 @@ handle_page_request(
     // To process a "Page Request" or "Stop Marker" message, the IOMMU first
     // locates the device-context to determine if ATS and PRI are enabled for
     // the requestor.
-    if ( locate_device_context(&DC, device_id, pr->PV, pr->PID, &cause) ) {
-        report_fault(cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
+    if ( locate_device_context(iommu, &DC, device_id, pr->PV, pr->PID, &cause) ) {
+        report_fault(iommu, cause, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, 0,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
@@ -175,7 +174,7 @@ handle_page_request(
         // 7. if any of the following conditions hold then stop and report
         //    "Transaction type disallowed" (cause = 260).
         //   * Transaction type is a PCIe "Page Request" Message and `DC.tc.EN_PRI` is 0.
-        report_fault(260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, DC.tc.DTF,
+        report_fault(iommu, 260, PAGE_REQ_MSG_CODE, 0, PCIE_MESSAGE_REQUEST, DC.tc.DTF,
                      device_id, pr->PV, pr->PID, pr->PRIV);
         response_code = PRGR_INVALID_REQUEST;
         goto send_prgr;
@@ -194,7 +193,7 @@ handle_page_request(
     // The IOMMU may respond to “Page Request” messages received
     // when page-request-queue is off or in the process of being turned
     // off, as specified in Section 2.8.
-    if ( g_reg_file.pqcsr.pqon == 0 || g_reg_file.pqcsr.pqen == 0 ) {
+    if ( iommu->reg_file.pqcsr.pqon == 0 || iommu->reg_file.pqcsr.pqen == 0 ) {
         response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
@@ -207,7 +206,7 @@ handle_page_request(
     // The IOMMU may respond to “Page Request” messages that caused
     // the pqof or pqmf bit to be set and all subsequent “Page Request”
     // messages received while these bits are 1 as specified in Section 2.8.
-    if ( g_reg_file.pqcsr.pqmf == 1 ) {
+    if ( iommu->reg_file.pqcsr.pqmf == 1 ) {
         response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
@@ -223,7 +222,7 @@ handle_page_request(
     // The IOMMU may respond to “Page Request” messages that caused
     // the pqof or pqmf bit to be set and all subsequent “Page Request”
     // messages received while these bits are 1 as specified in Section 2.8.
-    if ( g_reg_file.pqcsr.pqof == 1 ) {
+    if ( iommu->reg_file.pqcsr.pqof == 1 ) {
         response_code = PRGR_SUCCESS;
         goto send_prgr;
     }
@@ -260,12 +259,12 @@ handle_page_request(
     // When an error bit is in the pqcsr changes state from 0 to 1 or when a new message
     // is produced in the queue, page-request-queue interrupt pending (pip) bit is set
     // in the pqcsr
-    pqh = g_reg_file.pqh.index;
-    pqt = g_reg_file.pqt.index;
-    pqb = g_reg_file.pqb.ppn;
-    if ( ((pqt + 1) & ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1)) == pqh ) {
-        g_reg_file.pqcsr.pqof = 1;
-        generate_interrupt(PAGE_QUEUE);
+    pqh = iommu->reg_file.pqh.index;
+    pqt = iommu->reg_file.pqt.index;
+    pqb = iommu->reg_file.pqb.ppn;
+    if ( ((pqt + 1) & ((1UL << (iommu->reg_file.pqb.log2szm1 + 1)) - 1)) == pqh ) {
+        iommu->reg_file.pqcsr.pqof = 1;
+        generate_interrupt(iommu, PAGE_QUEUE);
         response_code = SUCCESS;
         goto send_prgr;
     }
@@ -281,18 +280,18 @@ handle_page_request(
     status = (prec_addr & ~pa_mask) ?
              ACCESS_FAULT :
              write_memory((char *)&prec, prec_addr, 16,
-                          g_reg_file.iommu_qosid.rcid,
-                          g_reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.rcid,
+                          iommu->reg_file.iommu_qosid.mcid, PMA);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
-        g_reg_file.pqcsr.pqmf = 1;
-        generate_interrupt(PAGE_QUEUE);
+        iommu->reg_file.pqcsr.pqmf = 1;
+        generate_interrupt(iommu, PAGE_QUEUE);
         response_code = PRGR_RESPONSE_FAILURE;
         goto send_prgr;
     }
 
-    pqt = (pqt + 1) & ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1);
-    g_reg_file.pqt.index = pqt;
-    generate_interrupt(PAGE_QUEUE);
+    pqt = (pqt + 1) & ((1UL << (iommu->reg_file.pqb.log2szm1 + 1)) - 1);
+    iommu->reg_file.pqt.index = pqt;
+    generate_interrupt(iommu, PAGE_QUEUE);
     return;
 
 send_prgr:
