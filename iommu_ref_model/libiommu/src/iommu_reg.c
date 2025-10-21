@@ -831,7 +831,7 @@ write_register(
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
             if ( x >= (1UL << iommu->num_vec_bits) )
                 break;
-            if ( msi_vec_ctrl_temp.m == 1 &&
+            if ( msi_vec_ctrl_temp.m == 0 &&
                  iommu->reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m == 1 ) {
                 release_pending_interrupt(iommu, x);
             }
