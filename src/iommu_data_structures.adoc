@@ -1413,10 +1413,11 @@ not be invoked for translating addresses in CXL.cache transactions.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
-To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first locates
-the device-context to determine if ATS and PRI are enabled for the requester.
-If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
- IOMMU queues the message into an in-memory queue called the
+To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU
+first locates the device-context--using the procedure outlined in steps 1
+through 5 of <<P2IOVA>>--to determine if ATS and PRI are enabled for the
+requester.  If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both
+set to 1, the IOMMU queues the message into an in-memory queue called the
 page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
@@ -1461,6 +1462,7 @@ The status is set to Invalid Request if the following faults are encountered:
 
 * `ddtp.iommu_mode` is `Bare` (cause = 260)
 * `EN_PRI` is set to 0 (cause = 260)
+* `device_id` is wider than that supported by the IOMMU mode (cause = 260)
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
