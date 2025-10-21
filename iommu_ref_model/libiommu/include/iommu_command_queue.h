@@ -94,16 +94,15 @@ typedef union {
 
 #define CQ_ENTRY_SZ sizeof(command_t)
 
-void do_inval_ddt(uint8_t DV, uint32_t DID);
-void do_inval_pdt(uint32_t DID, uint32_t PID);
-void do_iotinval_vma(uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t
+void do_inval_ddt(iommu_t *iommu, uint8_t DV, uint32_t DID);
+void do_inval_pdt(iommu_t *iommu, uint32_t DID, uint32_t PID);
+void do_iotinval_vma(iommu_t *iommu, uint8_t GV, uint8_t AV, uint8_t NL, uint8_t PSCV, uint32_t
                      GSCID, uint32_t PSCID, uint64_t ADDR, uint8_t S);
-void do_iotinval_gvma(uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID,
+void do_iotinval_gvma(iommu_t *iommu, uint8_t GV, uint8_t AV, uint8_t NL, uint32_t GSCID,
                       uint64_t ADDR, uint8_t S);
-void do_ats_msg( uint8_t MSGCODE, uint8_t TAG, uint8_t DSV, uint8_t DSEG, uint16_t RID,
+void do_ats_msg(iommu_t *iommu, uint8_t MSGCODE, uint8_t TAG, uint8_t DSV, uint8_t DSEG, uint16_t RID,
                   uint8_t PV, uint32_t PID, uint64_t PAYLOAD);
-uint8_t do_iofence_c(uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_BIT, uint64_t ADDR, uint32_t DATA);
-void do_pending_iofence();
-void queue_any_blocked_ats_inval_req();
-extern uint8_t g_ats_inv_req_timeout;
+uint8_t do_iofence_c(iommu_t *iommu, uint8_t PR, uint8_t PW, uint8_t AV, uint8_t WIS_BIT, uint64_t ADDR, uint32_t DATA);
+void do_pending_iofence(iommu_t *iommu);
+void queue_any_blocked_ats_inval_req(iommu_t *iommu);
 #endif // __IOMMU_COMMAND_QUEUE_H__

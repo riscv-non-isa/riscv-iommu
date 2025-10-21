@@ -58,16 +58,15 @@ typedef struct {
 #define IOATC_HIT   1
 #define IOATC_FAULT 2
 
-extern ddt_cache_t ddt_cache[DDT_CACHE_SIZE];
-extern pdt_cache_t pdt_cache[PDT_CACHE_SIZE];
-extern tlb_t       tlb[TLB_SIZE];
 extern void
 cache_ioatc_iotlb(
+    iommu_t *iommu,
     uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
     pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t is_msi);
 
 extern uint8_t
 lookup_ioatc_iotlb(
+    iommu_t *iommu,
     uint64_t iova, uint8_t check_access_perms,
     uint8_t priv, uint8_t is_read, uint8_t is_write, uint8_t is_exec,
     uint8_t SUM, uint8_t PSCV, uint32_t PSCID, uint8_t GV, uint16_t GSCID,
@@ -75,15 +74,15 @@ lookup_ioatc_iotlb(
     pte_t *vs_pte, gpte_t *g_pteu, uint8_t *is_msi);
 
 extern uint8_t
-lookup_ioatc_dc(uint32_t device_id, device_context_t *DC);
+lookup_ioatc_dc(iommu_t *iommu, uint32_t device_id, device_context_t *DC);
 
 extern void
-cache_ioatc_dc(uint32_t device_id, device_context_t *DC);
+cache_ioatc_dc(iommu_t *iommu, uint32_t device_id, device_context_t *DC);
 
 extern uint8_t
-lookup_ioatc_pc(uint32_t device_id, uint32_t process_id, process_context_t *PC);
+lookup_ioatc_pc(iommu_t *iommu, uint32_t device_id, uint32_t process_id, process_context_t *PC);
 
 extern void
-cache_ioatc_pc(uint32_t device_id, uint32_t process_id, process_context_t *PC);
+cache_ioatc_pc(iommu_t *iommu, uint32_t device_id, uint32_t process_id, process_context_t *PC);
 
 #endif // __IOMMU_ATC_H__

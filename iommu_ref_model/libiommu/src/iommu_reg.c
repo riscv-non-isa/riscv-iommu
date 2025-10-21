@@ -5,35 +5,12 @@
 
 #include "iommu.h"
 
-// IOMMU register file
-iommu_regs_t g_reg_file;
 // Register offset to size mapping
-uint8_t g_offset_to_size[4096];
-// Global parameters of the design
-uint8_t g_num_hpm;
-uint8_t g_hpmctr_bits;
-uint8_t g_eventID_limit;
-uint8_t g_num_vec_bits;
-uint8_t g_gxl_writeable;
-uint8_t g_fctl_be_writeable;
-uint8_t g_max_iommu_mode;
-uint8_t g_fill_ats_trans_in_ioatc;
-uint32_t g_max_devid_mask;
-extern uint8_t g_iofence_wait_pending_inv;
-uint8_t g_trans_for_debug;
-uint64_t g_sv57_bare_pg_sz;
-uint64_t g_sv48_bare_pg_sz;
-uint64_t g_sv39_bare_pg_sz;
-uint64_t g_sv32_bare_pg_sz;
-uint64_t g_sv57x4_bare_pg_sz;
-uint64_t g_sv48x4_bare_pg_sz;
-uint64_t g_sv39x4_bare_pg_sz;
-uint64_t g_sv32x4_bare_pg_sz;
-iommu_qosid_t g_iommu_qosid_mask;
+static uint8_t offset_to_size[4096];
 
 uint8_t
 is_access_valid(
-    uint16_t offset, uint8_t num_bytes) {
+    iommu_t *iommu, uint16_t offset, uint8_t num_bytes) {
     // The IOMMU behavior for register accesses where the
     // address is not aligned to the size of the access or
     // if the access spans multiple registers is UNSPECIFIED
@@ -42,41 +19,41 @@ is_access_valid(
     if ( (num_bytes != 4 && num_bytes != 8) ||       // only 4B & 8B registers in IOMMU
          (offset >= 4096) ||                         // Offset must be <= 4095
          ((offset & (num_bytes - 1)) != 0) ||        // Offset must be aligned to size
-         (g_offset_to_size[offset] < num_bytes) ) { // Acesss cannot span two registers
+         (offset_to_size[offset] < num_bytes) ) { // Acesss cannot span two registers
         return 0;
     }
     return 1;
 }
 uint32_t
-get_iocountovf() {
+get_iocountovf(iommu_t *iommu) {
     iocountovf_t iocountovf_temp;
     uint8_t i;
     iocountovf_temp.raw = 0;
-    iocountovf_temp.cy = g_reg_file.iohpmcycles.of;
-    for ( i = 0; i < (g_num_hpm - 1); i++ )
-        iocountovf_temp.hpm |= (g_reg_file.iohpmevt[i].of << i);
+    iocountovf_temp.cy = iommu->reg_file.iohpmcycles.of;
+    for ( i = 0; i < (iommu->num_hpm - 1); i++ )
+        iocountovf_temp.hpm |= (iommu->reg_file.iohpmevt[i].of << i);
     return iocountovf_temp.raw;
 }
 
 uint64_t
 read_register(
-    uint16_t offset, uint8_t num_bytes) {
+    iommu_t *iommu, uint16_t offset, uint8_t num_bytes) {
 
     // If access is not valid then return -1
-    if ( !is_access_valid(offset, num_bytes) )
+    if ( !is_access_valid(iommu, offset, num_bytes) )
         return 0x0;
 
     // Counter overflows are to be gathered from all counters
     if ( offset == IOCNTOVF_OFFSET )
-        return get_iocountovf();
+        return get_iocountovf(iommu);
 
     // If access is valid then return data from the register file
-    return ( num_bytes == 4 ) ? g_reg_file.regs4[offset/4] :
-                                g_reg_file.regs8[offset/8];
+    return ( num_bytes == 4 ) ? iommu->reg_file.regs4[offset/4] :
+                                iommu->reg_file.regs8[offset/8];
 }
 void
 write_register(
-    uint16_t offset, uint8_t num_bytes, uint64_t data) {
+    iommu_t *iommu, uint16_t offset, uint8_t num_bytes, uint64_t data) {
 
     uint32_t data4 = data & 0xFFFFFFFF;
     uint64_t data8 = data;
@@ -100,19 +77,19 @@ write_register(
     msi_vec_ctrl_t msi_vec_ctrl_temp;
     hb_to_iommu_req_t req;
     iommu_to_hb_rsp_t rsp;
-    uint64_t pa_mask  = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask  = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint64_t ppn_mask = pa_mask >> 12;
 
     // If access is not valid then discard the write
-    if ( !is_access_valid(offset, num_bytes) ) {
+    if ( !is_access_valid(iommu, offset, num_bytes) ) {
         return;
     }
 
     // If its a 4B write to a 8B register then merge the new
     // write data with current data in register file
-    if ( (g_offset_to_size[offset] == 8) && (num_bytes == 4) ) {
+    if ( (offset_to_size[offset] == 8) && (num_bytes == 4) ) {
         // read the old 8B
-        data8 = g_reg_file.regs8[(offset & ~0x7)/8];
+        data8 = iommu->reg_file.regs8[(offset & ~0x7)/8];
         if ( (offset & 0x7) != 0 ) {
             // write to high half - replace high half
             data8 = ((data8) & 0x00000000FFFFFFFF) | ((uint64_t)data4 << 32);
@@ -166,27 +143,27 @@ write_register(
             // or supports both wired and MSI interrupts
             // retain default values for the field if not
             // writeable
-            if ( (g_reg_file.capabilities.end != BOTH_END) &&
-                 (g_reg_file.capabilities.igs != IGS_BOTH) ) {
+            if ( (iommu->reg_file.capabilities.end != BOTH_END) &&
+                 (iommu->reg_file.capabilities.igs != IGS_BOTH) ) {
                 // Register is not writeable
                 break;
             }
             // Register is writeable
-            if ( (g_reg_file.ddtp.iommu_mode != Off) ||
-                 (g_reg_file.cqcsr.cqen == 1) ||
-                 (g_reg_file.cqcsr.cqon == 1) ||
-                 (g_reg_file.fqcsr.fqen == 1) ||
-                 (g_reg_file.fqcsr.fqon == 1) ||
-                 (g_reg_file.pqcsr.pqen == 1) ||
-                 (g_reg_file.pqcsr.pqon == 1) ) {
+            if ( (iommu->reg_file.ddtp.iommu_mode != Off) ||
+                 (iommu->reg_file.cqcsr.cqen == 1) ||
+                 (iommu->reg_file.cqcsr.cqon == 1) ||
+                 (iommu->reg_file.fqcsr.fqen == 1) ||
+                 (iommu->reg_file.fqcsr.fqon == 1) ||
+                 (iommu->reg_file.pqcsr.pqen == 1) ||
+                 (iommu->reg_file.pqcsr.pqon == 1) ) {
                 // The UNSPECIFIED behavior in reference model
                 // is to drop the write
                 break;
             }
-            if ( (g_reg_file.capabilities.end == BOTH_END) )
-                g_reg_file.fctl.be = fctl_temp.be;
-            if ( (g_reg_file.capabilities.igs == IGS_BOTH) )
-                g_reg_file.fctl.wsi = fctl_temp.wsi;
+            if ( (iommu->reg_file.capabilities.end == BOTH_END) )
+                iommu->reg_file.fctl.be = fctl_temp.be;
+            if ( (iommu->reg_file.capabilities.igs == IGS_BOTH) )
+                iommu->reg_file.fctl.wsi = fctl_temp.wsi;
             break;
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write
@@ -204,7 +181,7 @@ write_register(
             // ddtp.
             // An IOMMU that can complete these operations
             // synchronously may hard-wire this bit to 0
-            if ( g_reg_file.ddtp.busy )
+            if ( iommu->reg_file.ddtp.busy )
                 return;
             // If a illegal value written to ddtp.iommu_mode then
             // retain the current legal value
@@ -217,13 +194,13 @@ write_register(
                    (ddtp_temp.iommu_mode == DDT_1LVL) ||
                    (ddtp_temp.iommu_mode == DDT_2LVL) ||
                    (ddtp_temp.iommu_mode == DDT_3LVL)) &&
-                   (ddtp_temp.iommu_mode <= g_max_iommu_mode)) &&
-                 (g_reg_file.ddtp.iommu_mode == Off ||
-                  g_reg_file.ddtp.iommu_mode == DDT_Bare ||
+                   (ddtp_temp.iommu_mode <= iommu->max_iommu_mode)) &&
+                 (iommu->reg_file.ddtp.iommu_mode == Off ||
+                  iommu->reg_file.ddtp.iommu_mode == DDT_Bare ||
                   ddtp_temp.iommu_mode == Off ||
                   ddtp_temp.iommu_mode == DDT_Bare) ) {
-                g_reg_file.ddtp.iommu_mode = ddtp_temp.iommu_mode;
-                g_reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
+                iommu->reg_file.ddtp.iommu_mode = ddtp_temp.iommu_mode;
+                iommu->reg_file.ddtp.ppn = ddtp_temp.ppn & ppn_mask;
             }
             break;
         case CQB_OFFSET:
@@ -233,22 +210,22 @@ write_register(
             // first disable the command-queue by clearing cqen and waiting for
             // both busy and cqon to be 0 before changing the cqb.
             // The reference model discards the write
-            if ( g_reg_file.cqcsr.busy || g_reg_file.cqcsr.cqon )
+            if ( iommu->reg_file.cqcsr.busy || iommu->reg_file.cqcsr.cqon )
                 return;
-            g_reg_file.cqb.ppn = cqb_temp.ppn & ppn_mask;
-            g_reg_file.cqb.log2szm1 = cqb_temp.log2szm1;
+            iommu->reg_file.cqb.ppn = cqb_temp.ppn & ppn_mask;
+            iommu->reg_file.cqb.log2szm1 = cqb_temp.log2szm1;
             // The status of bits 31:cqb.LOG2SZ in cqt following a write to cqb
             // is 0 and the bits cqb.LOG2SZ-1:0 in cqt assume a valid but
             // otherwise UNSPECIFIED value.
             // The reference model sets all bits to 0.
-            g_reg_file.cqt.index = 0;
+            iommu->reg_file.cqt.index = 0;
             break;
         case CQH_OFFSET:
             // This register is read only
             break;
         case CQT_OFFSET:
-            g_reg_file.cqt.index = cqt_temp.index &
-                ((1UL << (g_reg_file.cqb.log2szm1 + 1)) - 1);
+            iommu->reg_file.cqt.index = cqt_temp.index &
+                ((1UL << (iommu->reg_file.cqb.log2szm1 + 1)) - 1);
             break;
         case FQB_OFFSET:
             // The fault-queue is active if `fqon` reads 1.
@@ -259,26 +236,26 @@ write_register(
             // waiting for both `busy` and `fqon` to be 0 before
             // changing `fqb`.
             // The reference model discards the write
-            if ( g_reg_file.fqcsr.busy || g_reg_file.fqcsr.fqon )
+            if ( iommu->reg_file.fqcsr.busy || iommu->reg_file.fqcsr.fqon )
                 return;
-            g_reg_file.fqb.ppn = fqb_temp.ppn & ppn_mask;
-            g_reg_file.fqb.log2szm1 = fqb_temp.log2szm1;
+            iommu->reg_file.fqb.ppn = fqb_temp.ppn & ppn_mask;
+            iommu->reg_file.fqb.log2szm1 = fqb_temp.log2szm1;
             // The status of bits 31:fqb.LOG2SZ in fqh following a write to fqb
             // is 0 and the bits fqb.LOG2SZ-1:0 in fqh assume a valid but
             // otherwise UNSPECIFIED value.
             // The reference model sets all bits to 0.
-            g_reg_file.fqh.index = 0;
+            iommu->reg_file.fqh.index = 0;
             break;
         case FQH_OFFSET:
-            g_reg_file.fqh.index = fqh_temp.index &
-                ((1UL << (g_reg_file.fqb.log2szm1 + 1)) - 1);
+            iommu->reg_file.fqh.index = fqh_temp.index &
+                ((1UL << (iommu->reg_file.fqb.log2szm1 + 1)) - 1);
             break;
         case FQT_OFFSET:
             // This register is read only
             break;
         case PQB_OFFSET:
             // This register is read-only 0 if capabilities.ATS is 0.
-            if ( g_reg_file.capabilities.ats == 0 )
+            if ( iommu->reg_file.capabilities.ats == 0 )
                 break;
             // The page-request is active when `pqon` reads 1.
             // IOMMU behavior on changing `pqb` when `busy` is 1
@@ -288,22 +265,22 @@ write_register(
             // and waiting for both `busy` and `pqon` to be 0
             // before changing `pqb`.
             // The reference model discards the write
-            if ( g_reg_file.pqcsr.busy || g_reg_file.pqcsr.pqon )
+            if ( iommu->reg_file.pqcsr.busy || iommu->reg_file.pqcsr.pqon )
                 return;
-            g_reg_file.pqb.ppn = pqb_temp.ppn & ppn_mask;
-            g_reg_file.pqb.log2szm1 = pqb_temp.log2szm1;
+            iommu->reg_file.pqb.ppn = pqb_temp.ppn & ppn_mask;
+            iommu->reg_file.pqb.log2szm1 = pqb_temp.log2szm1;
             // The status of bits 31:pqb.LOG2SZ in pqh following a write to pqb
             // is 0 and the bits pqb.LOG2SZ-1:0 in pqh assume a valid but
             // otherwise UNSPECIFIED value.
             // The reference model sets all bits to 0.
-            g_reg_file.pqh.index = 0;
+            iommu->reg_file.pqh.index = 0;
             break;
         case PQH_OFFSET:
             // This register is read-only 0 if capabilities.ATS is 0.
-            if ( g_reg_file.capabilities.ats == 0 )
+            if ( iommu->reg_file.capabilities.ats == 0 )
                 break;
-            g_reg_file.pqh.index = pqh_temp.index &
-                ((1UL << (g_reg_file.pqb.log2szm1 + 1)) - 1);
+            iommu->reg_file.pqh.index = pqh_temp.index &
+                ((1UL << (iommu->reg_file.pqb.log2szm1 + 1)) - 1);
             break;
         case PQT_OFFSET:
             // This register is read only
@@ -327,10 +304,10 @@ write_register(
             // An IOMMU that can complete these operations
             // synchronously may hard-wire this bit to 0.
             // The reference model discards the write
-            if ( g_reg_file.cqcsr.busy )
+            if ( iommu->reg_file.cqcsr.busy )
                 return;
             // First set the busy bit
-            g_reg_file.cqcsr.busy = 1;
+            iommu->reg_file.cqcsr.busy = 1;
             // The command-queue-enable bit enables the command-
             // queue when set to 1. Changing `cqen` from 0 to 1
             // sets the `cqh` register and the `cqcsr` bits
@@ -349,43 +326,43 @@ write_register(
             // that no implicit memory accesses to the command
             // queue are in-flight and the command-queue will not
             // generate new implicit loads to the queue memory.
-            if ( g_reg_file.cqcsr.cqen != cqcsr_temp.cqen ) {
+            if ( iommu->reg_file.cqcsr.cqen != cqcsr_temp.cqen ) {
                 // cqen going from 0->1 or 1->0
                 if ( cqcsr_temp.cqen == 1 ) {
-                    g_reg_file.cqh.index = 0;
-                    g_reg_file.cqcsr.cmd_ill = 0;
-                    g_reg_file.cqcsr.cmd_to = 0;
-                    g_reg_file.cqcsr.cqmf = 0;
-                    g_reg_file.cqcsr.fence_w_ip = 0;
+                    iommu->reg_file.cqh.index = 0;
+                    iommu->reg_file.cqcsr.cmd_ill = 0;
+                    iommu->reg_file.cqcsr.cmd_to = 0;
+                    iommu->reg_file.cqcsr.cqmf = 0;
+                    iommu->reg_file.cqcsr.fence_w_ip = 0;
                     // mark queue as being on
-                    g_reg_file.cqcsr.cqen = 1;
-                    g_reg_file.cqcsr.cqon = 1;
+                    iommu->reg_file.cqcsr.cqen = 1;
+                    iommu->reg_file.cqcsr.cqon = 1;
                 }
                 if ( cqcsr_temp.cqen == 0 ) {
                     // mark queue as being off
-                    g_reg_file.cqcsr.cqen = 0;
+                    iommu->reg_file.cqcsr.cqen = 0;
                     // If IOFENCE is waiting then CQ stays active
                     // through the wait
-                    if ( g_iofence_wait_pending_inv == 0 ) {
-                        g_reg_file.cqcsr.cqon = 0;
+                    if ( iommu->iofence_wait_pending_inv == 0 ) {
+                        iommu->reg_file.cqcsr.cqon = 0;
                     }
                 }
             }
             // Command-queue-interrupt-enable bit enables
             // generation of interrupts from command-queue when
             // set to 1.
-            g_reg_file.cqcsr.cie = cqcsr_temp.cie;
+            iommu->reg_file.cqcsr.cie = cqcsr_temp.cie;
 
             // Update the RW1C bits - clear if written to 1
-            if ( cqcsr_temp.cqmf == 1 )       g_reg_file.cqcsr.cqmf = 0;
-            if ( cqcsr_temp.cmd_to == 1 )     g_reg_file.cqcsr.cmd_to = 0;
-            if ( cqcsr_temp.cmd_ill == 1 )    g_reg_file.cqcsr.cmd_ill = 0;
-            if ( cqcsr_temp.fence_w_ip == 1 ) g_reg_file.cqcsr.fence_w_ip = 0;
+            if ( cqcsr_temp.cqmf == 1 )       iommu->reg_file.cqcsr.cqmf = 0;
+            if ( cqcsr_temp.cmd_to == 1 )     iommu->reg_file.cqcsr.cmd_to = 0;
+            if ( cqcsr_temp.cmd_ill == 1 )    iommu->reg_file.cqcsr.cmd_ill = 0;
+            if ( cqcsr_temp.fence_w_ip == 1 ) iommu->reg_file.cqcsr.fence_w_ip = 0;
 
             // Clear the busy bit. The busy bit may stay active
             // if an IOFENCE is pending
-            if ( g_reg_file.cqcsr.cqen == g_reg_file.cqcsr.cqon )
-                g_reg_file.cqcsr.busy = 0;
+            if ( iommu->reg_file.cqcsr.cqen == iommu->reg_file.cqcsr.cqon )
+                iommu->reg_file.cqcsr.busy = 0;
             return;
         case FQCSR_OFFSET:
             // Write to `fqcsr` may require the IOMMU to perform
@@ -401,10 +378,10 @@ write_register(
             // before writing to the `fqcsr`.
             // An IOMMU that can complete controls synchronously
             // may hard-wire this bit to 0.
-            if ( g_reg_file.fqcsr.busy )
+            if ( iommu->reg_file.fqcsr.busy )
                 return;
             // First set the busy bit
-            g_reg_file.fqcsr.busy = 1;
+            iommu->reg_file.fqcsr.busy = 1;
             // The fault-queue enable bit enables the fault-queue
             // when set to 1.
             // Changing `fqen` from 0 to 1 sets the `fqt` register
@@ -420,33 +397,33 @@ write_register(
             // in-flight implicit writes to the fault-queue in
             // progress when `fqon` reads 0 and no new fault
             // records will be written to the fault-queue.
-            if ( g_reg_file.fqcsr.fqen != fqcsr_temp.fqen ) {
+            if ( iommu->reg_file.fqcsr.fqen != fqcsr_temp.fqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( fqcsr_temp.fqen == 1 ) {
-                    g_reg_file.fqt.index = 0;
-                    g_reg_file.fqcsr.fqof = 0;
-                    g_reg_file.fqcsr.fqmf = 0;
+                    iommu->reg_file.fqt.index = 0;
+                    iommu->reg_file.fqcsr.fqof = 0;
+                    iommu->reg_file.fqcsr.fqmf = 0;
                     // mark queue as being on
-                    g_reg_file.fqcsr.fqon = 1;
-                    g_reg_file.fqcsr.fqen = 1;
+                    iommu->reg_file.fqcsr.fqon = 1;
+                    iommu->reg_file.fqcsr.fqen = 1;
                 }
                 if ( fqcsr_temp.fqen == 0 ) {
                     // mark queue as being off
-                    g_reg_file.fqcsr.fqon = 0;
-                    g_reg_file.fqcsr.fqen = 0;
+                    iommu->reg_file.fqcsr.fqon = 0;
+                    iommu->reg_file.fqcsr.fqen = 0;
                 }
             }
             // Fault-queue-interrupt-enable bit enables
             // generation of interrupts from command-queue when
             // set to 1.
-            g_reg_file.fqcsr.fie = fqcsr_temp.fie;
+            iommu->reg_file.fqcsr.fie = fqcsr_temp.fie;
             // Update the RW1C bits - clear if written to 1
             if ( fqcsr_temp.fqmf == 1)
-                g_reg_file.fqcsr.fqmf = 0;
+                iommu->reg_file.fqcsr.fqmf = 0;
             if ( fqcsr_temp.fqof == 1)
-                g_reg_file.fqcsr.fqof = 0;
+                iommu->reg_file.fqcsr.fqof = 0;
             // Clear the busy bit
-            g_reg_file.fqcsr.busy = 0;
+            iommu->reg_file.fqcsr.busy = 0;
             break;
         case PQCSR_OFFSET:
             // Write to `pqcsr` may require the IOMMU to perform
@@ -462,11 +439,11 @@ write_register(
             // before writing to the `fqcsr`.
             // An IOMMU that can complete controls synchronously
             // may hard-wire this bit to 0.
-            if ( g_reg_file.pqcsr.busy ) {
+            if ( iommu->reg_file.pqcsr.busy ) {
                 return;
             }
             // First set the busy bit
-            g_reg_file.pqcsr.busy = 1;
+            iommu->reg_file.pqcsr.busy = 1;
             // The page-request-enable bit enables the
             // page-request-queue when set to 1.
             // Changing `pqen` from 0 to 1, sets the `pqt` register and
@@ -487,33 +464,33 @@ write_register(
             // the process of being turned off, as having
             // encountered a catastrophic error as defined by
             // the PCIe ATS specifications
-            if ( g_reg_file.pqcsr.pqen != pqcsr_temp.pqen ) {
+            if ( iommu->reg_file.pqcsr.pqen != pqcsr_temp.pqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( pqcsr_temp.pqen == 1 ) {
-                    g_reg_file.pqt.index = 0;
-                    g_reg_file.pqcsr.pqof = 0;
-                    g_reg_file.pqcsr.pqmf = 0;
+                    iommu->reg_file.pqt.index = 0;
+                    iommu->reg_file.pqcsr.pqof = 0;
+                    iommu->reg_file.pqcsr.pqmf = 0;
                     // mark queue as being on
-                    g_reg_file.pqcsr.pqon = 1;
-                    g_reg_file.pqcsr.pqen = 1;
+                    iommu->reg_file.pqcsr.pqon = 1;
+                    iommu->reg_file.pqcsr.pqen = 1;
                 }
                 if ( pqcsr_temp.pqen == 0 ) {
                     // mark queue as being off
-                    g_reg_file.pqcsr.pqon = 0;
-                    g_reg_file.pqcsr.pqen = 0;
+                    iommu->reg_file.pqcsr.pqon = 0;
+                    iommu->reg_file.pqcsr.pqen = 0;
                 }
             }
             // page-request-queue-interrupt-enable bit enables
             // generation of interrupts from page-request-queue when
             // set to 1.
-            g_reg_file.pqcsr.pie = pqcsr_temp.pie;
+            iommu->reg_file.pqcsr.pie = pqcsr_temp.pie;
             // Update the RW1C bits - clear if written to 1
             if ( pqcsr_temp.pqmf == 1 )
-                g_reg_file.pqcsr.pqmf = 0;
+                iommu->reg_file.pqcsr.pqmf = 0;
             if ( pqcsr_temp.pqof == 1 )
-                g_reg_file.pqcsr.pqof = 0;
+                iommu->reg_file.pqcsr.pqof = 0;
             // Clear the busy bit
-            g_reg_file.pqcsr.busy = 0;
+            iommu->reg_file.pqcsr.busy = 0;
             break;
         case IPSR_OFFSET:
             // This 32-bits register (RW1C) reports the pending
@@ -531,59 +508,59 @@ write_register(
             // Clear cip and pend interrupt again if there are unacknowledge
             // interrupts from CQ and if CQ interrupts are enabled
             if ( ipsr_temp.cip == 1 )
-                g_reg_file.ipsr.cip = 0;
+                iommu->reg_file.ipsr.cip = 0;
             if ( ipsr_temp.cip == 1 ) {
-                if ( (g_reg_file.cqcsr.cmd_to ||
-                      g_reg_file.cqcsr.cmd_ill ||
-                      g_reg_file.cqcsr.cqmf ||
-                      g_reg_file.cqcsr.fence_w_ip) &&
-                     (g_reg_file.cqcsr.cie == 1) ) {
-                    generate_interrupt(COMMAND_QUEUE);
+                if ( (iommu->reg_file.cqcsr.cmd_to ||
+                      iommu->reg_file.cqcsr.cmd_ill ||
+                      iommu->reg_file.cqcsr.cqmf ||
+                      iommu->reg_file.cqcsr.fence_w_ip) &&
+                     (iommu->reg_file.cqcsr.cie == 1) ) {
+                    generate_interrupt(iommu, COMMAND_QUEUE);
                 }
             }
             // Clear fip and pend interrupt again If there are unacknowledge
             // interrupts from FQ and if FQ interrupts are enabled
             if ( ipsr_temp.fip == 1 )
-                g_reg_file.ipsr.fip = 0;
+                iommu->reg_file.ipsr.fip = 0;
             if ( ipsr_temp.fip == 1 ) {
-                if ( (g_reg_file.fqcsr.fqof ||
-                      g_reg_file.fqcsr.fqmf) &&
-                     (g_reg_file.fqcsr.fie == 1) ) {
-                    generate_interrupt(FAULT_QUEUE);
+                if ( (iommu->reg_file.fqcsr.fqof ||
+                      iommu->reg_file.fqcsr.fqmf) &&
+                     (iommu->reg_file.fqcsr.fie == 1) ) {
+                    generate_interrupt(iommu, FAULT_QUEUE);
                 }
             }
 
             // Clear pip and pend interrupt again If there are unacknowledge
             // interrupts from PQ and if PQ interrupts are enabled
             if ( ipsr_temp.pip == 1 )
-                g_reg_file.ipsr.pip = 0;
+                iommu->reg_file.ipsr.pip = 0;
             if ( ipsr_temp.pip == 1 ) {
-                if ( (g_reg_file.pqcsr.pqof ||
-                      g_reg_file.pqcsr.pqmf) &&
-                     (g_reg_file.pqcsr.pie == 1) ) {
-                    generate_interrupt(PAGE_QUEUE);
+                if ( (iommu->reg_file.pqcsr.pqof ||
+                      iommu->reg_file.pqcsr.pqmf) &&
+                     (iommu->reg_file.pqcsr.pie == 1) ) {
+                    generate_interrupt(iommu, PAGE_QUEUE);
                 }
             }
             // Note that pmip is only set on a OF 0->1 edge
             // from one of the HPM counters only.
             if ( ipsr_temp.pmip == 1 )
-                g_reg_file.ipsr.pmip = 0;
+                iommu->reg_file.ipsr.pmip = 0;
             break;
         case IOCNTOVF_OFFSET:
             // This register is read only
             return;
         case IOCNTINH_OFFSET:
             // This register is read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 )
-                g_reg_file.iocountinh.raw = data4 & ((1UL << g_num_hpm) - 1);
+            if ( iommu->reg_file.capabilities.hpm == 1 )
+                iommu->reg_file.iocountinh.raw = data4 & ((1UL << iommu->num_hpm) - 1);
             break;
         case IOHPMCYCLES_OFFSET:
             // This register is read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 ) {
-                g_reg_file.iohpmcycles.counter =
+            if ( iommu->reg_file.capabilities.hpm == 1 ) {
+                iommu->reg_file.iohpmcycles.counter =
                     iohpmcycles_temp.counter &
-                    ((g_hpmctr_bits > 63) ? ((1UL << 63) - 1) : ((1UL << g_hpmctr_bits) - 1));
-                g_reg_file.iohpmcycles.of = iohpmcycles_temp.of;
+                    ((iommu->hpmctr_bits > 63) ? ((1UL << 63) - 1) : ((1UL << iommu->hpmctr_bits) - 1));
+                iommu->reg_file.iohpmcycles.of = iohpmcycles_temp.of;
             }
             break;
         case IOHPMCTR1_OFFSET:
@@ -618,13 +595,13 @@ write_register(
         case IOHPMCTR30_OFFSET:
         case IOHPMCTR31_OFFSET:
             // These register are read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 ) {
+            if ( iommu->reg_file.capabilities.hpm == 1 ) {
                 ctr_num = ((offset - IOHPMCTR1_OFFSET)/8) + 1;
                 // Writes discarded to non implemented HPM counters
-                if ( ctr_num <= (g_num_hpm - 1) )  {
+                if ( ctr_num <= (iommu->num_hpm - 1) )  {
                     // These registers are 64-bit WARL counter registers
-                    g_reg_file.iohpmctr[ctr_num - 1].counter = data8 &
-                        ((g_hpmctr_bits == 64) ? -1LL : ((1LL << g_hpmctr_bits) - 1));
+                    iommu->reg_file.iohpmctr[ctr_num - 1].counter = data8 &
+                        ((iommu->hpmctr_bits == 64) ? -1LL : ((1LL << iommu->hpmctr_bits) - 1));
                 }
             }
             break;
@@ -660,15 +637,15 @@ write_register(
         case IOHPMEVT30_OFFSET:
         case IOHPMEVT31_OFFSET:
             // These register are read-only 0 if capabilities.HPM is 0
-            if ( g_reg_file.capabilities.hpm == 1 ) {
+            if ( iommu->reg_file.capabilities.hpm == 1 ) {
                 ctr_num = ((offset - IOHPMEVT1_OFFSET)/8);
                 // Writes discarded to non implemented HPM counters
-                if ( ctr_num < (g_num_hpm - 1) )  {
+                if ( ctr_num < (iommu->num_hpm - 1) )  {
                     // These registers are 64-bit WARL counter registers
                     iohpmevt_temp.eventID =
-                        (iohpmevt_temp.eventID > g_eventID_limit) ?
-                        g_reg_file.iohpmevt[ctr_num].eventID: iohpmevt_temp.eventID;
-                    g_reg_file.iohpmevt[ctr_num].raw = iohpmevt_temp.raw;
+                        (iohpmevt_temp.eventID > iommu->eventID_limit) ?
+                        iommu->reg_file.iohpmevt[ctr_num].eventID: iohpmevt_temp.eventID;
+                    iommu->reg_file.iohpmevt[ctr_num].raw = iohpmevt_temp.raw;
                 }
             }
             break;
@@ -681,9 +658,9 @@ write_register(
             // The `tr_req_iova` is a 64-bit WARL register used to implement a
             // translation-request interface for debug. This register is present when
             // `capabilities.DBG == 1`.
-            if ( g_reg_file.capabilities.dbg == 1 ) {
-                if ( g_reg_file.tr_req_ctrl.go_busy == 0 ) {
-                    g_reg_file.tr_req_iova.raw = data8 & ~0xFFF;
+            if ( iommu->reg_file.capabilities.dbg == 1 ) {
+                if ( iommu->reg_file.tr_req_ctrl.go_busy == 0 ) {
+                    iommu->reg_file.tr_req_iova.raw = data8 & ~0xFFF;
                 }
             }
             break;
@@ -695,38 +672,38 @@ write_register(
             // The `tr_req_ctrl` is a 64-bit WARL register used to implement a
             // translation-request interface for debug. This register is present when
             // `capabilities.DBG == 1`.
-            if ( g_reg_file.capabilities.dbg == 1 ) {
-                if ( g_reg_file.tr_req_ctrl.go_busy == 0 ) {
-                    g_reg_file.tr_req_ctrl.raw = data8;
-                    g_reg_file.tr_req_ctrl.reserved = 0;
-                    g_reg_file.tr_req_ctrl.custom = 0;
+            if ( iommu->reg_file.capabilities.dbg == 1 ) {
+                if ( iommu->reg_file.tr_req_ctrl.go_busy == 0 ) {
+                    iommu->reg_file.tr_req_ctrl.raw = data8;
+                    iommu->reg_file.tr_req_ctrl.reserved = 0;
+                    iommu->reg_file.tr_req_ctrl.custom = 0;
                     // On a g_busy 0->1 transition kick off a translation
-                    if ( g_reg_file.tr_req_ctrl.go_busy == 1 ) {
-                        req.device_id = g_reg_file.tr_req_ctrl.DID;
-                        req.pid_valid = g_reg_file.tr_req_ctrl.PV;
-                        req.process_id = g_reg_file.tr_req_ctrl.PID;
-                        req.exec_req = g_reg_file.tr_req_ctrl.Exe;
-                        req.priv_req = g_reg_file.tr_req_ctrl.Priv;
+                    if ( iommu->reg_file.tr_req_ctrl.go_busy == 1 ) {
+                        req.device_id = iommu->reg_file.tr_req_ctrl.DID;
+                        req.pid_valid = iommu->reg_file.tr_req_ctrl.PV;
+                        req.process_id = iommu->reg_file.tr_req_ctrl.PID;
+                        req.exec_req = iommu->reg_file.tr_req_ctrl.Exe;
+                        req.priv_req = iommu->reg_file.tr_req_ctrl.Priv;
                         req.is_cxl_dev = 0;
                         req.tr.at = ADDR_TYPE_UNTRANSLATED;
-                        req.tr.iova = g_reg_file.tr_req_iova.raw;
+                        req.tr.iova = iommu->reg_file.tr_req_iova.raw;
                         req.tr.length = 1;
-                        req.tr.read_writeAMO = (g_reg_file.tr_req_ctrl.NW == 1) ? READ : WRITE;
+                        req.tr.read_writeAMO = (iommu->reg_file.tr_req_ctrl.NW == 1) ? READ : WRITE;
 
-                        g_trans_for_debug = 1;
-                        iommu_translate_iova(&req, &rsp);
-                        g_trans_for_debug = 0;
+                        iommu->trans_for_debug = 1;
+                        iommu_translate_iova(iommu, &req, &rsp);
+                        iommu->trans_for_debug = 0;
 
                         // The value in PBMT, S< and PPN are UNSPECIFIED if
                         // fault is 1. Model sets them to 0.
-                        g_reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
-                        g_reg_file.tr_response.PBMT  = (rsp.status == SUCCESS) ? rsp.trsp.PBMT : 0 ;
-                        g_reg_file.tr_response.S     = (rsp.status == SUCCESS) ? rsp.trsp.S : 0 ;
-                        g_reg_file.tr_response.PPN   = (rsp.status == SUCCESS) ? rsp.trsp.PPN : 0;
-                        g_reg_file.tr_response.reserved0 = 0;
-                        g_reg_file.tr_response.reserved1 = 0;
-                        g_reg_file.tr_response.custom = 0;
-                        g_reg_file.tr_req_ctrl.go_busy = 0;
+                        iommu->reg_file.tr_response.fault = (rsp.status == SUCCESS) ? 0 : 1;
+                        iommu->reg_file.tr_response.PBMT  = (rsp.status == SUCCESS) ? rsp.trsp.PBMT : 0 ;
+                        iommu->reg_file.tr_response.S     = (rsp.status == SUCCESS) ? rsp.trsp.S : 0 ;
+                        iommu->reg_file.tr_response.PPN   = (rsp.status == SUCCESS) ? rsp.trsp.PPN : 0;
+                        iommu->reg_file.tr_response.reserved0 = 0;
+                        iommu->reg_file.tr_response.reserved1 = 0;
+                        iommu->reg_file.tr_response.custom = 0;
+                        iommu->reg_file.tr_req_ctrl.go_busy = 0;
                     }
                 }
             }
@@ -734,8 +711,8 @@ write_register(
         case IOMMU_QOSID_OFFSET:
             // This register is read-only zero if qosid extension is not
             // supported. The RCID and MCID fields of the register are WARL
-            if ( g_reg_file.capabilities.qosid == 1 ) {
-                g_reg_file.iommu_qosid.raw = data4 & g_iommu_qosid_mask.raw;
+            if ( iommu->reg_file.capabilities.qosid == 1 ) {
+                iommu->reg_file.iommu_qosid.raw = data4 & iommu->iommu_qosid_mask.raw;
             }
             break;
         case ICVEC_OFFSET:
@@ -743,24 +720,24 @@ write_register(
             // (`pmiv`) is the vector number assigned to the
             // performance-monitoring-interrupt. This field is
             // read-only 0 if `capabilities.HPM` is 0.
-            if ( g_reg_file.capabilities.hpm == 0 ) {
+            if ( iommu->reg_file.capabilities.hpm == 0 ) {
                 icvec_temp.pmiv = 0;
             }
             // The page-request-queue-interrupt-vector (`piv`)
             // is the vector number assigned to the
             // page-request-queue-interrupt. This field is
             // read-only 0 if `capabilities.ATS` is 0.
-            if ( g_reg_file.capabilities.ats == 0 ) {
+            if ( iommu->reg_file.capabilities.ats == 0 ) {
                 icvec_temp.piv = 0;
             }
             // If an implementation only supports a single vector then all
             // bits of this register may be hardwired to 0 (WARL). Likewise
             // if only two vectors are supported then only bit 0 for each
             // cause could be writable.
-            g_reg_file.icvec.pmiv = icvec_temp.pmiv & ((1UL << g_num_vec_bits) - 1);
-            g_reg_file.icvec.piv  = icvec_temp.piv & ((1UL << g_num_vec_bits) - 1);
-            g_reg_file.icvec.fiv  = icvec_temp.fiv & ((1UL << g_num_vec_bits) - 1);
-            g_reg_file.icvec.civ  = icvec_temp.civ & ((1UL << g_num_vec_bits) - 1);
+            iommu->reg_file.icvec.pmiv = icvec_temp.pmiv & ((1UL << iommu->num_vec_bits) - 1);
+            iommu->reg_file.icvec.piv  = icvec_temp.piv & ((1UL << iommu->num_vec_bits) - 1);
+            iommu->reg_file.icvec.fiv  = icvec_temp.fiv & ((1UL << iommu->num_vec_bits) - 1);
+            iommu->reg_file.icvec.civ  = icvec_temp.civ & ((1UL << iommu->num_vec_bits) - 1);
             break;
         case MSI_ADDR_0_OFFSET:
         case MSI_ADDR_1_OFFSET:
@@ -786,13 +763,13 @@ write_register(
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
             // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
-            if ( g_reg_file.capabilities.igs == WSI )
+            if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) )
+            if ( x >= (1UL << iommu->num_vec_bits) )
                 break;
             msi_addr_temp.addr = msi_addr_temp.addr & (pa_mask >> 2);
-            g_reg_file.msi_cfg_tbl[x].msi_addr.addr = msi_addr_temp.addr;
+            iommu->reg_file.msi_cfg_tbl[x].msi_addr.addr = msi_addr_temp.addr;
             break;
         case MSI_DATA_0_OFFSET:
         case MSI_DATA_1_OFFSET:
@@ -818,12 +795,12 @@ write_register(
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
             // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
-            if ( g_reg_file.capabilities.igs == WSI )
+            if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) )
+            if ( x >= (1UL << iommu->num_vec_bits) )
                 break;
-            g_reg_file.msi_cfg_tbl[x].msi_data = data4;
+            iommu->reg_file.msi_cfg_tbl[x].msi_data = data4;
             break;
         case MSI_VEC_CTRL_0_OFFSET:
         case MSI_VEC_CTRL_1_OFFSET:
@@ -849,22 +826,22 @@ write_register(
             // then MSI configuration table entries 2^V to 15 are read-only 0. These registers
             // are read-only 0 if the IOMMU does not support MSI
             // (i.e., if capabilities.IGS == WSI).
-            if ( g_reg_file.capabilities.igs == WSI )
+            if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
-            if ( x >= (1UL << g_num_vec_bits) )
+            if ( x >= (1UL << iommu->num_vec_bits) )
                 break;
-            if ( msi_vec_ctrl_temp.m == 0 &&
-                 g_reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m == 1 ) {
-                release_pending_interrupt(x);
+            if ( msi_vec_ctrl_temp.m == 1 &&
+                 iommu->reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m == 1 ) {
+                release_pending_interrupt(iommu, x);
             }
-            g_reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m = msi_vec_ctrl_temp.m;
+            iommu->reg_file.msi_cfg_tbl[x].msi_vec_ctrl.m = msi_vec_ctrl_temp.m;
             break;
     }
     return;
 }
 int
-reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
+reset_iommu(iommu_t *iommu, uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
             uint8_t num_vec_bits, uint8_t reset_iommu_mode,
             uint8_t max_iommu_mode, uint32_t max_devid_mask,
             uint8_t gxl_writeable, uint8_t fctl_be_writeable,
@@ -891,7 +868,7 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
         return -1;
     // Only 15-bit event ID supported
     // Limit must be 0 when hpm not supported
-    if ( g_eventID_limit != 0 && capabilities.hpm == 0 )
+    if ( iommu->eventID_limit != 0 && capabilities.hpm == 0 )
         return -1;
     // vectors is a number between 1 and 15
     if ( num_vec_bits > 4 )
@@ -912,15 +889,15 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
         return -1;
 #endif
 
-    g_eventID_limit = eventID_limit;
-    g_num_vec_bits = num_vec_bits;
-    g_num_hpm = num_hpm;
-    g_hpmctr_bits = hpmctr_bits;
-    g_gxl_writeable = gxl_writeable;
-    g_fctl_be_writeable = fctl_be_writeable;
-    g_max_iommu_mode = max_iommu_mode;
-    g_max_devid_mask = max_devid_mask;
-    g_fill_ats_trans_in_ioatc = fill_ats_trans_in_ioatc;
+    iommu->eventID_limit = eventID_limit;
+    iommu->num_vec_bits = num_vec_bits;
+    iommu->num_hpm = num_hpm;
+    iommu->hpmctr_bits = hpmctr_bits;
+    iommu->gxl_writeable = gxl_writeable;
+    iommu->fctl_be_writeable = fctl_be_writeable;
+    iommu->max_iommu_mode = max_iommu_mode;
+    iommu->max_devid_mask = max_devid_mask;
+    iommu->fill_ats_trans_in_ioatc = fill_ats_trans_in_ioatc;
 
     // Initialize registers that have resets to 0
     // The reset default value is 0 for the following registers.
@@ -933,81 +910,81 @@ reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
     // If test needs random values then use the register read/write
     // interface to setup random values. By default all registers are
     // cleared to 0
-    memset(&g_reg_file, 0, sizeof(g_reg_file));
+    memset(&iommu->reg_file, 0, sizeof(iommu->reg_file));
 
     // Initialize the reset default capabilities and feature
     // control.
-    g_reg_file.capabilities = capabilities;
-    g_reg_file.fctl = fctl;
+    iommu->reg_file.capabilities = capabilities;
+    iommu->reg_file.fctl = fctl;
 
     // Reset value for ddtp.iommu_mode field must be either Off or Bare.
     // The reset value for ddtp.busy field must be 0.
-    g_reg_file.ddtp.iommu_mode = reset_iommu_mode;
+    iommu->reg_file.ddtp.iommu_mode = reset_iommu_mode;
 
     // Initialize the offset to register size mapping array
 
     // Initialize offsets as invalid by default
     for ( i = 0; i < 4096; i++ )
-        g_offset_to_size[i] = 0xFF;
+        offset_to_size[i] = 0xFF;
 
-    g_offset_to_size[CAPABILITIES_OFFSET] = 8;
-    g_offset_to_size[CAPABILITIES_OFFSET + 4] = 8;
-    g_offset_to_size[FCTRL_OFFSET] = 4;
-    g_offset_to_size[DDTP_OFFSET] = 8;
-    g_offset_to_size[DDTP_OFFSET + 4] = 8;
-    g_offset_to_size[CQB_OFFSET] = 8;
-    g_offset_to_size[CQB_OFFSET + 4] = 8;
-    g_offset_to_size[CQH_OFFSET] = 4;
-    g_offset_to_size[CQT_OFFSET] = 4;
-    g_offset_to_size[FQB_OFFSET] = 8;
-    g_offset_to_size[FQB_OFFSET + 4] = 8;
-    g_offset_to_size[FQH_OFFSET] = 4;
-    g_offset_to_size[FQT_OFFSET] = 4;
-    g_offset_to_size[PQB_OFFSET] = 8;
-    g_offset_to_size[PQB_OFFSET + 4] = 8;
-    g_offset_to_size[PQH_OFFSET] = 4;
-    g_offset_to_size[PQT_OFFSET] = 4;
-    g_offset_to_size[CQCSR_OFFSET] = 4;
-    g_offset_to_size[FQCSR_OFFSET] = 4;
-    g_offset_to_size[PQCSR_OFFSET] = 4;
-    g_offset_to_size[IPSR_OFFSET] = 4;
-    g_offset_to_size[IOCNTOVF_OFFSET] = 4;
-    g_offset_to_size[IOCNTINH_OFFSET] = 4;
-    g_offset_to_size[IOHPMCYCLES_OFFSET] = 8;
-    g_offset_to_size[IOHPMCYCLES_OFFSET + 4] = 8;
+    offset_to_size[CAPABILITIES_OFFSET] = 8;
+    offset_to_size[CAPABILITIES_OFFSET + 4] = 8;
+    offset_to_size[FCTRL_OFFSET] = 4;
+    offset_to_size[DDTP_OFFSET] = 8;
+    offset_to_size[DDTP_OFFSET + 4] = 8;
+    offset_to_size[CQB_OFFSET] = 8;
+    offset_to_size[CQB_OFFSET + 4] = 8;
+    offset_to_size[CQH_OFFSET] = 4;
+    offset_to_size[CQT_OFFSET] = 4;
+    offset_to_size[FQB_OFFSET] = 8;
+    offset_to_size[FQB_OFFSET + 4] = 8;
+    offset_to_size[FQH_OFFSET] = 4;
+    offset_to_size[FQT_OFFSET] = 4;
+    offset_to_size[PQB_OFFSET] = 8;
+    offset_to_size[PQB_OFFSET + 4] = 8;
+    offset_to_size[PQH_OFFSET] = 4;
+    offset_to_size[PQT_OFFSET] = 4;
+    offset_to_size[CQCSR_OFFSET] = 4;
+    offset_to_size[FQCSR_OFFSET] = 4;
+    offset_to_size[PQCSR_OFFSET] = 4;
+    offset_to_size[IPSR_OFFSET] = 4;
+    offset_to_size[IOCNTOVF_OFFSET] = 4;
+    offset_to_size[IOCNTINH_OFFSET] = 4;
+    offset_to_size[IOHPMCYCLES_OFFSET] = 8;
+    offset_to_size[IOHPMCYCLES_OFFSET + 4] = 8;
     for ( i = IOHPMCTR1_OFFSET; i < IOHPMCTR1_OFFSET + (8 * 31); i += 8 ) {
-        g_offset_to_size[i] = 8;
-        g_offset_to_size[i + 4] = 8;
+        offset_to_size[i] = 8;
+        offset_to_size[i + 4] = 8;
     }
     for ( i = IOHPMEVT1_OFFSET; i < IOHPMEVT1_OFFSET + (8 * 31); i += 8 ) {
-        g_offset_to_size[i] = 8;
-        g_offset_to_size[i + 4] = 8;
+        offset_to_size[i] = 8;
+        offset_to_size[i + 4] = 8;
     }
-    g_offset_to_size[TR_REQ_IOVA_OFFSET] = 8;
-    g_offset_to_size[TR_REQ_IOVA_OFFSET + 4] = 8;
-    g_offset_to_size[TR_REQ_CTRL_OFFSET] = 8;
-    g_offset_to_size[TR_REQ_CTRL_OFFSET + 4] = 8;
-    g_offset_to_size[TR_RESPONSE_OFFSET] = 8;
-    g_offset_to_size[TR_RESPONSE_OFFSET + 4] = 8;
+    offset_to_size[TR_REQ_IOVA_OFFSET] = 8;
+    offset_to_size[TR_REQ_IOVA_OFFSET + 4] = 8;
+    offset_to_size[TR_REQ_CTRL_OFFSET] = 8;
+    offset_to_size[TR_REQ_CTRL_OFFSET + 4] = 8;
+    offset_to_size[TR_RESPONSE_OFFSET] = 8;
+    offset_to_size[TR_RESPONSE_OFFSET + 4] = 8;
     for ( i = RESERVED_OFFSET; i < ICVEC_OFFSET; i++ ) {
-        g_offset_to_size[i] = 1;
+        offset_to_size[i] = 1;
     }
-    g_offset_to_size[IOMMU_QOSID_OFFSET] = 4;
-    g_offset_to_size[ICVEC_OFFSET] = 8;
-    g_offset_to_size[ICVEC_OFFSET + 4] = 8;
+    offset_to_size[IOMMU_QOSID_OFFSET] = 4;
+    offset_to_size[ICVEC_OFFSET] = 8;
+    offset_to_size[ICVEC_OFFSET + 4] = 8;
     for ( i = 0; i < 256; i += 16) {
-        g_offset_to_size[i + MSI_ADDR_0_OFFSET] = 8;
-        g_offset_to_size[i + MSI_ADDR_0_OFFSET + 4] = 8;
-        g_offset_to_size[i + MSI_DATA_0_OFFSET] = 4;
-        g_offset_to_size[i + MSI_VEC_CTRL_0_OFFSET] = 4;
+        offset_to_size[i + MSI_ADDR_0_OFFSET] = 8;
+        offset_to_size[i + MSI_ADDR_0_OFFSET + 4] = 8;
+        offset_to_size[i + MSI_DATA_0_OFFSET] = 4;
+        offset_to_size[i + MSI_VEC_CTRL_0_OFFSET] = 4;
     }
-    g_sv57_bare_pg_sz = sv57_bare_pg_sz;
-    g_sv48_bare_pg_sz = sv48_bare_pg_sz;
-    g_sv39_bare_pg_sz = sv39_bare_pg_sz;
-    g_sv32_bare_pg_sz = sv32_bare_pg_sz;
-    g_sv57x4_bare_pg_sz = sv57x4_bare_pg_sz;
-    g_sv48x4_bare_pg_sz = sv48x4_bare_pg_sz;
-    g_sv39x4_bare_pg_sz = sv39x4_bare_pg_sz;
-    g_sv32x4_bare_pg_sz = sv32x4_bare_pg_sz;
+    iommu->sv57_bare_pg_sz = sv57_bare_pg_sz;
+    iommu->sv48_bare_pg_sz = sv48_bare_pg_sz;
+    iommu->sv39_bare_pg_sz = sv39_bare_pg_sz;
+    iommu->sv32_bare_pg_sz = sv32_bare_pg_sz;
+    iommu->sv57x4_bare_pg_sz = sv57x4_bare_pg_sz;
+    iommu->sv48x4_bare_pg_sz = sv48x4_bare_pg_sz;
+    iommu->sv39x4_bare_pg_sz = sv39x4_bare_pg_sz;
+    iommu->sv32x4_bare_pg_sz = sv32x4_bare_pg_sz;
     return 0;
 }

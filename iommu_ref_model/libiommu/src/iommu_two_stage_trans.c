@@ -7,6 +7,7 @@
 
 uint8_t
 two_stage_address_translation(
+    iommu_t *iommu,
     uint64_t iova, uint8_t check_access_perms, uint32_t DID, uint8_t is_read,
     uint8_t is_write, uint8_t is_exec,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
@@ -25,7 +26,7 @@ two_stage_address_translation(
     int8_t i;
     uint64_t a, a_gpa, masked_upper_bits, mask;
     uint64_t gst_page_sz;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
 
     *iotval2 = 0;
 
@@ -45,14 +46,14 @@ two_stage_address_translation(
         // translation are Bare, is implementation-defined. However, it
         // is recommended that the translation range size be large, such
         // as 2 MiB or 1 GiB.
-        if ( g_reg_file.capabilities.Sv57 == 1 )
-            *page_sz = g_sv57_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv48 == 1 )
-            *page_sz = g_sv48_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv39 == 1 && SXL == 0)
-            *page_sz = g_sv39_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv32 == 1 && SXL == 1)
-            *page_sz = g_sv32_bare_pg_sz;
+        if ( iommu->reg_file.capabilities.Sv57 == 1 )
+            *page_sz = iommu->sv57_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv48 == 1 )
+            *page_sz = iommu->sv48_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv39 == 1 && SXL == 0)
+            *page_sz = iommu->sv39_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv32 == 1 && SXL == 1)
+            *page_sz = iommu->sv32_bare_pg_sz;
         return 0;
     }
 
@@ -126,7 +127,7 @@ step_2:
     // implicit access to a VS-stage PTE, if the G-stage PTE provides write
     // permission, before any speculative access to the VS-stage PTE.
     is_implicit = 1;
-    if ( ( gst_fault = second_stage_address_translation(a, 1, DID, 1, 0, 0, is_implicit,
+    if ( ( gst_fault = second_stage_address_translation(iommu, a, 1, DID, 1, 0, 0, is_implicit,
                             PV, PID, PSCV, PSCID, GV, GSCID, iohgatp, GADE, SADE, SXL,
                             &a, &gst_page_sz, &gpte, rcid, mcid) ) ) {
         if ( gst_fault == GST_PAGE_FAULT ) goto guest_page_fault;
@@ -139,7 +140,7 @@ step_2:
     if ( a & ~pa_mask ) goto access_fault;
 
     // Count S/VS stage page walks
-    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
+    count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     pte->raw = 0;
     status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid, gpte.PBMT);
     if ( status & ACCESS_FAULT ) goto access_fault;
@@ -153,10 +154,10 @@ step_2:
     //    bits 60-59 of the page table entries (PTEs) are reserved for use by
     //    supervisor software and are ignored by the implementation.
     if ( (pte->V == 0) || (pte->R == 0 && pte->W == 1) ||
-         ((pte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         ((pte->PBMT != 0) && (iommu->reg_file.capabilities.Svpbmt == 0)) ||
          (pte->PBMT == 3) ||
          (pte->reserved != 0) ||
-         ((pte->rsw60t59b != 0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
+         ((pte->rsw60t59b != 0) && (iommu->reg_file.capabilities.Svrsw60t59b == 0)) )
         goto page_fault;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
@@ -319,7 +320,7 @@ step_5:
     if ( gpte.W == 0 ) goto guest_page_fault;
 
     // Count S/VS stage page walks
-    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
+    count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     amo_pte.raw = 0;
     status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid, gpte.PBMT);
 

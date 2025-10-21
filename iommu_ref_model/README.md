@@ -93,7 +93,10 @@ group response - to the test bench.
 These functions are provided by the reference model to the test bench to input stimulii and
 obtain responses from the model.
 
-1. **`uint64_t read_register(uint16_t offset, uint8_t num_bytes)`**
+Each function takes as its first parameter a pointer to an `iommu_t` which is a
+struct containing the internal state of the IOMMU.
+
+1. **`uint64_t read_register(iommu_t *iommu, uint16_t offset, uint8_t num_bytes)`**
 
 This function is provided by the reference model to read a memory mapped IOMMU
 register. The register is identified by the offset parameter and the number of bytes
@@ -101,7 +104,7 @@ read is identified by the num_bytes parameter. The register data is returned by 
 function. If the access is invalid then the function returns all 1's i.e. an abort
 response.
 
-2. **`void write_register(uint16_t offset, uint8_t num_bytes, uint64_t data)`**
+2. **`void write_register(iommu_t *iommu, uint16_t offset, uint8_t num_bytes, uint64_t data)`**
 
 This function is provided by the reference model to write a memory mapped IOMMU
 register. The register is identified by the offset parameter and the number of bytes
@@ -109,7 +112,7 @@ written is identified by the num_bytes parameter. The data to be written is prov
 in the data parameter. If the access is invalid then the function drops the write i.e.
 an abort response.
 
-3. **`int reset_iommu(uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit, uint8_t num_vec_bits, uint8_t reset_iommu_mode, uint8_t max_iommu_mode, uint32_t max_devid_mask, uint8_t gxl_writeable, uint8_t fctl_be_writeable, uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities, fctl_t fctl, uint64_t sv57_bare_pg_sz, uint64_t sv48_bare_pg_sz, uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz, uint64_t sv57x4_bare_pg_sz, uint64_t sv48x4_bare_pg_sz, uint64_t sv39x4_bare_pg_sz, uint64_t sv32x4_bare_pg_sz);`**
+3. **`int reset_iommu(iommu_t *iommu, uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit, uint8_t num_vec_bits, uint8_t reset_iommu_mode, uint8_t max_iommu_mode, uint32_t max_devid_mask, uint8_t gxl_writeable, uint8_t fctl_be_writeable, uint8_t fill_ats_trans_in_ioatc, capabilities_t capabilities, fctl_t fctl, uint64_t sv57_bare_pg_sz, uint64_t sv48_bare_pg_sz, uint64_t sv39_bare_pg_sz, uint64_t sv32_bare_pg_sz, uint64_t sv57x4_bare_pg_sz, uint64_t sv48x4_bare_pg_sz, uint64_t sv39x4_bare_pg_sz, uint64_t sv32x4_bare_pg_sz);`**
 
 This function is provided by the reference model to establish the resset default state.
 The num_hpm indicates the number of hardware performace monitoring counters to be
@@ -123,25 +126,25 @@ parameter. The default value of the feature control register is provided by the 
 parameter. The function returns 0 if the reference model could be successfully initialized
 with the provided parameters.
 
-4. **`void iommu_translate_iova(hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg)`**
+4. **`void iommu_translate_iova(iommu_t *iommu, hb_to_iommu_req_t *req, iommu_to_hb_rsp_t *rsp_msg)`**
 
 This function is used by the test bench to invoke the translation request interface in the
 IOMMU. The translation response is returned in the buffer pointed to by rsp_msg.
 
-5. **`void handle_page_request(ats_msg_t *pr)`**
+5. **`void handle_page_request(iommu_t *iommu, ats_msg_t *pr)`**
 
 This function is used by the test bench to send a page request message to the IOMMU.
 
-6. **`uint8_t handle_invalidation_completion(ats_msg_t *inv_cc)`**
+6. **`uint8_t handle_invalidation_completion(iommu_t *iommu, ats_msg_t *inv_cc)`**
 
 This function is used by the test bench to send a invalidation completion message to the IOMMU.
 
-7. **`void do_ats_timer_expiry(uint32_t itag_vector)`**
+7. **`void do_ats_timer_expiry(iommu_t *iommu, uint32_t itag_vector)`**
 
 This function is used by the test bench to signal a timeout for one or more ATS invalidation
 requests sent by the IOMMU.
 
-8. **`void process_commands(void)`**
+8. **`void process_commands(iommu_t *iommu)`**
 
 This function when invoked causes the IOMMU to process a command from the command queue. This
 function acts like a "clock" and in each invocation processes one command. If multiple command

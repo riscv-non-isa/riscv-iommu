@@ -6,6 +6,7 @@
 #include "iommu.h"
 uint8_t
 second_stage_address_translation(
+    iommu_t *iommu,
     uint64_t gpa, uint8_t check_access_perms, uint32_t DID,
     uint8_t is_read, uint8_t is_write, uint8_t is_exec, uint8_t is_implicit,
     uint8_t PV, uint32_t PID, uint8_t PSCV, uint32_t PSCID,
@@ -20,7 +21,7 @@ second_stage_address_translation(
     int8_t i;
     uint64_t a;
     uint64_t gpa_upper_bits;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
 
     *gst_page_sz = PAGESIZE;
 
@@ -37,28 +38,28 @@ second_stage_address_translation(
         // translation are Bare, is implementation-defined. However, it
         // is recommended that the translation range size be large, such
         // as 2 MiB or 1 GiB.
-        if ( g_reg_file.capabilities.Sv57x4 == 1 )
-            *gst_page_sz = g_sv57x4_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv48x4 == 1 )
-            *gst_page_sz = g_sv48x4_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv39x4 == 1 && g_reg_file.fctl.gxl == 0)
-            *gst_page_sz = g_sv39x4_bare_pg_sz;
-        else if ( g_reg_file.capabilities.Sv32x4 == 1 && g_reg_file.fctl.gxl == 1)
-            *gst_page_sz = g_sv32x4_bare_pg_sz;
+        if ( iommu->reg_file.capabilities.Sv57x4 == 1 )
+            *gst_page_sz = iommu->sv57x4_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv48x4 == 1 )
+            *gst_page_sz = iommu->sv48x4_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv39x4 == 1 && iommu->reg_file.fctl.gxl == 0)
+            *gst_page_sz = iommu->sv39x4_bare_pg_sz;
+        else if ( iommu->reg_file.capabilities.Sv32x4 == 1 && iommu->reg_file.fctl.gxl == 1)
+            *gst_page_sz = iommu->sv32x4_bare_pg_sz;
         goto step_8;
     }
 
     // 1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. PAGESIZE is 2^12. (For Sv32,
     //    LEVELS=2, For Sv39 LEVELS=3, For Sv48 LEVELS=4, For Sv57 LEVELS=5.) The satp register
     //    must be active, i.e., the effective privilege mode must be S-mode or U-mode.
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1 ) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && iommu->reg_file.fctl.gxl == 1 ) {
         vpn[0] = get_bits(21, 12, gpa);
         vpn[1] = get_bits(34, 22, gpa);
         gpa_upper_bits = 0;
         LEVELS = 2;
         PTESIZE = 4;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && iommu->reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(40, 30, gpa);
@@ -66,7 +67,7 @@ second_stage_address_translation(
         LEVELS = 3;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && iommu->reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -75,7 +76,7 @@ second_stage_address_translation(
         LEVELS = 4;
         PTESIZE = 8;
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && iommu->reg_file.fctl.gxl == 0) {
         vpn[0] = get_bits(20, 12, gpa);
         vpn[1] = get_bits(29, 21, gpa);
         vpn[2] = get_bits(38, 30, gpa);
@@ -108,7 +109,7 @@ second_stage_address_translation(
 
 step_2:
     // Count G stage page walks
-    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
+    count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
 
     // 2. Let gpte be the value of the PTE at address a+gpa.vpn[i]×PTESIZE. (For
     //    Sv32x4 PTESIZE=4. and for all other modes PTESIZE=8). If accessing pte
@@ -131,10 +132,10 @@ step_2:
     //    bits 60-59 of the page table entries (PTEs) are reserved for use by
     //    supervisor software and are ignored by the implementation.
     if ( (gpte->V == 0) || (gpte->R == 0 && gpte->W == 1) ||
-         ((gpte->PBMT != 0) && (g_reg_file.capabilities.Svpbmt == 0)) ||
+         ((gpte->PBMT != 0) && (iommu->reg_file.capabilities.Svpbmt == 0)) ||
          (gpte->PBMT == 3) ||
          (gpte->reserved != 0) ||
-         ((gpte->rsw60t59b != 0) && (g_reg_file.capabilities.Svrsw60t59b == 0)) )
+         ((gpte->rsw60t59b != 0) && (iommu->reg_file.capabilities.Svrsw60t59b == 0)) )
         return GST_PAGE_FAULT;
 
     // NAPOT PTEs behave identically to non-NAPOT PTEs within the address-translation
@@ -207,22 +208,22 @@ step_5:
     if ( gpte->U == 0 ) return GST_PAGE_FAULT;
 
     ppn[4] = ppn[3] = ppn[2] = ppn[1] = ppn[0] = 0;
-    if ( iohgatp.MODE == IOHGATP_Sv32x4 && g_reg_file.fctl.gxl == 1) {
+    if ( iohgatp.MODE == IOHGATP_Sv32x4 && iommu->reg_file.fctl.gxl == 1) {
         ppn[0] = get_bits(19, 10, gpte->raw);
         ppn[1] = get_bits(31, 20, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv39x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv39x4 && iommu->reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(53, 28, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv48x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv48x4 && iommu->reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(36, 28, gpte->raw);
         ppn[3] = get_bits(53, 37, gpte->raw);
     }
-    if ( iohgatp.MODE == IOHGATP_Sv57x4 && g_reg_file.fctl.gxl == 0) {
+    if ( iohgatp.MODE == IOHGATP_Sv57x4 && iommu->reg_file.fctl.gxl == 0) {
         ppn[0] = get_bits(18, 10, gpte->raw);
         ppn[1] = get_bits(27, 19, gpte->raw);
         ppn[2] = get_bits(36, 28, gpte->raw);
@@ -244,7 +245,7 @@ step_5:
             case 1: if ( ppn[0] ) return GST_PAGE_FAULT;
                     *gst_page_sz *= 512UL; // 2MiB
                     if ( iohgatp.MODE == IOHGATP_Sv32x4 &&
-                         g_reg_file.fctl.gxl == 1 ) {
+                         iommu->reg_file.fctl.gxl == 1 ) {
                         *gst_page_sz *= 2UL; // 4MiB
                     }
         }
@@ -292,7 +293,7 @@ step_5:
     if ( GADE == 0 ) return GST_PAGE_FAULT;
 
     // Count G stage page walks
-    count_events(PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
+    count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
     amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE,
                                  (char *)&amo_gpte.raw, rcid, mcid, PMA);

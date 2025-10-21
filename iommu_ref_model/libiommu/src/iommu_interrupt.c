@@ -4,29 +4,28 @@
 // Author: ved@rivosinc.com
 
 #include "iommu.h"
-// MSI pending bit array.
-uint8_t msi_pending[16] = {0};
 static void
 do_msi(
+    iommu_t *iommu,
     uint32_t msi_data, uint64_t msi_addr) {
     uint8_t  status;
-    uint64_t pa_mask = ((1UL << (g_reg_file.capabilities.pas)) - 1);
+    uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     status = (msi_addr & ~pa_mask) ?
              ACCESS_FAULT :
              write_memory((char *)&msi_data, msi_addr, 4,
-                          g_reg_file.iommu_qosid.rcid,
-                          g_reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.rcid,
+                          iommu->reg_file.iommu_qosid.mcid, PMA);
     if ( status & ACCESS_FAULT ) {
         // If an access fault is detected on a MSI write using msi_addr_x,
         // then the IOMMU reports a "IOMMU MSI write access fault" (cause 273) fault,
         // with TTYP set to 0 and iotval set to the value of msi_addr_x.
-        report_fault(273, msi_addr, 0, TTYPE_NONE, 0, 0, 0, 0, 0);
+        report_fault(iommu, 273, msi_addr, 0, TTYPE_NONE, 0, 0, 0, 0, 0);
     }
     return;
 }
 void
 generate_interrupt(
-    uint8_t unit) {
+    iommu_t *iommu, uint8_t unit) {
 
     msi_addr_t msi_addr;
     uint32_t msi_data;
@@ -46,34 +45,34 @@ generate_interrupt(
     switch ( unit ) {
         case FAULT_QUEUE:
             // The fault-queue-interrupt-pending
-            if ( g_reg_file.ipsr.fip == 1)
+            if ( iommu->reg_file.ipsr.fip == 1)
                 return;
-            if ( g_reg_file.fqcsr.fie == 0)
+            if ( iommu->reg_file.fqcsr.fie == 0)
                 return;
-            vec = g_reg_file.icvec.fiv;
-            g_reg_file.ipsr.fip = 1;
+            vec = iommu->reg_file.icvec.fiv;
+            iommu->reg_file.ipsr.fip = 1;
             break;
         case PAGE_QUEUE:
-            if ( g_reg_file.ipsr.pip == 1)
+            if ( iommu->reg_file.ipsr.pip == 1)
                 return;
-            if ( g_reg_file.pqcsr.pie == 0)
+            if ( iommu->reg_file.pqcsr.pie == 0)
                 return;
-            vec = g_reg_file.icvec.piv;
-            g_reg_file.ipsr.pip = 1;
+            vec = iommu->reg_file.icvec.piv;
+            iommu->reg_file.ipsr.pip = 1;
             break;
         case COMMAND_QUEUE:
-            if ( g_reg_file.ipsr.cip == 1)
+            if ( iommu->reg_file.ipsr.cip == 1)
                 return;
-            if ( g_reg_file.cqcsr.cie == 0)
+            if ( iommu->reg_file.cqcsr.cie == 0)
                 return;
-            vec = g_reg_file.icvec.civ;
-            g_reg_file.ipsr.cip = 1;
+            vec = iommu->reg_file.icvec.civ;
+            iommu->reg_file.ipsr.cip = 1;
             break;
         default: // HPM
-            if ( g_reg_file.ipsr.pmip == 1)
+            if ( iommu->reg_file.ipsr.pmip == 1)
                 return;
-            vec = g_reg_file.icvec.pmiv;
-            g_reg_file.ipsr.pmip = 1;
+            vec = iommu->reg_file.icvec.pmiv;
+            iommu->reg_file.ipsr.pmip = 1;
             break;
     }
     // The vector is used:
@@ -87,34 +86,34 @@ generate_interrupt(
     //    interrupts if capabilities.IGS==WSI or if capabilities.IGS==BOTH. When
     //    capabilities.IGS==BOTH the IOMMU may be configured to generate wire based
     //    interrupts by setting fctl.WSI to 1.
-    if ( g_reg_file.fctl.wsi == 0 ) {
-        msi_addr.raw = g_reg_file.msi_cfg_tbl[vec].msi_addr.raw;
-        msi_data = g_reg_file.msi_cfg_tbl[vec].msi_data;
-        msi_vec_ctrl.raw = g_reg_file.msi_cfg_tbl[vec].msi_vec_ctrl.raw;
+    if ( iommu->reg_file.fctl.wsi == 0 ) {
+        msi_addr.raw = iommu->reg_file.msi_cfg_tbl[vec].msi_addr.raw;
+        msi_data = iommu->reg_file.msi_cfg_tbl[vec].msi_data;
+        msi_vec_ctrl.raw = iommu->reg_file.msi_cfg_tbl[vec].msi_vec_ctrl.raw;
         // When the mask bit M is 1, the corresponding interrupt vector is
         // masked and the IOMMU is prohibited from sending the associated
         // message.
         if ( msi_vec_ctrl.m == 1 ) {
             // Pending messages for that vector are later generated if the
             // corresponding mask bit is cleared to 0.
-            msi_pending[vec] = 1;
+            iommu->msi_pending[vec] = 1;
             return;
         }
-        do_msi(msi_data, msi_addr.raw);
+        do_msi(iommu, msi_data, msi_addr.raw);
     }
     return;
 }
 void
 release_pending_interrupt(
-    uint8_t vec) {
+    iommu_t *iommu, uint8_t vec) {
     msi_addr_t msi_addr;
     uint32_t msi_data;
 
-    if ( msi_pending[vec] == 1 ) {
-        msi_addr.raw = g_reg_file.msi_cfg_tbl[vec].msi_addr.raw;
-        msi_data = g_reg_file.msi_cfg_tbl[vec].msi_data;
-        do_msi(msi_data, msi_addr.raw);
-        msi_pending[vec] = 0;
+    if ( iommu->msi_pending[vec] == 1 ) {
+        msi_addr.raw = iommu->reg_file.msi_cfg_tbl[vec].msi_addr.raw;
+        msi_data = iommu->reg_file.msi_cfg_tbl[vec].msi_data;
+        do_msi(iommu, msi_data, msi_addr.raw);
+        iommu->msi_pending[vec] = 0;
     }
     return;
 }
