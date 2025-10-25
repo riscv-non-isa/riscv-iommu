@@ -80,7 +80,9 @@ void
 get_attribs_from_req(
     hb_to_iommu_req_t *req, uint8_t *read, uint8_t *write, uint8_t *exec, uint8_t *priv) {
 
-    *read = ( req->tr.read_writeAMO == READ ) ? 1 : 0;
+    *read = (req->tr.read_writeAMO == READ && req->exec_req && req->tr.at == ADDR_TYPE_UNTRANSLATED) ?
+            0 : ( req->tr.read_writeAMO == READ ) ? 1 : 0;
+
     *write = ( req->tr.read_writeAMO == WRITE ) ?  1 : 0;
 
     // The No Write flag, when Set, indicates that the Function is requesting read-only
@@ -103,7 +105,7 @@ get_attribs_from_req(
     // or Execute Requested bit Set, these may be used in constructing the Translation
     // Completion Data Entry.  The PASID Extended Capability indicates whether a Function
     // supports and is enabled to send and receive TLPs with the PASID.
-    *exec = ( (*read && req->exec_req &&
+    *exec = ( req->tr.read_writeAMO == READ && (req->exec_req &&
                 (req->tr.at == ADDR_TYPE_UNTRANSLATED || req->pid_valid)) ) ? 1 : 0;
     *priv = ( req->pid_valid && req->priv_req ) ? S_MODE : U_MODE;
     return;
