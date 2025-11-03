@@ -106,7 +106,7 @@ step_2:
             return 1;
         }
         if ( gst_fault == GST_DATA_CORRUPTION ) {
-            *cause = 274;           // Second-stage PT load data corruption fault
+            *cause = 269;           // PDT data corruption fault
             return 1;
         }
     }
