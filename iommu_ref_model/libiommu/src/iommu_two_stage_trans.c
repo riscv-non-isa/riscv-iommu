@@ -21,7 +21,7 @@ two_stage_address_translation(
     pte_t amo_pte;
     gpte_t gpte;
     uint8_t NL_G = 0;
-    uint8_t is_implicit;
+    uint8_t is_implicit, is_implicit_write = 0;
     uint8_t PTESIZE, LEVELS, status, pte_changed, gst_fault;
     int8_t i;
     uint64_t a, a_gpa, masked_upper_bits, mask;
@@ -317,6 +317,7 @@ step_5:
     if ( SADE == 0 ) goto page_fault;
 
     // If G-stage does not provide write permission then cause guest page fault
+    is_implicit_write = 1;
     if ( gpte.W == 0 ) goto guest_page_fault;
 
     // Count S/VS stage page walks
@@ -401,7 +402,7 @@ guest_page_fault:
     // VS-stage address translation. If bit 0 of iotval2 is 1, and the implicit
     // access was a write then bit 1 of iotval2 is set to 1 else it is set to 0.
     *iotval2 = (a_gpa & ~0x3);
-    *iotval2 |= 1;
-    *iotval2 |= (SADE << 1);
+    *iotval2 |= is_implicit;
+    *iotval2 |= (is_implicit_write << 1);
     return 1;
 }
