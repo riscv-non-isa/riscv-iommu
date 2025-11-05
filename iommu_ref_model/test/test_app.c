@@ -2497,7 +2497,7 @@ main(void) {
     send_translation_request(&iommu, 0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
              1, WRITE, &req, &rsp);
-    fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 274, 0) < 0 ) );
+    fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 269, 0) < 0 ) );
     data_corruption_addr = -1;
 
     // Two stage translation
@@ -2759,7 +2759,7 @@ main(void) {
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 23,
-               ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
+               ((PC.fsc.iosatp.PPN * PAGESIZE) | 1)) < 0 ) );
 
     gpte.V = 1;
     gpte.N = 1;
@@ -2768,7 +2768,7 @@ main(void) {
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 23,
-               ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
+               ((PC.fsc.iosatp.PPN * PAGESIZE) | 1)) < 0 ) );
     gpte.N = 0;
     gpte.PBMT = 1;
     write_memory_test((char *)&gpte.raw, gpte_addr, 8);
@@ -2776,7 +2776,7 @@ main(void) {
              0, 0, 0, ADDR_TYPE_UNTRANSLATED, gva,
              1, WRITE, &req, &rsp);
     fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 23,
-               ((PC.fsc.iosatp.PPN * PAGESIZE) | 3)) < 0 ) );
+               ((PC.fsc.iosatp.PPN * PAGESIZE) | 1)) < 0 ) );
     gpte.N = 0;
     gpte.PBMT = 0;
     write_memory_test((char *)&gpte.raw, gpte_addr, 8);
