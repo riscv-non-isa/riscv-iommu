@@ -9,7 +9,7 @@ extract(uint64_t data, uint64_t mask) {
     uint32_t i, j = 0;
     uint64_t I = 0;
     for ( i = 0; i < 64; i++ ) {
-        if ( mask & (1UL << i) ) {
+        if ( mask & (1ULL << i) ) {
             I |= (((data >> i) & 0x01) << j);
             j++;
         }
@@ -28,12 +28,30 @@ msi_address_translation(
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t status;
     msipte_t msipte;
+    uint64_t mgpaw, mgpaw_mask;
 
     *iotval2 = 0;
     *is_msi = 0;
 
     if ( DC->msiptp.MODE == MSIPTP_Off )
         return 0;
+
+    // While the MSI address mask and pattern fields are 52 bits wide, if
+    // stem:[MGPAW < 64], then bits stem:[51 : MGPAW - 12] are reserved for
+    // future standard use and must be set to zero by software. MGPAW is
+    // determined as follows:
+    // * If `capabilities.Sv57x4` is 1, then MGPAW = 59
+    // * Else if `capabilities.Sv48x4` is 1, then MGPAW = 50
+    // * Else if `capabilities.Sv39x4` is 1, then MGPAW = 41
+    // * Else if `capabilities.Sv32x4` is 1, then MGPAW = 34
+    // * Otherwise, MGPAW = `capabilities.PAS`
+    mgpaw = (iommu->reg_file.capabilities.Sv57x4 ? 59 :
+             iommu->reg_file.capabilities.Sv48x4 ? 50 :
+             iommu->reg_file.capabilities.Sv39x4 ? 41 :
+             iommu->reg_file.capabilities.Sv32x4 ? 34 :
+             (iommu->reg_file.capabilities.pas > 12 ? 
+              iommu->reg_file.capabilities.pas : 12)) - 12;
+    mgpaw_mask = (1ULL << mgpaw) - 1;
 
     // 1. Let `A` be the GPA
     A = gpa;
@@ -42,8 +60,8 @@ msi_address_translation(
     //    using the process outlined in <<GET_DC>>.
     // 3. Determine if the address `A` is an access to a virtual interrupt file as
     //    specified in <<MSI_ID>>
-    *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask) ==
-               ((DC->msi_addr_pattern.pattern & ~DC->msi_addr_mask.mask)));
+    *is_msi = (((A >> 12) & ~DC->msi_addr_mask.mask & mgpaw_mask) ==
+               ((DC->msi_addr_pattern.pattern & ~DC->msi_addr_mask.mask & mgpaw_mask)));
 
     // 4. If the address is not determined to be that of a virtual interrupt file then
     //    stop this process and instead use the regular translation data structures to
@@ -61,7 +79,7 @@ msi_address_translation(
     //    ** `x = a b c d e f g h`
     //    ** `y = 1 0 1 0 0 1 1 0`
     //    ** then the value of `extract(x, y)` has bits `0 0 0 0 a c f g`.
-    I = extract((A >> 12), DC->msi_addr_mask.mask);
+    I = extract((A >> 12), (DC->msi_addr_mask.mask & mgpaw_mask));
 
     // 6. Let `m` be `(DC.msiptp.PPN x 2^12^)`.
     m = DC->msiptp.PPN * PAGESIZE;
