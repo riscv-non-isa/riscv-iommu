@@ -1131,9 +1131,10 @@ interrupt-pending bit.
                               * `fqcsr.fqmf` is 1.
                               * A new record is produced in the FQ.
 
-|2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending is
-                              set to 1 when `OF` bit in `iohpmcycles` or in any of the
-                              `iohpmevt1-31` registers transitions from 0 to 1.
+|2      | `pmip` |RW1C      | The performance-monitoring-interrupt-pending bit is
+                              set to 1 when the `OF` bit in `iohpmcycles` or in any of the
+                              `iohpmevt1-31` registers transitions from 0 to 1
+                              due to a counter overflow.
 |3      | `pip`  |RW1C     a| The page-request-queue-interrupt-pending is set to
                               1 if `pqcsr.pie` is 1 and any of the following are
                               true:
