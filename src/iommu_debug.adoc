@@ -36,7 +36,7 @@ The translation-response interface consists of a single 64-bit RO register
 To request a translation, the `tr_req_iova` register is written first with
 the desired IOVA and the `tr_req_ctl` register is written next. The 'Go/Busy`
 bit is set in `tr_req_ctl` to indicate a valid request in the registers.  The
-`Go/Busy` bit is a read-write-sticky (RWS) bit that once set cannot be cleared
+`Go/Busy` bit is a read-write-1-to-set (RW1S) bit that once set cannot be cleared
 by writing the register. The `Go/Busy` bit will be cleared to 0 by the IOMMU
 when the process completes (successfully or due to encountering a fault). When
 the `Go/Busy` bit goes from 1 to 0, a response is valid in the `tr_response`
