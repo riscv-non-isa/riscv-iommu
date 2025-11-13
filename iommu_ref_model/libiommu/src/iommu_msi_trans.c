@@ -49,7 +49,7 @@ msi_address_translation(
              iommu->reg_file.capabilities.Sv48x4 ? 50 :
              iommu->reg_file.capabilities.Sv39x4 ? 41 :
              iommu->reg_file.capabilities.Sv32x4 ? 34 :
-             (iommu->reg_file.capabilities.pas > 12 ? 
+             (iommu->reg_file.capabilities.pas > 12 ?
               iommu->reg_file.capabilities.pas : 12)) - 12;
     mgpaw_mask = (1ULL << mgpaw) - 1;
 
