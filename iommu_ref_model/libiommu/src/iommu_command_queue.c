@@ -261,6 +261,9 @@ do_inval_ddt(
         if ( DV == 1 && (iommu->ddt_cache[i].DID == DID) )
             iommu->ddt_cache[i].valid = 0;
     }
+    for ( i = 0; i < PDT_CACHE_SIZE; i++ )
+        if ( ((iommu->pdt_cache[i].DID == DID && DV == 1) || (DV == 0)) &&iommu->pdt_cache[i].valid == 1)
+            iommu->pdt_cache[i].valid = 0;
     return;
 }
 void
