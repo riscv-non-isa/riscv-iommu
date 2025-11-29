@@ -2341,7 +2341,7 @@ main(void) {
     fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 266, 0) < 0 ) );
 
     // Access viol on non-leaf PDTE
-    fail_if( (translate_gpa(DC.iohgatp, DC.fsc.pdtp.PPN * PAGESIZE, &temp) == -1) );
+    fail_if( (translate_gpa(&iommu, DC.iohgatp, DC.fsc.pdtp.PPN * PAGESIZE, &temp) == -1) );
     access_viol_addr = (temp) | (get_bits(19, 17, 0xBABEC) * 8);
     send_translation_request(&iommu, 0x112233, 1, 0xBABEC, 0,
              0, 1, 0, ADDR_TYPE_UNTRANSLATED, 0xdeadbeef,
@@ -2382,7 +2382,7 @@ main(void) {
     fail_if( (read_memory_test(PC_addr, 16, (char *)&PC) != 0) );
 
     // misconfigured NL PTE
-    fail_if( (translate_gpa(DC.iohgatp, DC.fsc.pdtp.PPN * PAGESIZE, &temp) == -1) );
+    fail_if( (translate_gpa(&iommu, DC.iohgatp, DC.fsc.pdtp.PPN * PAGESIZE, &temp) == -1) );
     temp = (temp) | (get_bits(19, 17, 0xBABEC) * 8);
     read_memory_test(temp, 8, (char *)&pdte);
     pdte.reserved0 = 1;
@@ -2472,7 +2472,7 @@ main(void) {
 
     // guest page fault on PC walk
     gpa = (DC.fsc.pdtp.PPN * PAGESIZE) | (get_bits(19, 17, 0xBABEC) * 8);
-    temp = translate_gpa(DC.iohgatp, gpa, &temp);
+    temp = translate_gpa(&iommu, DC.iohgatp, gpa, &temp);
     fail_if( (temp == -1) );
     read_memory_test(temp, 8, (char *)&gpte);
     gpte.V = 0;
@@ -2750,7 +2750,7 @@ main(void) {
     fail_if( ( rsp.trsp.PPN != (gpte.PPN & ~0x8)) );
 
     // Guest-Page fault on NL S-stage PTE
-    gpte_addr = translate_gpa(DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), &temp);
+    gpte_addr = translate_gpa(&iommu, DC.iohgatp, (PC.fsc.iosatp.PPN * PAGESIZE), &temp);
     fail_if( (gpte_addr == -1) );
     read_memory_test(gpte_addr, 8, (char *)&gpte);
     gpte.V = 0;

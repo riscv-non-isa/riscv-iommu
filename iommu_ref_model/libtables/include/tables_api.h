@@ -10,7 +10,7 @@ uint64_t add_process_context(iommu_t *iommu, device_context_t *DC, process_conte
 uint64_t add_g_stage_pte(iommu_t *iommu, iohgatp_t iohgatp, uint64_t gpa, gpte_t gpte, uint8_t add_level);
 uint64_t add_s_stage_pte(iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, uint8_t SXL);
 uint64_t add_vs_stage_pte(iommu_t *iommu, iosatp_t satp, uint64_t va, pte_t pte, uint8_t add_level, iohgatp_t iohgatp, uint8_t SXL);
-uint64_t translate_gpa (iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa);
+uint64_t translate_gpa (iommu_t *iommu, iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa);
 
 
 extern uint64_t get_free_ppn(uint64_t num_ppn);
