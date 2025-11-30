@@ -201,7 +201,7 @@ The function may invoke the get_gppn function to request pages to build the page
 maps the obtained gppn into the G-stage page table determined by iohgatp. The function returns the address,
 in test memory space, where the leaf entry was inserted.
 
-6. **`uint64_t translate_gpa (iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa)`**
+6. **`uint64_t translate_gpa (iommu_t *iommu, iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa)`**
 
 This function is used to translate a gpa to a spa. The function also returns the G-stage pte that provides
 the translation as an address in test memory space.

@@ -118,7 +118,7 @@ typedef union {
 // The G-stage page table format and `MODE` encoding follow the format defined by
 // the privileged specification.
 #define IOHGATP_Bare         0
-#define IOHGATP_Sv32x4       1
+#define IOHGATP_Sv32x4       8
 #define IOHGATP_Sv39x4       8
 #define IOHGATP_Sv48x4       9
 #define IOHGATP_Sv57x4       10

@@ -46,7 +46,7 @@ add_vs_stage_pte (
     i = LEVELS - 1;
     a = satp.PPN * PAGESIZE;
     while ( i > add_level ) {
-        if ( translate_gpa(iohgatp, a, &a) == -1) return -1;
+        if ( translate_gpa(iommu, iohgatp, a, &a) == -1) return -1;
         nl_pte.raw = 0;
         if ( read_memory_test((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&nl_pte.raw))  return -1;
         if ( nl_pte.V == 0 ) {
@@ -75,7 +75,7 @@ add_vs_stage_pte (
         if ( i < 0 ) return 1;
         a = nl_pte.PPN * PAGESIZE;
     }
-    if ( translate_gpa(iohgatp, a, &a) == -1) return -1;
+    if ( translate_gpa(iommu, iohgatp, a, &a) == -1) return -1;
     if ( write_memory_test((char *)&pte.raw, (a | (vpn[i] * PTESIZE)), PTESIZE) ) return -1;
     return (a | (vpn[i] * PTESIZE));
 }
