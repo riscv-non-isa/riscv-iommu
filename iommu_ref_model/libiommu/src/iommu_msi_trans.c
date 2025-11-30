@@ -27,11 +27,13 @@ msi_address_translation(
     uint64_t A, m, I;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t status;
+    int endian;
     msipte_t msipte;
     uint64_t mgpaw, mgpaw_mask;
 
     *iotval2 = 0;
     *is_msi = 0;
+    endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
 
     if ( DC->msiptp.MODE == MSIPTP_Off )
         return 0;
@@ -92,7 +94,8 @@ msi_address_translation(
     //    then an access fault occurs
     status = ((m | (I * 16)) & ~pa_mask) ?
              ACCESS_FAULT :
-             read_memory((m | (I * 16)), 16, (char *)&msipte.raw, rcid, mcid, PMA);
+             read_memory((m | (I * 16)), 16, (char *)&msipte.raw, rcid, mcid,
+             PMA, endian);
     if ( status & ACCESS_FAULT ) {
         *cause = 261;     // MSI PTE load access fault
         return 1;

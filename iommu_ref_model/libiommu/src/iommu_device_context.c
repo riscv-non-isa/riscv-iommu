@@ -15,6 +15,7 @@ locate_device_context(
     uint8_t i, LEVELS, status, DC_SIZE;
     ddte_t ddte;
     uint16_t DDI[3];
+    int endian;
 
     // The following diagrams illustrate the DDT radix-tree. The PPN of the root
     // device-directory-table is held in a memory-mapped register called the
@@ -98,6 +99,7 @@ locate_device_context(
     if ( iommu->reg_file.ddtp.iommu_mode == DDT_2LVL ) LEVELS = 2;
     if ( iommu->reg_file.ddtp.iommu_mode == DDT_1LVL ) LEVELS = 1;
     i = LEVELS - 1;
+    endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
 
 step_2:
     // 2. If `i == 0` go to step 8.
@@ -113,7 +115,7 @@ step_2:
              ACCESS_FAULT :
              read_memory((a + (DDI[i] * 8)), 8, (char *)&ddte.raw,
                          iommu->reg_file.iommu_qosid.rcid,
-                         iommu->reg_file.iommu_qosid.mcid, PMA);
+                         iommu->reg_file.iommu_qosid.mcid, PMA, endian);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;
@@ -162,7 +164,7 @@ step_8:
              ACCESS_FAULT :
              read_memory((a + (DDI[0] * DC_SIZE)), DC_SIZE, (char *)DC,
                          iommu->reg_file.iommu_qosid.rcid,
-                         iommu->reg_file.iommu_qosid.mcid, PMA);
+                         iommu->reg_file.iommu_qosid.mcid, PMA, endian);
     if ( status & ACCESS_FAULT ) {
         *cause = 257;     // DDT entry load access fault
         return 1;

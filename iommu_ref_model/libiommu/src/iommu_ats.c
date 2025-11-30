@@ -99,6 +99,7 @@ handle_page_request(
     ats_msg_t prgr;
     device_context_t DC;
     page_rec_t prec;
+    int endian;
     uint8_t DDI[3];
     uint8_t L, R, W;
     uint16_t PRGI;
@@ -108,6 +109,8 @@ handle_page_request(
     uint32_t pqh;
     uint32_t pqt;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
+
+    endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
 
     PRPR = 0;
     device_id =  ( pr->DSV == 1 ) ? (pr->RID | (pr->DSEG << 16)) : pr->RID;
@@ -281,7 +284,7 @@ handle_page_request(
              ACCESS_FAULT :
              write_memory((char *)&prec, prec_addr, 16,
                           iommu->reg_file.iommu_qosid.rcid,
-                          iommu->reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.mcid, PMA, endian);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         iommu->reg_file.pqcsr.pqmf = 1;
         generate_interrupt(iommu, PAGE_QUEUE);

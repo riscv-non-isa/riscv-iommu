@@ -296,7 +296,8 @@ step_17:
                                         PV, PID, PSCV, PSCID, iosatp, priv, SUM, DC.tc.SADE,
                                         GV, GSCID, iohgatp, DC.tc.GADE, DC.tc.SXL,
                                         &cause, &iotval2, &gpa, &page_sz,
-                                        &vs_pte, DC.ta.rcid, DC.ta.mcid) )
+                                        &vs_pte, DC.ta.rcid, DC.ta.mcid,
+                                        DC.tc.SBE) )
         goto stop_and_report_fault;
 
     // 18. If MSI address translations using MSI page tables is enabled

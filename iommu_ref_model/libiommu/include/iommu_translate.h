@@ -101,7 +101,7 @@ two_stage_address_translation(
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
-    uint64_t *page_sz, pte_t *vs_pte, uint32_t rcid, uint32_t mcid);
+    uint64_t *page_sz, pte_t *vs_pte, uint32_t rcid, uint32_t mcid, uint8_t be);
 
 extern uint8_t
 second_stage_address_translation(

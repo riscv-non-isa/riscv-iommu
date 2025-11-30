@@ -19,6 +19,7 @@ uint8_t pr_go_requested = 0;
 uint8_t pw_go_requested = 0;
 uint64_t next_free_page;
 uint64_t next_free_gpage[65536];
+int test_endian = LITTLE_ENDIAN;
 int
 main(void) {
     capabilities_t cap = {0};
@@ -973,13 +974,15 @@ main(void) {
     DC.tc.SXL = 0;
     write_memory_test((char *)&DC, DC_addr, 64);
 
-    iommu.reg_file.fctl.be = 1;
     iommu.reg_file.capabilities.end = 1;
+    DC.tc.SBE = 1;
+    write_memory_test((char *)&DC, DC_addr, 64);
     send_translation_request(&iommu, 0x012345, pid_valid, 0x99, no_write, exec_req,
                              priv_req, 0, at, 0xdeadbeef, 16, (no_write ^ 1), &req, &rsp);
     fail_if( ( check_rsp_and_faults(&iommu, &req, &rsp, UNSUPPORTED_REQUEST, 259, 0) < 0 ) );
-    iommu.reg_file.fctl.be = 0;
+    DC.tc.SBE = 0;
     iommu.reg_file.capabilities.end = 0;
+    write_memory_test((char *)&DC, DC_addr, 64);
 
     temp = DC.iohgatp.MODE;
     temp1 = DC.msiptp.MODE;
@@ -4431,6 +4434,145 @@ main(void) {
     fail_if( ( read_register(&iommu, IOMMU_QOSID_OFFSET, 4) != 0x00230056) );
     iommu.reg_file.capabilities.qosid = 0;
 
+    END_TEST();
+
+    START_TEST("Big endian model");
+    test_endian = BIG_ENDIAN;
+    iommu.reg_file.fctl.be = 1;
+    iommu.fctl_be_writeable = 1;
+    iommu.reg_file.fctl.gxl = 0;
+    fail_if( ( enable_iommu(&iommu, Off) < 0 ) );
+    fail_if( ( enable_iommu(&iommu, DDT_3LVL) < 0 ) );
+
+    // Add a device 0x491200 to guest with GSCID=999
+    DC_addr = add_device(&iommu, 0x491200, 999, 1, 0, 0, 0, 0,
+                         1, 1, 0, 0, 0,
+                         IOHGATP_Sv48x4, IOSATP_Bare, PDTP_Bare,
+                         MSIPTP_Flat, 1, 0xFFFFFFFFFF, 0x1000000000);
+    (void)(DC_addr);
+    read_memory_test(DC_addr, 64, (char *)&DC);
+
+    req.device_id = 0x491200;
+    req.pid_valid = 0;
+    req.is_cxl_dev = 0;
+    req.tr.at = ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST;
+    req.tr.length = 64;
+    req.tr.read_writeAMO = WRITE;
+    gpte.raw = 0;
+    gpte.V = 1;
+    gpte.R = 1;
+    gpte.W = 1;
+    gpte.X = 1;
+    gpte.U = 1;
+    gpte.G = 0;
+    gpte.A = 0;
+    gpte.D = 0;
+    gpte.PBMT = PMA;
+    DC.tc.SADE = 1;
+    DC.tc.GADE = 1;
+    for ( j = 0; j < 3; j++ ) {
+        if ( j == 2 ) {
+            DC.iohgatp.MODE = IOHGATP_Sv57x4;
+            gpa = 512UL * 512UL * 512UL * 512UL * PAGESIZE;
+            gpa = gpa * 8;
+        } else if ( j == 1 ) {
+            DC.iohgatp.MODE = IOHGATP_Sv48x4;
+            gpa = 512UL * 512UL * 512UL * PAGESIZE;
+            gpa = gpa * 4;
+        } else {
+            DC.iohgatp.MODE = IOHGATP_Sv39x4;
+            gpa = 512UL * 512UL * PAGESIZE;
+        }
+        write_memory_test((char *)&DC, DC_addr, 64);
+        iodir(&iommu, INVAL_DDT, 1, 0x491200, 0);
+        iotinval(&iommu, GVMA, 1, 0, 0, DC.iohgatp.GSCID, 0, 0);
+        for ( i = 0; i < 5; i++ ) {
+            if ( (i == 4) && DC.iohgatp.MODE != IOHGATP_Sv57x4 ) continue;
+            if ( (i == 3) && DC.iohgatp.MODE != IOHGATP_Sv48x4 &&
+                             DC.iohgatp.MODE != IOHGATP_Sv57x4 ) continue;
+            gpa = gpa | ((1 << (i * 9)) * PAGESIZE) | 2048;
+            req.tr.iova = gpa;
+            gpte.PPN = 512UL * 512UL * 512UL * 512UL;
+            gpte.PPN |= (1UL << (i * 9UL));
+            pte_addr = add_g_stage_pte(&iommu, DC.iohgatp, gpa, gpte, i);
+            iommu_translate_iova(&iommu, &req, &rsp);
+            fail_if( ( rsp.status != SUCCESS ) );
+            fail_if( ( rsp.trsp.S == 1 && i == 0 ) );
+            fail_if( ( rsp.trsp.S == 0 && i != 0 ) );
+            fail_if( ( rsp.trsp.U != 0 ) );
+            fail_if( ( rsp.trsp.R != 1 ) );
+            fail_if( ( rsp.trsp.W != 0 ) );
+            fail_if( ( rsp.trsp.Exe != 0 ) );
+            fail_if( ( rsp.trsp.PBMT != PMA ) );
+            fail_if( ( rsp.trsp.is_msi != 0 ) );
+            if ( rsp.trsp.S == 1 )  {
+                temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
+                temp = temp  * PAGESIZE | 0xFFF;
+            } else {
+                temp = 0xFFF;
+            }
+            g_pg_sz = (1UL << (i * 9UL)) * PAGESIZE;
+            exp_trn_sz = g_pg_sz > sv57_bare_sz ? sv57_bare_sz : g_pg_sz;
+            exp_pa = (((gpte.PPN * PAGESIZE) & ~(g_pg_sz - 1)) | (gpa & (g_pg_sz - 1))) & ~temp;
+            fail_if( (((rsp.trsp.PPN * PAGESIZE) & ~temp) != exp_pa) );
+            fail_if( ((temp + 1) != exp_trn_sz) );
+
+            // Test for walking past max levels
+            if ( i == 0 ) {
+                gpte.X = 0;
+                gpte.W = 0;
+                gpte.R = 0;
+                write_memory_test((char *)&gpte, pte_addr, 8);
+                iotinval(&iommu, GVMA, 0, 0, 0, 0, 0, 0);
+                iommu_translate_iova(&iommu, &req, &rsp);
+                fail_if( ( rsp.status != SUCCESS ) );
+                fail_if( ( rsp.trsp.R != 0 ) );
+                fail_if( ( rsp.trsp.W != 0 ) );
+                gpte.X = 1;
+                gpte.W = 1;
+                gpte.R = 1;
+                write_memory_test((char *)&gpte, pte_addr, 8);
+                iotinval(&iommu, GVMA, 0, 0, 0, 0, 0, 0);
+            }
+        }
+    }
+    iommu.reg_file.capabilities.Sv57x4 = 0;
+    iommu.reg_file.capabilities.Sv48x4 = 0;
+    iommu.reg_file.capabilities.Sv39x4 = 0;
+    iommu.reg_file.capabilities.Sv32x4 = 0;
+    for ( i = 0; i < 4; i++ ) {
+        if ( i == 0 ) iommu.reg_file.capabilities.Sv32x4 = 1;
+        if ( i == 0 ) iommu.reg_file.fctl.gxl = 1;
+        if ( i == 0 ) DC.tc.SXL = 1;
+        if ( i == 1 ) iommu.reg_file.capabilities.Sv39x4 = 1;
+        if ( i == 2 ) iommu.reg_file.capabilities.Sv48x4 = 1;
+        if ( i == 3 ) iommu.reg_file.capabilities.Sv57x4 = 1;
+        DC.iohgatp.MODE = IOHGATP_Bare;
+        write_memory_test((char *)&DC, DC_addr, 64);
+        iodir(&iommu, INVAL_DDT, 1, 0x491200, 0);
+        iotinval(&iommu, VMA, 0, 0, 0, 0, 0, 0);
+        gpa = 512UL * 512UL * PAGESIZE;
+        req.tr.iova = gpa;
+        iommu_translate_iova(&iommu, &req, &rsp);
+        fail_if( ( rsp.status != SUCCESS ) );
+        fail_if( ( rsp.trsp.U != 0 ) );
+        fail_if( ( rsp.trsp.R != 1 ) );
+        fail_if( ( rsp.trsp.W != 1 ) );
+        fail_if( ( rsp.trsp.Exe != 0 ) );
+        fail_if( ( rsp.trsp.PBMT != PMA ) );
+        fail_if( ( rsp.trsp.is_msi != 0 ) );
+        fail_if( ( rsp.trsp.S != 1 ) );
+        temp = rsp.trsp.PPN ^ (rsp.trsp.PPN  + 1);
+        temp = temp  * PAGESIZE | 0xFFF;
+        exp_trn_sz = i == 3 ? sv57_bare_sz : i == 2 ? sv48_bare_sz :
+                     i == 1 ? sv39_bare_sz : sv32_bare_sz;
+        fail_if( ((temp + 1) != exp_trn_sz) );
+        if ( i == 0 ) iommu.reg_file.fctl.gxl = 0;
+        if ( i == 0 ) DC.tc.SXL = 0;
+    }
+    test_endian = LITTLE_ENDIAN;
+    iommu.reg_file.fctl.be = 0;
+    iommu.fctl_be_writeable = 0;
     END_TEST();
     return 0;
 }
