@@ -182,6 +182,7 @@ process_commands(
             }
             break;
         case ATS:
+            if ( iommu->reg_file.capabilities.ats == 0 ) goto command_illegal;
             if ( command.ats.rsvd != 0 || command.ats.rsvd1 != 0 ) goto command_illegal;
             switch ( command.any.func3 ) {
                 case INVAL:
