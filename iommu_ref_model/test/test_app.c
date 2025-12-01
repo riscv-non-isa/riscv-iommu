@@ -3939,6 +3939,34 @@ main(void) {
     cqcsr.raw = read_register(&iommu, CQCSR_OFFSET, 4);
     fail_if( ( cqcsr.cmd_ill != 0 ) );
 
+    // ATS commands only supported when capabilities.ATS is 1
+
+    iommu.reg_file.capabilities.ats = 0;
+
+    ats_command(&iommu, INVAL, 1, 1, 0xbabec, 0x43, 0x1234, 0xdeadbeeffeedbeef);
+    cqcsr.raw = read_register(&iommu, CQCSR_OFFSET, 4);
+    fail_if( ( cqcsr.cmd_ill != 1 ) );
+
+    // clear cmd_ill
+    cqcsr.cqen = 0;
+    write_register(&iommu, CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(&iommu, CQT_OFFSET, 4, 0);
+    cqcsr.cqen = 1;
+    write_register(&iommu, CQCSR_OFFSET, 4, cqcsr.raw);
+
+    ats_command(&iommu, PRGR, 1, 0, 0xbabec, 0x43, 0x1234, 0xdeadbeeffeedbeef);
+    cqcsr.raw = read_register(&iommu, CQCSR_OFFSET, 4);
+    fail_if( ( cqcsr.cmd_ill != 1 ) );
+
+    // clear cmd_ill
+    cqcsr.cqen = 0;
+    write_register(&iommu, CQCSR_OFFSET, 4, cqcsr.raw);
+    write_register(&iommu, CQT_OFFSET, 4, 0);
+    cqcsr.cqen = 1;
+    write_register(&iommu, CQCSR_OFFSET, 4, cqcsr.raw);
+
+    iommu.reg_file.capabilities.ats = 1;
+
     // idle
     process_commands(&iommu);
 
