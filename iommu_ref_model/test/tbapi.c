@@ -110,3 +110,20 @@ get_attribs_from_req(
     *priv = ( req->pid_valid && req->priv_req ) ? S_MODE : U_MODE;
     return;
 }
+// If the GPA superpage overlaps a virtual interrupt file region, reduce *gst_page_sz to
+// the largest smaller page size that avoids the overlap.
+void
+handle_virtual_interrupt_file_overlap(
+    device_context_t *DC, uint64_t gpa, uint64_t *gst_page_sz) {
+    uint64_t m = DC->msi_addr_mask.mask << 12;
+    uint64_t p = DC->msi_addr_pattern.pattern << 12;
+    // If MSI page table mode is Off or if the initial page sizes is base page
+    // size, there is nothing to do.
+    if (DC->msiptp.MODE == MSIPTP_Off || *gst_page_sz == PAGESIZE)
+        return;
+    for (uint64_t sz = PAGESIZE << 36; sz >= (PAGESIZE << 9); sz >>= 9) {
+        uint64_t mask = m & ~(sz - 1);
+        *gst_page_sz = (*gst_page_sz >= sz && ((gpa & mask) == (p & mask))) ?
+                       (sz >> 9) : *gst_page_sz;
+    }
+}

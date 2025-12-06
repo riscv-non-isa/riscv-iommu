@@ -333,6 +333,7 @@ step_17:
         if ( gst_fault == GST_ACCESS_FAULT ) goto access_fault;
         goto data_corruption;
     }
+    handle_virtual_interrupt_file_overlap(&DC, gpa, &gst_page_sz);
 
 skip_gpa_trans:
     // The page-based memory types (PBMT), if Svpbmt is supported, obtained
