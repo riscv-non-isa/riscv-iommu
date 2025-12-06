@@ -7,7 +7,7 @@
 void
 process_commands(
     iommu_t *iommu) {
-    uint8_t status, itag; 
+    uint8_t status, itag;
     int endian;
     uint64_t a;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
