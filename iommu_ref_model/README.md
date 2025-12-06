@@ -155,6 +155,11 @@ processing is required then the function should be invoked for each command.
 This function is used to extract the read, write, execute, and privilege
 attributes from the the request.
 
+10. **`void handle_virtual_interrupt_file_overlap( device_context_t *DC, uint64_t gpa, uint64_t *gst_page_sz)`**
+
+If the GPA superpage overlaps a virtual interrupt file region, reduce *gst_page_sz to the
+largest smaller page size that avoids the overlap.
+
 # Libtables functions
 
 The following functions are provided by the libtables to build memory resident data structures.
