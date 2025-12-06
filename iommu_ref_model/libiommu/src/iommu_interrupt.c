@@ -10,11 +10,12 @@ do_msi(
     uint32_t msi_data, uint64_t msi_addr) {
     uint8_t  status;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
+    int endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
     status = (msi_addr & ~pa_mask) ?
              ACCESS_FAULT :
              write_memory((char *)&msi_data, msi_addr, 4,
                           iommu->reg_file.iommu_qosid.rcid,
-                          iommu->reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.mcid, PMA, endian);
     if ( status & ACCESS_FAULT ) {
         // If an access fault is detected on a MSI write using msi_addr_x,
         // then the IOMMU reports a "IOMMU MSI write access fault" (cause 273) fault,

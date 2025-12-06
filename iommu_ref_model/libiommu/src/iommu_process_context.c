@@ -20,6 +20,7 @@ locate_process_context(
     pdte_t pdte;
     uint16_t PDI[3];
     uint8_t is_implicit, is_read, is_write, is_exec;
+    int endian;
 
     // The device-context provides the PDT root page PPN (pdtp.ppn).
     // When DC.iohgatp.mode is not Bare, pdtp.PPN as well as pdte.PPN
@@ -75,6 +76,7 @@ locate_process_context(
     if ( DC->fsc.pdtp.MODE == PD17 ) LEVELS = 2;
     if ( DC->fsc.pdtp.MODE == PD8  ) LEVELS = 1;
     i = LEVELS - 1;
+    endian = DC->tc.SBE ? BIG_ENDIAN : LITTLE_ENDIAN;
 
 step_2:
     a = a + ((i == 0) ? (PDI[i] * 16) : (PDI[i] * 8));
@@ -122,7 +124,8 @@ step_2:
     //    "PDT entry load access fault" (cause = 265).
     status = (a & ~pa_mask) ?
              ACCESS_FAULT :
-             read_memory(a, 8, (char *)&pdte.raw, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
+             read_memory(a, 8, (char *)&pdte.raw, DC->ta.rcid, DC->ta.mcid,
+                         g_pte.PBMT, endian);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;
@@ -164,7 +167,8 @@ step_9:
     //    (cause = 269).
     status = (a & ~pa_mask) ?
              ACCESS_FAULT :
-             read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid, g_pte.PBMT);
+             read_memory(a, 16, (char *)PC, DC->ta.rcid, DC->ta.mcid,
+             g_pte.PBMT, endian);
     if ( status & ACCESS_FAULT ) {
         *cause = 265;     // PDT entry load access fault
         return 1;

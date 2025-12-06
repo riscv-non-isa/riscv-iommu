@@ -14,7 +14,7 @@ two_stage_address_translation(
     iosatp_t iosatp, uint8_t priv, uint8_t SUM, uint8_t SADE,
     uint8_t GV, uint32_t GSCID, iohgatp_t iohgatp, uint8_t GADE, uint8_t SXL,
     uint32_t *cause, uint64_t *iotval2, uint64_t *pa,
-    uint64_t *page_sz, pte_t *pte, uint32_t rcid, uint32_t mcid) {
+    uint64_t *page_sz, pte_t *pte, uint32_t rcid, uint32_t mcid, uint8_t be) {
 
     uint16_t vpn[5];
     uint16_t ppn[5];
@@ -24,12 +24,13 @@ two_stage_address_translation(
     uint8_t is_implicit, is_implicit_write = 0;
     uint8_t PTESIZE, LEVELS, status, pte_changed, gst_fault;
     int8_t i;
+    int endian;
     uint64_t a, a_gpa, masked_upper_bits, mask;
     uint64_t gst_page_sz;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
 
     *iotval2 = 0;
-
+    endian = (be == 1) ? BIG_ENDIAN : LITTLE_ENDIAN;
     // Walk page tables
     if ( iosatp.MODE == IOSATP_Bare ) {
         // No translation or protection.
@@ -142,7 +143,7 @@ step_2:
     // Count S/VS stage page walks
     count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     pte->raw = 0;
-    status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid, gpte.PBMT);
+    status = read_memory(a, PTESIZE, (char *)&pte->raw, rcid, mcid, gpte.PBMT, endian);
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
 
@@ -323,7 +324,7 @@ step_5:
     // Count S/VS stage page walks
     count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, S_VS_PT_WALKS);
     amo_pte.raw = 0;
-    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid, gpte.PBMT);
+    status = read_memory_for_AMO(a, PTESIZE, (char *)&amo_pte.raw, rcid, mcid, gpte.PBMT, endian);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
@@ -339,7 +340,7 @@ step_5:
         if ( (is_write == 1) && (amo_pte.W == 1) ) amo_pte.D = 1;
     }
 
-    status = write_memory((char *)&amo_pte.raw, a, PTESIZE, rcid, mcid, gpte.PBMT);
+    status = write_memory((char *)&amo_pte.raw, a, PTESIZE, rcid, mcid, gpte.PBMT, endian);
 
     if ( status & ACCESS_FAULT ) goto access_fault;
     if ( status & DATA_CORRUPTION) goto data_corruption;
