@@ -19,11 +19,13 @@ second_stage_address_translation(
     gpte_t amo_gpte;
     uint8_t PTESIZE, LEVELS, status, gpte_changed;
     int8_t i;
+    int endian;
     uint64_t a;
     uint64_t gpa_upper_bits;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
 
     *gst_page_sz = PAGESIZE;
+    endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
 
     if ( iohgatp.MODE == IOHGATP_Bare ) {
         // No translation or protection.
@@ -120,7 +122,7 @@ step_2:
     if ( a & ~pa_mask ) return GST_ACCESS_FAULT;
     gpte->raw = 0;
     status = read_memory((a | (vpn[i] * PTESIZE)), PTESIZE, (char *)&gpte->raw,
-                         rcid, mcid, PMA);
+                         rcid, mcid, PMA, endian);
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
 
@@ -296,7 +298,7 @@ step_5:
     count_events(iommu, PV, PID, PSCV, PSCID, DID, GV, GSCID, G_PT_WALKS);
     amo_gpte.raw = 0;
     status = read_memory_for_AMO((a + (vpn[i] * PTESIZE)), PTESIZE,
-                                 (char *)&amo_gpte.raw, rcid, mcid, PMA);
+                                 (char *)&amo_gpte.raw, rcid, mcid, PMA, endian);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;
@@ -313,7 +315,7 @@ step_5:
     }
 
     status = write_memory((char *)&amo_gpte.raw, (a + (vpn[i] * PTESIZE)),
-                          PTESIZE, rcid, mcid, PMA);
+                          PTESIZE, rcid, mcid, PMA, endian);
 
     if ( status & ACCESS_FAULT ) return GST_ACCESS_FAULT;
     if ( status & DATA_CORRUPTION) return GST_DATA_CORRUPTION;

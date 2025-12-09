@@ -12,38 +12,80 @@
 uint8_t
 read_memory(
     uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid,
-    uint32_t pma){
+    uint32_t pma, int endian){
+    uint8_t tmp;
+    uint32_t i, j;
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
     memcpy(data, &memory[addr], size);
+    if (endian == BIG_ENDIAN) {
+        if (size == 4) {
+            tmp = data[0]; data[0] = data[3]; data[3] = tmp;
+            tmp = data[1]; data[1] = data[2]; data[2] = tmp;
+        } else if ((size % 8) == 0) {
+            for (i = 0; i < size; i += 8) {
+                for (j = 0; j < 4; j++) {
+                    tmp = data[i + j];
+                    data[i + j] = data[i + 7 - j];
+                    data[i + 7 - j] = tmp;
+                }
+            }
+        } else {
+            printf("%s: Invalid size %u for BIG_ENDIAN\n", __func__, size);
+            exit(1);
+        }
+    }
     return 0;
 }
 uint8_t
 read_memory_test(
     uint64_t addr, uint8_t size, char *data) {
-    return read_memory(addr, size, data, 0, 0, PMA);
+    return read_memory(addr, size, data, 0, 0, PMA, test_endian);
 }
 uint8_t
 read_memory_for_AMO(
     uint64_t addr, uint8_t size, char *data, uint32_t rcid, uint32_t mcid,
-    uint32_t pma) {
+    uint32_t pma, int endian) {
     // Same for now
-    return read_memory(addr, size, data, rcid, mcid, pma);
+    return read_memory(addr, size, data, rcid, mcid, pma, endian);
 }
 
 uint8_t
 write_memory(
     char *data, uint64_t addr, uint32_t size, uint32_t rcid, uint32_t mcid,
-    uint32_t pma) {
+    uint32_t pma, int endian) {
     if ( addr == access_viol_addr ) return ACCESS_FAULT;
     if ( addr == data_corruption_addr ) return DATA_CORRUPTION;
-    memcpy(&memory[addr], data, size);
+    if (endian == BIG_ENDIAN) {
+        if (size == 4) {
+            /* data[] is BE, store as LE in memory[] */
+            memory[addr + 0] = (uint8_t)data[3];
+            memory[addr + 1] = (uint8_t)data[2];
+            memory[addr + 2] = (uint8_t)data[1];
+            memory[addr + 3] = (uint8_t)data[0];
+        } else if ((size % 8) == 0) {
+            char *src = data;
+            char *dst = (char *)&memory[addr];
+            uint32_t i, j;
+            for (i = 0; i < size; i += 8) {
+                for (j = 0; j < 4; j++) {
+                    dst[i + j]        = src[i + 7 - j];
+                    dst[i + 7 - j]    = src[i + j];
+                }
+            }
+        } else {
+            printf("%s: Invalid size %u for BIG_ENDIAN\n", __func__, size);
+            exit(1);
+        }
+    } else {
+        memcpy(&memory[addr], data, size);
+    }
     return 0;
 }
 uint8_t
 write_memory_test(
     char *data, uint64_t addr, uint32_t size) {
-    return write_memory(data, addr, size, 0, 0, PMA);
+    return write_memory(data, addr, size, 0, 0, PMA, test_endian);
 }
 
 

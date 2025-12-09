@@ -44,6 +44,7 @@ extern uint8_t pr_go_requested;
 extern uint8_t pw_go_requested;
 extern uint64_t next_free_page;
 extern uint64_t next_free_gpage[65536];
+extern int test_endian;
 
 // Macros
 #define FOR_ALL_TRANSACTION_TYPES(at, pid_valid, exec_req, priv_req, no_write, code)\

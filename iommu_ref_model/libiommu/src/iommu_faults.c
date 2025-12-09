@@ -10,12 +10,15 @@ report_fault(iommu_t *iommu,
              uint16_t cause, uint64_t iotval, uint64_t iotval2, uint8_t TTYP, uint8_t dtf,
              uint32_t device_id, uint8_t pid_valid, uint32_t process_id, uint8_t priv_req) {
     fault_rec_t frec;
+    int endian;
     uint32_t fqh;
     uint32_t fqt;
     uint64_t fqb;
     uint64_t frec_addr;
     uint64_t pa_mask = ((1UL << (iommu->reg_file.capabilities.pas)) - 1);
     uint8_t status;
+
+    endian = iommu->reg_file.fctl.be ? BIG_ENDIAN : LITTLE_ENDIAN;
 
     // The fault-queue enable bit enables the fault-queue when set to 1.
     // The fault-queue is active if fqon reads 1.
@@ -143,7 +146,8 @@ report_fault(iommu_t *iommu,
     status = (frec_addr & ~pa_mask) ?
              ACCESS_FAULT :
              write_memory((char *)&frec, frec_addr, 32,
-                          iommu->reg_file.iommu_qosid.rcid, iommu->reg_file.iommu_qosid.mcid, PMA);
+                          iommu->reg_file.iommu_qosid.rcid,
+                          iommu->reg_file.iommu_qosid.mcid, PMA, endian);
     if ( (status & ACCESS_FAULT) || (status & DATA_CORRUPTION) ) {
         iommu->reg_file.fqcsr.fqmf = 1;
     } else {
