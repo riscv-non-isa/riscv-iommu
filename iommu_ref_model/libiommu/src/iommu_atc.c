@@ -180,7 +180,9 @@ lookup_ioatc_iotlb(
         if ( is_read  && (iommu->tlb[hit].VS_R == 0) ) goto page_fault;
         if ( is_write && (iommu->tlb[hit].VS_W == 0) ) goto page_fault;
     }
-    // U and SUM bit based checks are active only when iosatp.MODE is not Bare
+    // U and SUM bit based checks are active only when iosatp.MODE is not Bare.
+    // PSCV encodes this state and gates the checks below. When iosatp.MODE == Bare,
+    // PSCV == 0 and these privilege checks are bypassed.
     if ( (PSCV == 1) && (priv == U_MODE) && (iommu->tlb[hit].U == 0) ) goto page_fault;
     if ( (PSCV == 1) && is_exec && (priv == S_MODE) && (iommu->tlb[hit].U == 1) ) goto page_fault;
     if ( (PSCV == 1) && (priv == S_MODE) && !is_exec && SUM == 0 && iommu->tlb[hit].U == 1 ) goto page_fault;
