@@ -1,4 +1,4 @@
-name: hardware
+name: iommu
 title: IOMMU Architecture
 version: v1.0
 nav:
