@@ -1,3 +1,6 @@
+image::risc-v_logo.svg[]
+
 = IOMMU Architecture Specification
 
-RISC-V IOMMU Architecture Specification overview
+
+Version v1.0.1, 2025-08-28: Ratified
