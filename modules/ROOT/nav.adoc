@@ -1,4 +1,5 @@
 .IOMMU Architecture
+* xref:index.adoc[IOMMU Architecture]
 * xref:contributors.adoc[Contributors]
 * xref:iommu_preface.adoc[Preface]
 * xref:iommu_intro.adoc[Introduction]
