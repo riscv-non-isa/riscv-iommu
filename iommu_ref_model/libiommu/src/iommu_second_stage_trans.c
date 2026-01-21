@@ -288,7 +288,7 @@ step_5:
     // When IOMMU HW A/D update is enabled, updates to the D bit in G-stage PTEs may
     // be performed by an implicit access to a VS-stage PTE, if the G-stage PTE provides
     // write permission, before any speculative access to the VS-stage PTE.
-    if ( (gpte->A == 1) && (gpte->D == 1 || is_write == 0) &&
+    if ( (gpte->A == 1) && (gpte->D == 1 || is_write == 0 || gpte->W == 0) &&
          (gpte->D == 1 || is_implicit == 0 || gpte->W == 0 || SADE == 0) ) goto step_8;
 
     // A and/or D bit update needed
