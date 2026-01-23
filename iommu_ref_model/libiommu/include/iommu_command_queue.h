@@ -4,21 +4,37 @@
 // Author: ved@rivosinc.com
 #ifndef __IOMMU_COMMAND_QUEUE_H__
 #define __IOMMU_COMMAND_QUEUE_H__
-#define IOTINVAL 1
-#define IOFENCE  2
-#define IODIR    3
-#define ATS      4
 
-#define VMA       0
-#define GVMA      1
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define IOTINVAL    RVI_IOMMU_IOTINVAL
+#define IOFENCE     RVI_IOMMU_IOFENCE
+#define IODIR       RVI_IOMMU_IODIR
+#define ATS         RVI_IOMMU_ATS
+#define VMA         RVI_IOMMU_VMA
+#define GVMA        RVI_IOMMU_GVMA
+#define INVAL_DDT   RVI_IOMMU_INVAL_DDT
+#define INVAL_PDT   RVI_IOMMU_INVAL_PDT
+#define IOFENCE_C   RVI_IOMMU_IOFENCE_C
+#define INVAL       RVI_IOMMU_INVAL
+#define PRGR        RVI_IOMMU_PRGR
+#define CQ_ENTRY_SZ RVI_IOMMU_CQ_ENTRY_SZ
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
 
-#define INVAL_DDT 0
-#define INVAL_PDT 1
+#define RVI_IOMMU_IOTINVAL 1
+#define RVI_IOMMU_IOFENCE  2
+#define RVI_IOMMU_IODIR    3
+#define RVI_IOMMU_ATS      4
 
-#define IOFENCE_C 0
+#define RVI_IOMMU_VMA       0
+#define RVI_IOMMU_GVMA      1
 
-#define INVAL     0
-#define PRGR      1
+#define RVI_IOMMU_INVAL_DDT 0
+#define RVI_IOMMU_INVAL_PDT 1
+
+#define RVI_IOMMU_IOFENCE_C 0
+
+#define RVI_IOMMU_INVAL     0
+#define RVI_IOMMU_PRGR      1
 typedef union {
     struct {
         uint64_t opcode:7;
@@ -92,7 +108,7 @@ typedef union {
     };
 } command_t;
 
-#define CQ_ENTRY_SZ sizeof(command_t)
+#define RVI_IOMMU_CQ_ENTRY_SZ sizeof(command_t)
 
 void do_inval_ddt(iommu_t *iommu, uint8_t DV, uint32_t DID);
 void do_inval_pdt(iommu_t *iommu, uint32_t DID, uint32_t PID);

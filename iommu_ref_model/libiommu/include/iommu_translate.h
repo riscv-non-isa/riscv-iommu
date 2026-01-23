@@ -5,12 +5,21 @@
 #ifndef __IOMMU_TRANSLATE_H__
 #define __IOMMU_TRANSLATE_H__
 
-#define PAGESIZE 4096UL
-#define U_MODE   0
-#define S_MODE   1
-#define PMA      0
-#define NC       1
-#define IO       2
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define PAGESIZE    RVI_IOMMU_PAGESIZE
+#define U_MODE      RVI_IOMMU_U_MODE
+#define S_MODE      RVI_IOMMU_S_MODE
+#define PMA         RVI_IOMMU_PMA
+#define NC          RVI_IOMMU_NC
+#define IO          RVI_IOMMU_IO
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
+
+#define RVI_IOMMU_PAGESIZE 4096UL
+#define RVI_IOMMU_U_MODE   0
+#define RVI_IOMMU_S_MODE   1
+#define RVI_IOMMU_PMA      0
+#define RVI_IOMMU_NC       1
+#define RVI_IOMMU_IO       2
 typedef union {
     struct {
         uint64_t V:1;

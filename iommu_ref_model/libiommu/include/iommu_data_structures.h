@@ -5,6 +5,27 @@
 #ifndef __IOMMU_DATA_STRUCTURES_H__
 #define __IOMMU_DATA_STRUCTURES_H__
 
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define IOHGATP_Bare        RVI_IOMMU_IOHGATP_Bare
+#define IOHGATP_Sv32x4      RVI_IOMMU_IOHGATP_Sv32x4
+#define IOHGATP_Sv39x4      RVI_IOMMU_IOHGATP_Sv39x4
+#define IOHGATP_Sv48x4      RVI_IOMMU_IOHGATP_Sv48x4
+#define IOHGATP_Sv57x4      RVI_IOMMU_IOHGATP_Sv57x4
+#define IOSATP_Bare         RVI_IOMMU_IOSATP_Bare
+#define IOSATP_Sv32         RVI_IOMMU_IOSATP_Sv32
+#define IOSATP_Sv39         RVI_IOMMU_IOSATP_Sv39
+#define IOSATP_Sv48         RVI_IOMMU_IOSATP_Sv48
+#define IOSATP_Sv57         RVI_IOMMU_IOSATP_Sv57
+#define PDTP_Bare           RVI_IOMMU_PDTP_Bare
+#define PD8                 RVI_IOMMU_PD8
+#define PD17                RVI_IOMMU_PD17
+#define PD20                RVI_IOMMU_PD20
+#define MSIPTP_Off          RVI_IOMMU_MSIPTP_Off
+#define MSIPTP_Flat         RVI_IOMMU_MSIPTP_Flat
+#define BASE_FORMAT_DC_SIZE RVI_IOMMU_BASE_FORMAT_DC_SIZE
+#define EXT_FORMAT_DC_SIZE  RVI_IOMMU_EXT_FORMAT_DC_SIZE
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
+
 // Translation control (`tc`) field
 typedef union {
     struct {
@@ -117,11 +138,11 @@ typedef union {
 
 // The G-stage page table format and `MODE` encoding follow the format defined by
 // the privileged specification.
-#define IOHGATP_Bare         0
-#define IOHGATP_Sv32x4       8
-#define IOHGATP_Sv39x4       8
-#define IOHGATP_Sv48x4       9
-#define IOHGATP_Sv57x4       10
+#define RVI_IOMMU_IOHGATP_Bare         0
+#define RVI_IOMMU_IOHGATP_Sv32x4       8
+#define RVI_IOMMU_IOHGATP_Sv39x4       8
+#define RVI_IOMMU_IOHGATP_Sv48x4       9
+#define RVI_IOMMU_IOHGATP_Sv57x4       10
 // Implementations are not required to support all defined mode settings for
 // `iohgatp`. The IOMMU only needs to support the modes also supported by the MMU
 // in the harts integrated into the system or a subset thereof.
@@ -163,11 +184,11 @@ typedef union {
     uint64_t raw;
 } ta_t;
 
-#define IOSATP_Bare 0
-#define IOSATP_Sv32 8
-#define IOSATP_Sv39 8
-#define IOSATP_Sv48 9
-#define IOSATP_Sv57 10
+#define RVI_IOMMU_IOSATP_Bare 0
+#define RVI_IOMMU_IOSATP_Sv32 8
+#define RVI_IOMMU_IOSATP_Sv39 8
+#define RVI_IOMMU_IOSATP_Sv48 9
+#define RVI_IOMMU_IOSATP_Sv57 10
 // IO SATP
 typedef union {
     struct {
@@ -178,10 +199,10 @@ typedef union {
     uint64_t raw;
 } iosatp_t;
 // First Stage context
-#define PDTP_Bare 0
-#define PD8       1
-#define PD17      2
-#define PD20      3
+#define RVI_IOMMU_PDTP_Bare 0
+#define RVI_IOMMU_PD8       1
+#define RVI_IOMMU_PD17      2
+#define RVI_IOMMU_PD20      3
 typedef union {
     // If `PDTV` is 0, the `fsc` field in `DC` holds the `iosatp` (when `iohgatp MODE`
     // is `Bare`) or the `iovsatp` (when `iohgatp MODE` is not `Bare`) that provide the
@@ -246,8 +267,8 @@ typedef union {
 // | 2-13 | --       | Reserved
 // |14-15 | --       | Custom
 
-#define MSIPTP_Off  0
-#define MSIPTP_Flat 1
+#define RVI_IOMMU_MSIPTP_Off  0
+#define RVI_IOMMU_MSIPTP_Flat 1
 typedef union {
     struct {
         uint64_t PPN:44;
@@ -310,8 +331,8 @@ typedef struct {
     msi_addr_pattern_t  msi_addr_pattern;
     uint64_t  reserved;
 } device_context_t;
-#define BASE_FORMAT_DC_SIZE 32
-#define EXT_FORMAT_DC_SIZE  64
+#define RVI_IOMMU_BASE_FORMAT_DC_SIZE 32
+#define RVI_IOMMU_EXT_FORMAT_DC_SIZE  64
 
 // A valid (`V==1`) non-leaf DDT entry provides PPN of the next level DDT.
 typedef union {

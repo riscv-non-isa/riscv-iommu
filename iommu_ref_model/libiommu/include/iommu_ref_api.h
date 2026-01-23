@@ -5,6 +5,11 @@
 #ifndef __IOMMU_REF_API_H__
 #define __IOMMU_REF_API_H__
 
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define FILL_IOATC_ATS_T2GPA  RVI_IOMMU_FILL_IOATC_ATS_T2GPA
+#define FILL_IOATC_ATS_ALWAYS RVI_IOMMU_FILL_IOATC_ATS_ALWAYS
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
+
 extern uint8_t read_memory(uint64_t addr, uint8_t size, char *data,
                            uint32_t rcid, uint32_t mcid, uint32_t pma, int endian);
 extern uint8_t read_memory_for_AMO(uint64_t address, uint8_t size, char *data,
@@ -19,8 +24,8 @@ extern uint8_t write_memory_test(char *data, uint64_t address, uint32_t size);
 extern uint64_t read_register(iommu_t *iommu, uint16_t offset, uint8_t num_bytes);
 extern void write_register(iommu_t *iommu, uint16_t offset, uint8_t num_bytes, uint64_t data);
 
-#define FILL_IOATC_ATS_T2GPA  0x01
-#define FILL_IOATC_ATS_ALWAYS 0x02
+#define RVI_IOMMU_FILL_IOATC_ATS_T2GPA  0x01
+#define RVI_IOMMU_FILL_IOATC_ATS_ALWAYS 0x02
 extern int reset_iommu(iommu_t *iommu, uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t eventID_limit,
                        uint8_t num_vec_bits, uint8_t reset_iommu_mode,
                        uint8_t max_iommu_mode, uint32_t max_devid_mask,
