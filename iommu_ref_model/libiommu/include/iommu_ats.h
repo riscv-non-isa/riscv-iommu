@@ -18,7 +18,19 @@ typedef union {
     uint64_t raw[2];
 } page_rec_t;
 
-#define PQ_ENTRY_SZ sizeof(page_rec_t)
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define PQ_ENTRY_SZ             RVI_IOMMU_PQ_ENTRY_SZ
+#define INVAL_REQ_MSG_CODE      RVI_IOMMU_INVAL_REQ_MSG_CODE
+#define INVAL_COMPL_MSG_CODE    RVI_IOMMU_INVAL_COMPL_MSG_CODE
+#define PAGE_REQ_MSG_CODE       RVI_IOMMU_PAGE_REQ_MSG_CODE
+#define PRGR_MSG_CODE           RVI_IOMMU_PRGR_MSG_CODE
+#define PRGR_SUCCESS            RVI_IOMMU_PRGR_SUCCESS
+#define PRGR_INVALID_REQUEST    RVI_IOMMU_PRGR_INVALID_REQUEST
+#define PRGR_RESPONSE_FAILURE   RVI_IOMMU_PRGR_RESPONSE_FAILURE
+#define MAX_ITAGS               RVI_IOMMU_MAX_ITAGS
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
+
+#define RVI_IOMMU_PQ_ENTRY_SZ sizeof(page_rec_t)
 
 // IOMMU generated notifications (invalidation requests and
 // page group responses)
@@ -28,10 +40,10 @@ typedef union {
 // 00000010     010            Msg   Invalidate Completion Message, see § Section 10.3.2
 // 00000100     000            Msg   Page Request Message, see § Section 10.4.1
 // 00000101     010            Msg   PRG Response Message, see § Section 10.4.2
-#define INVAL_REQ_MSG_CODE   0x01
-#define INVAL_COMPL_MSG_CODE 0x02
-#define PAGE_REQ_MSG_CODE    0x04
-#define PRGR_MSG_CODE        0x05
+#define RVI_IOMMU_INVAL_REQ_MSG_CODE   0x01
+#define RVI_IOMMU_INVAL_COMPL_MSG_CODE 0x02
+#define RVI_IOMMU_PAGE_REQ_MSG_CODE    0x04
+#define RVI_IOMMU_PRGR_MSG_CODE        0x05
 typedef struct {
     uint8_t   MSGCODE;
     uint8_t   TAG;
@@ -66,9 +78,9 @@ typedef struct {
 //           |         |Function shall ignore any subsequent PRG Response Messages, pending
 //           |         |re-enablement of the Page Request Interface.
 //-----------+---------+--------------------------------------------------------------------
-#define PRGR_SUCCESS          0x0UL
-#define PRGR_INVALID_REQUEST  0x1UL
-#define PRGR_RESPONSE_FAILURE 0xFUL
+#define RVI_IOMMU_PRGR_SUCCESS          0x0UL
+#define RVI_IOMMU_PRGR_INVALID_REQUEST  0x1UL
+#define RVI_IOMMU_PRGR_RESPONSE_FAILURE 0xFUL
 
 typedef struct {
     uint8_t  busy;
@@ -78,7 +90,7 @@ typedef struct {
     uint8_t  num_rsp_rcvd;
 } itag_tracker_t;
 
-#define MAX_ITAGS 2
+#define RVI_IOMMU_MAX_ITAGS 2
 extern uint8_t allocate_itag(iommu_t *iommu, uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag);
 extern void send_msg_iommu_to_hb(ats_msg_t *msg);
 extern uint8_t any_ats_invalidation_requests_pending(iommu_t *iommu);

@@ -5,6 +5,11 @@
 #ifndef __IOMMU_REQ_RSP_H__
 #define __IOMMU_REQ_RSP_H__
 
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define READ    RVI_IOMMU_READ
+#define WRITE   RVI_IOMMU_WRITE
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
+
 typedef enum {
     // 00 - Untranslated  - IOMMU may treat the address as either virtual or physical.
     // 01 - Trans. Req.   - The IOMMU will return the translation of the address
@@ -19,8 +24,8 @@ typedef enum {
     ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST = 1,
     ADDR_TYPE_TRANSLATED = 2
 } addr_type_t;
-#define READ      0
-#define WRITE     1
+#define RVI_IOMMU_READ      0
+#define RVI_IOMMU_WRITE     1
 typedef struct {
     addr_type_t at;
     uint64_t    iova;

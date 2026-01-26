@@ -23,6 +23,14 @@ example, the tests may provide identical stimulus to the IOMMU reference model a
 compare the results. The debug interface of the IOMMU may be used to provide stimulus when its simpler
 not to use real IO devices to generate the stimulus.
 
+The reference model defines various preprocessor macros for register offsets, such as `FCTRL_OFFSET`.
+To support integration with codebases where these generic names might conflict, the library now
+provides namespaced versions of all macros prefixed with `RVI_IOMMU_`.
+
+By default, the legacy "short names" remain defined for backwards compatibility. If these cause name
+collisions in your project, define `RVI_IOMMU_NO_SHORT_NAMES` before including `iommu.h` to disable
+the unprefixed definitions and use the `RVI_IOMMU_` namespace exclusively.
+
 The stock test application generates the following output.
 
 ```bash

@@ -50,13 +50,22 @@ typedef struct {
     uint8_t           valid;
 } pdt_cache_t;
 
-#define DDT_CACHE_SIZE 2
-#define PDT_CACHE_SIZE 2
-#define TLB_SIZE       2
+#ifndef RVI_IOMMU_NO_SHORT_NAMES
+#define DDT_CACHE_SIZE  RVI_IOMMU_DDT_CACHE_SIZE
+#define PDT_CACHE_SIZE  RVI_IOMMU_PDT_CACHE_SIZE
+#define TLB_SIZE        RVI_IOMMU_TLB_SIZE
+#define IOATC_MISS      RVI_IOMMU_IOATC_MISS
+#define IOATC_HIT       RVI_IOMMU_IOATC_HIT
+#define IOATC_FAULT     RVI_IOMMU_IOATC_FAULT
+#endif /* RVI_IOMMU_NO_SHORT_NAMES */
 
-#define IOATC_MISS  0
-#define IOATC_HIT   1
-#define IOATC_FAULT 2
+#define RVI_IOMMU_DDT_CACHE_SIZE 2
+#define RVI_IOMMU_PDT_CACHE_SIZE 2
+#define RVI_IOMMU_TLB_SIZE       2
+
+#define RVI_IOMMU_IOATC_MISS  0
+#define RVI_IOMMU_IOATC_HIT   1
+#define RVI_IOMMU_IOATC_FAULT 2
 
 extern void
 cache_ioatc_iotlb(
