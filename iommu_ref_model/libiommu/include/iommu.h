@@ -68,9 +68,9 @@ typedef struct iommu_t {
     iommu_qosid_t iommu_qosid_mask;
 
     // from iommu_atc.
-    ddt_cache_t ddt_cache[DDT_CACHE_SIZE];
-    pdt_cache_t pdt_cache[PDT_CACHE_SIZE];
-    tlb_t       tlb[TLB_SIZE];
+    ddt_cache_t ddt_cache[RVI_IOMMU_DDT_CACHE_SIZE];
+    pdt_cache_t pdt_cache[RVI_IOMMU_PDT_CACHE_SIZE];
+    tlb_t       tlb[RVI_IOMMU_TLB_SIZE];
     uint32_t    dc_lru_time;
     uint32_t    pc_lru_time;
     uint32_t    tlb_lru_time;
