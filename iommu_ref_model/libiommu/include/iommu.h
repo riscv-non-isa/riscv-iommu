@@ -75,7 +75,7 @@ typedef struct iommu_t {
     uint32_t    pc_lru_time;
     uint32_t    tlb_lru_time;
 
-    itag_tracker_t itag_tracker[MAX_ITAGS];
+    itag_tracker_t itag_tracker[RVI_IOMMU_MAX_ITAGS];
     uint8_t msi_pending[16];
 } iommu_t;
 
