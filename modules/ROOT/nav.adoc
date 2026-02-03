@@ -11,3 +11,4 @@
 * xref:iommu_sw_guidelines.adoc[Software guidelines]
 * xref:iommu_hw_guidelines.adoc[Hardware guidelines]
 * xref:iommu_extensions.adoc[IOMMU Extensions]
+* xref:bibliography.adoc[Bibliography]
