@@ -6,4 +6,4 @@ nav:
 
 asciidoc:
   attributes:
-    page-pdf_url: https://github.com/riscv/docs.riscv.org/blob/main/static/pdf/riscv-iommu.pdf
+    page-pdf_url: ../iommu/_attachments/riscv-iommu.pdf
