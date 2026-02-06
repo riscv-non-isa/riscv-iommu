@@ -7,3 +7,4 @@ nav:
 asciidoc:
   attributes:
     page-pdf_url: ../iommu/_attachments/riscv-iommu.pdf
+    page-group: hardware
