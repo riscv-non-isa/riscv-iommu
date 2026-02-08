@@ -79,8 +79,11 @@ locate_process_context(
     endian = DC->tc.SBE ? BIG_ENDIAN : LITTLE_ENDIAN;
 
 step_2:
+    // 2. If `i != 0`, then let `a = a + PDI[2] × 8`; otherwise, let
+    //    `a = a + PDI[0] × 16`.
     a = a + ((i == 0) ? (PDI[i] * 16) : (PDI[i] * 8));
-    // 2. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
+
+    // 3. If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
     //    to translate `a` to a SPA as an implicit memory access. If faults
     //    occur during G-stage address translation of `a` then stop and the fault
     //    detected by the G-stage address translation process. The translated `a`
@@ -113,13 +116,13 @@ step_2:
         }
     }
 
-    // 3. If `i == 0` go to step 9.
-    if ( i == 0 ) goto step_9;
+    // 4. If `i == 0` go to step 10.
+    if ( i == 0 ) goto step_10;
 
     // Count walks in PDT
     count_events(iommu, 1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
 
-    // 4. Let `pdte` be value of eight bytes at address `a + PDI[i] x 8`. If
+    // 5. Let `pdte` be value of eight bytes at address `a`. If
     //    accessing `pdte` violates a PMA or PMP check, then stop and report
     //    "PDT entry load access fault" (cause = 265).
     status = (a & ~pa_mask) ?
@@ -131,36 +134,36 @@ step_2:
         return 1;
     }
 
-    // 5. If `pdte` access detects a data corruption (a.k.a. poisoned data), then
+    // 6. If `pdte` access detects a data corruption (a.k.a. poisoned data), then
     //     stop and report "PDT data corruption" (cause = 269).
     if ( status & DATA_CORRUPTION ) {
         *cause = 269;     // PDT data corruption
         return 1;
     }
 
-    // 6. If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
+    // 7. If `pdte.V == 0`, stop and report "PDT entry not valid" (cause = 266).
     if ( pdte.V == 0 ) {
         *cause = 266;     // PDT entry not valid
         return 1;
     }
 
-    // 7. If if any bits or encoding that are reserved for future standard use are
+    // 8. If if any bits or encoding that are reserved for future standard use are
     //    set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
     if ( pdte.reserved0 != 0 || pdte.reserved1 != 0 ) {
         *cause = 267;     // PDT entry misconfigured
         return 1;
     }
 
-    // 8. Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
+    // 9. Let `i = i - 1` and let `a = pdte.PPN x 2^12`. Go to step 2.
     i = i - 1;
     a = pdte.PPN * PAGESIZE;
     goto step_2;
 
-step_9:
+step_10:
     // Count walks in PDT
     count_events(iommu, 1, process_id, 0, 0, device_id, 0, 0, PDT_WALKS);
 
-    // 9. Let `PC` be value of 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
+    //10. Let `PC` be value of 16-bytes at address `a`. If accessing `PC`
     //    violates a PMA or PMP check, then stop and report "PDT entry load access
     //    fault" (cause = 265).If `PC` access detects a data corruption
     //    (a.k.a. poisoned data), then stop and report "PDT data corruption"
@@ -177,20 +180,20 @@ step_9:
         *cause = 269;     // PDT data corruption
         return 1;
     }
-    //10. If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
+    //11. If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
     if ( PC->ta.V == 0 ) {
         *cause = 266;     // PDT entry not valid
         return 1;
     }
 
-    //11. If the PC is misconfigured as determined by rules outlined in Section 2.2.4
+    //12. If the PC is misconfigured as determined by rules outlined in Section 2.2.4
     //    then stop and report "PDT entry misconfigured" (cause = 267).
     if ( do_process_context_configuration_checks(iommu, DC, PC) ) {
         *cause = 267;     // PDT entry misconfigured
         return 1;
     }
 
-    //12. The Process-context has been successfully located.
+    //13. The Process-context has been successfully located.
     cache_ioatc_pc(iommu, device_id, process_id, PC);
     return 0;
 }
