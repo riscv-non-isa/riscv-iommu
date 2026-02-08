@@ -1129,13 +1129,15 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
+. If `i != 0`, then let `a = a + PDI[2] × 8`; otherwise, let
+  `a = a + PDI[0] × 16`.
 . If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
   second-stage address translation of `a` then stop and report the fault detected
   by the second-stage address translation process. The translated `a` is used in
   subsequent steps.
-. If `i == 0` go to step 9.
-. Let `pdte` be the value of the eight bytes at address `a + PDI[i] x 8`. If
+. If `i == 0` go to step 10.
+. Let `pdte` be the value of the eight bytes at address `a`. If
   accessing `pdte` violates a PMA or PMP check, then stop and report
   "PDT entry load access fault" (cause = 265).
 . If `pdte` access detects a data corruption (a.k.a. poisoned data), then
@@ -1144,7 +1146,7 @@ The process to locate the Process-context for a transaction using its
 . If any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
-. Let `PC` be the value of the 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
+. Let `PC` be the value of the 16-bytes at address `a`. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access
   fault" (cause = 265). If `PC` access detects a data corruption
   (a.k.a. poisoned data), then stop and report "PDT data corruption"
