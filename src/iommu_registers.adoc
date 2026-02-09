@@ -1528,8 +1528,10 @@ translation-request interface for debug. This register is present when
                                  of the translation are in the `tr_response`
                                  register.
 | 1     |`Priv`     |WARL      | If set to 1, Privileged Mode access
-                                 is requested else no Privileged Mode access
-                                 is not requested.
+                                 is requested; otherwise, Privileged Mode access
+                                 is not requested. When `PV` is 0, this field
+                                 is ignored and no Privileged Mode access is
+                                 requested.
 | 2     |`Exe`      |WARL      | If set to 1, execute permission is
                                  requested else execute permission is not
                                  requested.
