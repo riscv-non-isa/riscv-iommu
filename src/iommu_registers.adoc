@@ -1534,7 +1534,9 @@ translation-request interface for debug. This register is present when
                                  requested.
 | 2     |`Exe`      |WARL      | If set to 1, execute permission is
                                  requested else execute permission is not
-                                 requested.
+                                 requested. If `Exe` is set to 1, then `NW` must
+                                 be also be set to 1; otherwise the behavior is
+                                 UNSPECIFIED.
 | 3     |`NW`       |WARL      | If set to 1, read permission is requested.
                                  If set to 0, both read and write permissions
                                  are requested.
