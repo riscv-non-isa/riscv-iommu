@@ -325,6 +325,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/fqen == 1`, or
 |Bits ^|Field      |Attribute ^| Description
 |0     |`BE`       |WARL      | When 0, IOMMU accesses to memory resident data
                                 structures, as specified in <<ENDIAN_CONFIG>>,
+                                accesses made by the IOMMU during command
+                                processing or for MSI generation,
                                 and accesses to in-memory queues are performed
                                 as little-endian accesses and when 1 as
                                 big-endian accesses.
