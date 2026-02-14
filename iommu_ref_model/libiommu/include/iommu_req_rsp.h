@@ -44,6 +44,7 @@ typedef struct {
     uint8_t  exec_req;
     uint8_t  priv_req;
     uint8_t  is_cxl_dev;
+    uint8_t  orig_pid_valid;
     // Translation request
     iommu_trans_req_t tr;
 } hb_to_iommu_req_t;
