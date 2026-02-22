@@ -1,8 +1,8 @@
 == Preface
-[.big]*_Preface to Version 20260215_*
+[.big]*_Preface to Version 20260222_*
 
 This document describes the RISC-V IOMMU architecture. This release, version
-20260215, includes the following versions of the RISC-V IOMMU Base Architecture
+20260222, includes the following versions of the RISC-V IOMMU Base Architecture
 specification and standard extensions:
 
 [%autowidth,float="center",align="center",cols="^,^,^",options="header",]
