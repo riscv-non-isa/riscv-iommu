@@ -659,6 +659,8 @@ The `msiptp.MODE` field is used to select the MSI address translation scheme.
 | 14-15| --       | Designated for custom use.
 |===
 
+When `DC.iohgatp.MODE` is `Bare`, the `msiptp.MODE` must be set to `Off`.
+
 [[MSI_ID]]
 ===== MSI address mask (`msi_addr_mask`) and pattern (`msi_addr_pattern`)
 
@@ -761,6 +763,11 @@ misconfigured" (cause = 259).
 . `capabilities.QOSID` is 1 and `DC.ta.RCID` or `DC.ta.MCID` values
   are wider than that supported by the IOMMU.
 
+When `DC.iohgatp.MODE` is `Bare`, `DC.msiptp.MODE` must be set to `Off` by
+software. All other settings are reserved. Implementations are recommended
+to stop and report "DDT entry misconfigured" (cause = 259) if a reserved
+setting is detected.
+
 [NOTE]
 ====
 Some `DC` fields hold supervisor physical addresses or
@@ -774,6 +781,13 @@ Other implementations only detect such addresses to be invalid when the data
 structure referenced by these fields needs to be accessed. Such
 implementations may detect access-violation faults in the process of making
 the access.
+
+An earlier version of the specification did not recommend implementations to
+check that `msiptp.MODE` was set to `Off` when `iohgatp.MODE` was `Bare`.
+When `iohgatp.MODE` is `Bare`, second-stage address translation is
+effectively disabled and no valid `GSCID` exists to associate translations
+from an MSI page table with a VM address space. In such cases, software must
+set `msiptp.MODE` to `Off`.
 ====
 
 === Process-Directory-Table (PDT)
@@ -1115,13 +1129,15 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
+. If `i != 0`, then let `a = a + PDI[2] × 8`; otherwise, let
+  `a = a + PDI[0] × 16`.
 . If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
   second-stage address translation of `a` then stop and report the fault detected
   by the second-stage address translation process. The translated `a` is used in
   subsequent steps.
-. If `i == 0` go to step 9.
-. Let `pdte` be the value of the eight bytes at address `a + PDI[i] x 8`. If
+. If `i == 0` go to step 10.
+. Let `pdte` be the value of the eight bytes at address `a`. If
   accessing `pdte` violates a PMA or PMP check, then stop and report
   "PDT entry load access fault" (cause = 265).
 . If `pdte` access detects a data corruption (a.k.a. poisoned data), then
@@ -1130,7 +1146,7 @@ The process to locate the Process-context for a transaction using its
 . If any bits or encoding that are reserved for future standard use are
   set within `pdte`, stop and report "PDT entry misconfigured" (cause = 267).
 . Let `i = i - 1` and let `a = pdte.PPN x 2^12^`. Go to step 2.
-. Let `PC` be the value of the 16-bytes at address `a + PDI[0] x 16`. If accessing `PC`
+. Let `PC` be the value of the 16-bytes at address `a`. If accessing `PC`
   violates a PMA or PMP check, then stop and report "PDT entry load access
   fault" (cause = 265). If `PC` access detects a data corruption
   (a.k.a. poisoned data), then stop and report "PDT data corruption"
@@ -1399,10 +1415,11 @@ not be invoked for translating addresses in CXL.cache transactions.
 
 [[ATS_PRI]]
 === PCIe ATS Page Request handling
-To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first locates
-the device-context to determine if ATS and PRI are enabled for the requester.
-If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
- IOMMU queues the message into an in-memory queue called the
+To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU
+first locates the device-context--using the procedure outlined in steps 1
+through 5 of <<P2IOVA>>--to determine if ATS and PRI are enabled for the
+requester.  If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both
+set to 1, the IOMMU queues the message into an in-memory queue called the
 page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
@@ -1447,6 +1464,7 @@ The status is set to Invalid Request if the following faults are encountered:
 
 * `ddtp.iommu_mode` is `Bare` (cause = 260)
 * `EN_PRI` is set to 0 (cause = 260)
+* `device_id` is wider than that supported by the IOMMU mode (cause = 260)
 
 The status is set to Success if no other faults were encountered but the
 "Page Request" could not be queued due to the page-request queue being full
@@ -1544,15 +1562,12 @@ that the entry is valid.
 Software is allowed to make updates to a data structure entry that has the `V`
 bit set to 1. However, some rules as outlined below must be followed.
 
-* It is generally unsafe for software to update fields of a valid data structure
-  entry using a set of stores of width less than the minimal single-copy atomic
-  memory access supported by an IOMMU as it is legal for an IOMMU to read the
-  entry at any time, including when only some of the partial stores have taken
-  effect. +
+* It may be unsafe for software to partially update the fields of a valid
+  data structure entry, as it is legal for an IOMMU to read the entry at any
+  time, including when only some of the partial updates have taken effect. +
 +
-* For an update to an IOMMU data structure entry to be atomic, software must use
-  a single store of width equal to the minimal single-copy atomic memory access
-  supported by an IOMMU. +
+* For an update to an IOMMU data structure entry to be atomically observed by the
+  IOMMU, software must use a store that results in a single memory operation. +
 +
 * If the update to a field will make the field inconsistent with another field
   of the entry then software must first set the `V` field to 0 and use the commands

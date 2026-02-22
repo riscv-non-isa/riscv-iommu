@@ -1,4 +1,51 @@
 == Preface
+[.big]*_Preface to Version 20260215_*
+
+This document describes the RISC-V IOMMU architecture. This release, version
+20260215, includes the following versions of the RISC-V IOMMU Base Architecture
+specification and standard extensions:
+
+[%autowidth,float="center",align="center",cols="^,^,^",options="header",]
+|===
+|       Specification                              |Version |Status
+|*RISC-V IOMMU Base Architecture Specification*   +
+ *Quality-of-Service (QoS) Identifiers Extension* +
+ *Non-leaf PTE Invalidation Extension*            +
+ *Address Range Invalidation Extension*           +
+ *PTE Reserved-for-Software Bits 60-59*
+                                                   |*1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*  +
+                                                    *1.0*
+                                                            |*Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified* +
+                                                             *Ratified*
+|===
+
+The following backward-compatible changes--comprising a set of clarifications
+and corrections--have been made since version 20250828:
+
+* Corrected typographic errors and made editorial updates.
+* Reworded the guidance on consistently updating valid data structures.
+* Clarified procedure to use for determining if ATS and PRI are enabled and
+  included missing fault for device ID wider than that supported by the IOMMU.
+* Clarified that pmip is set when OF transitions from 0 to 1 due to counter
+  overflow.
+* Clarified that Priv is ignored when PV is 0 in tr_req_ctl.
+* Clarified that the behavior is unspecified if Exe=1/NW=0 in tr_req_ctl.
+* Clarified memory access by IOFENCE and for IOMMU-generated MSI follow fctl.BE
+  endianess.
+
+The following change has been made which, while not strictly backwards
+compatible, is not expected to cause software portability issues in practice:
+
+* When `iohgatp.MODE` is `Bare`, the `msiptp.MODE` must be set to `Off`.
+
+These changes were made through PR#617, cite:[PR617].
+
 [.big]*_Preface to Version 20250828_*
 
 This document describes the RISC-V IOMMU architecture. This release, version
