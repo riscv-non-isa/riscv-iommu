@@ -6,5 +6,6 @@ nav:
 
 asciidoc:
   attributes:
-    page-pdf_url: ../iommu/_attachments/riscv-iommu.pdf
-    page-group: hardware
+  page-pdf_url: _attachments/riscv-interrupts.pdf
+  more_details_url: https://riscv.atlassian.net/wiki/spaces/HOME/pages/806617089/RISC-V+IOMMU+Architecture
+  page-group: hardware
