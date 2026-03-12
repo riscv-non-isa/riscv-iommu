@@ -251,7 +251,7 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format.  The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any
+determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[Features-control register]). The IOMMU may read the `DC` fields in any
 order.
 
 ==== Device-context fields
@@ -365,7 +365,7 @@ faults encountered in the address translation process. Setting `DTF` to 1 does
 not disable error responses from being generated to the device in response to
 faulting transactions. Setting `DTF` to 1 does not disable reporting of faults
 from the IOMMU that are not related to the address translation process. The
-faults that are not reported when `DTF` is 1 are listed in <<FAULT_CAUSE>>.
+faults that are not reported when `DTF` is 1 are listed in xref:iommu_in_memory_queues.adoc#FAULT_CAUSE[Fault record CAUSE field encodings].
 
 [NOTE]
 ====
@@ -1030,8 +1030,8 @@ and VS-stage page tables, remains a reserved encoding for IO transactions.
 When the translation process reports a fault, and the request is an Untranslated
 request or a Translated request, the IOMMU requests the IO bridge to abort the
 transaction. Guidelines for handling faulting transactions in the IO bridge are
-provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the fault/event
-reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
+provided in xref:iommu_hw_guidelines.adoc#IOBR_FAULT_RESP[Aborting transactions]. The fault may be reported using the fault/event
+reporting mechanism and fault record formats specified in xref:iommu_in_memory_queues.adoc#FAULT_QUEUE[Fault/Event-Queue].
 
 If the fault was detected by a PCIe ATS Translation Request then the IOMMU may
 provide a PCIe protocol defined response instead of reporting fault to software
@@ -1131,7 +1131,7 @@ physical address space. A write to a guest physical address can thus be
 recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM.
 
-When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
+When MSI address translation is supported (`capabilities.MSI_FLAT`, xref:iommu_registers.adoc#CAP[IOMMU capabilities]),
 the process to identify an incoming `IOVA` as the address of a virtual interrupt
 file and translating the address using the MSI page table is as follows:
 
@@ -1367,7 +1367,7 @@ To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU first
 the device-context to determine if ATS and PRI are enabled for the requester.
 If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both set to 1, the
  IOMMU queues the message into an in-memory queue called the
-page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
+page-request-queue (`PQ`) (See xref:iommu_in_memory_queues.adoc#PRQ[Page-Request-Queue]). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
 
@@ -1375,7 +1375,7 @@ When PRI is enabled for a device, the IOMMU may still be unable to report
 "Page Request" or "Stop Marker" messages through the `PQ` due to error
 conditions such as the queue being disabled, queue being full, or the IOMMU
 encountering access faults when attempting to access queue memory. These error
-conditions are specified in <<PRQ>>.
+conditions are specified in xref:iommu_in_memory_queues.adoc#PRQ[Page-Request-Queue].
 
 If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
 device-context for the requester.
@@ -1480,16 +1480,16 @@ group of entries.
 [%header, cols="8,10,10"]
 |===
 ^|Data Structure cached  ^|IDs used to tag entries    ^| Invalidation command
-|Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
-|Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
+|Device Directory Table |`device_id`                | xref:iommu_in_memory_queues.adoc#IDDT[IODIR.INVAL_DDT]
+|Process Directory Table|`device_id`, `process_id`  | xref:iommu_in_memory_queues.adoc#IPDT[IODIR.INVAL_PDT]
 |First-stage page table
  (when second-stage is
-  not Bare)             |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+  not Bare)             |`GSCID`, `PSCID`, and IOVA | xref:iommu_in_memory_queues.adoc#IVMA[IOTINVAL.VMA]
 |First-stage page table
  (when second-stage is
-  Bare)                 |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
-|Second-stage page table|`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
-|MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
+  Bare)                 |`PSCID`, and IOVA          | xref:iommu_in_memory_queues.adoc#IVMA[IOTINVAL.VMA]
+|Second-stage page table|`GSCID`, `GPA`             | xref:iommu_in_memory_queues.adoc#IGVMA[IOTINVAL.GVMA]
+|MSI page table         |`GSCID`, `GPA`             | xref:iommu_in_memory_queues.adoc#IGVMA[IOTINVAL.GVMA]
 |===
 
 === Updating in-memory data structure entries

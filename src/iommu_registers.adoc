@@ -108,7 +108,7 @@ The reset value is 0 for the following registers.
 
 Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`.
 
-After a reset the caches (<<CACHING>>) must have no valid entries.
+After a reset the caches (xref:iommu_data_structures.adoc#CACHING[Caching in-memory data structures]) must have no valid entries.
 
 [NOTE]
 ====
@@ -326,7 +326,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/cqen == 1`, or
                                 as message-signaled-interrupts.
 |2     |`GXL`      |WARL      | Controls the address-translation schemes that
                                 may be used for guest physical addresses as
-                                defined in <<IOHGATP_MODE_ENC>>.
+                                defined in xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC[Encodings of iohgatp.MODE].
 |15:3  |reserved   |WPRI      | Reserved for standard use.
 |31:16 |custom     |WPRI      | Designated for custom use.
 |===
@@ -409,7 +409,7 @@ When the `iommu_mode` field value is changed to `Off` the IOMMU guarantees that
 in-flight transactions, observed at the time of the write to this field, from devices
 connected to the IOMMU will either be processed with the configurations
 applicable to the old value of the `iommu_mode` field or be aborted
-(<<IOBR_FAULT_RESP>>). It also ensures that all transactions and previous
+(xref:iommu_hw_guidelines.adoc#IOBR_FAULT_RESP[Aborting transactions]). It also ensures that all transactions and previous
 requests from devices that have already been processed by the IOMMU are committed
 to a global ordering point such that they can be observed by all RISC-V harts,
 devices, and IOMMUs in the platform. Software must not change the `PPN` field
@@ -1012,7 +1012,7 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages
                               received when page-request-queue is off or in
                               the process of being turned off, as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[PCIe ATS Page Request handling].
 |1     |`pie`     |RW       | The page-request-queue-interrupt-enable
                               bit when set to 1, enables generation of
                               interrupts from page-request-queue.
@@ -1030,7 +1030,7 @@ status of the page-request-queue.
                               that caused the `pqof` or `pqmf` bit to be set
                               and all subsequent “Page Request” messages
                               received while these bits are 1 as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[PCIe ATS Page Request handling].
 |9     |`pqof`    |RW1C     | The page-request-queue-overflow bit is set to 1
                               if the page-request queue overflows i.e. IOMMU
                               needs to queue a "Page Request" message but the
@@ -1046,7 +1046,7 @@ status of the page-request-queue.
                               that caused the `pqof` or `pqmf` bit to be set
                               and all subsequent “Page Request” messages
                               received while these bits are 1 as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[PCIe ATS Page Request handling].
 |15:10 |reserved  |WPRI     | Reserved for standard use
 |16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1. +
 |17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to

@@ -684,4 +684,4 @@ features:
   support debug.
 
 Features supported by the IOMMU may be discovered using the `capabilities`
-register <<CAP>>.
+register xref:iommu_registers.adoc#CAP[IOMMU capabilities].

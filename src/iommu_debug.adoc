@@ -11,7 +11,7 @@ translation, if the process completes successfully, is reported through the
 translation-response registers. If the process stops due to faults then the
 faults are reported normally in the fault-queue and the translation-response
 registers updated with a failure indicator. If the IOVA is determined to be
-that of a virtual interrupt file (<<MSI_ID>>) and the corresponding MSI PTE is
+that of a virtual interrupt file (xref:iommu_data_structures.adoc#MSI_ID[MSI address mask and pattern]) and the corresponding MSI PTE is
 in MRIF mode, then the process stops and reports a "Transaction type disallowed"
 (cause = 260) fault.
 
@@ -27,11 +27,11 @@ Requests.
 
 The translation-request interface consists of the following 64-bit WARL registers:
 
-* `tr_req_iova` (<<TRR_IOVA>>)
-* `tr_req_ctl` (<<TRR_CTRL>>)
+* `tr_req_iova` (xref:iommu_registers.adoc#TRR_IOVA[Translation-request IOVA])
+* `tr_req_ctl` (xref:iommu_registers.adoc#TRR_CTRL[Translation-request control])
 
 The translation-response interface consists of a single 64-bit RO register
-`tr_response` (<<TRR_RSP>>)
+`tr_response` (xref:iommu_registers.adoc#TRR_RSP[Translation-response])
 
 To request a translation, the `tr_req_iova` register is written first with
 the desired IOVA and the `tr_req_ctl` register is written next. The 'Go/Busy`
