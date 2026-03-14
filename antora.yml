@@ -7,5 +7,5 @@ nav:
 asciidoc:
   attributes:
     page-pdf_url: _attachments/riscv-iommu.pdf
-    more_details_url: https://riscv.atlassian.net/wiki/spaces/HOME/pages/806617089/RISC-V+IOMMU+Architecture
+    more_details_url: https://riscv.atlassian.net/wiki/external/ZGY0YjgxZTZhOTY3NDhiZGJhMGZiNzAwMzk3ZmNkNDg
     page-group: hardware
