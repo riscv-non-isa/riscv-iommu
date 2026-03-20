@@ -6,6 +6,8 @@ nav:
 
 asciidoc:
   attributes:
+    page-group: hardware
+    page-card-description: 'I/O memory management architecture and requirements.'
+    page-release-date: 'June 2023'
     page-pdf_url: _attachments/riscv-iommu.pdf
     more_details_url: https://riscv.atlassian.net/wiki/external/ZGY0YjgxZTZhOTY3NDhiZGJhMGZiNzAwMzk3ZmNkNDg
-    page-group: hardware
