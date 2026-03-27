@@ -1,3 +1,8 @@
-include::partial$page-attributes.adoc[]
+:bibtex-file: ../resources/iommu.bib
+:bibtex-order: appearance
+:bibtex-style: ieee
 
-include::../../../../src/bibliography.adoc[]
+[bibliography]
+== Bibliography
+
+bibliography::[]
