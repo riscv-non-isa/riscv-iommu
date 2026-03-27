@@ -1,3 +1,3 @@
 include::partial$page-attributes.adoc[]
 
-include::../../../../src/iommu_extensions.adoc[]
+include::../partials/iommu_extensions.adoc[]
