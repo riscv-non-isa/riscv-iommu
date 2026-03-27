@@ -1,4 +1,4 @@
-:bibtex-file: ../resources/iommu.bib
+:bibtex-file: ROOT:resources/iommu.bib
 :bibtex-order: appearance
 :bibtex-style: ieee
 
