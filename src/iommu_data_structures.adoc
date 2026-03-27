@@ -69,10 +69,10 @@ allowed to use the PCIe defined Address Translation Service (ATS) cite:[PCI].
 Two formats of the device-context structure are supported:
 
 * *Base Format* - is 32-bytes in size used when the special treatment of MSI
-  as specified in <<MSI_TRANS>> is not supported by the IOMMU.
+  as specified in xref:iommu_data_structures.adoc#MSI_TRANS[] is not supported by the IOMMU.
 
 * *Extended Format* - is 64-bytes in size and extends the base format `DC` with
-  additional fields to translate MSIs as specified in <<MSI_TRANS>>.
+  additional fields to translate MSIs as specified in xref:iommu_data_structures.adoc#MSI_TRANS[].
 
 If `capabilities.MSI_FLAT` is 1 then the Extended Format is used else the Base
 Format is used.
@@ -152,7 +152,7 @@ next device-directory-table.
 A valid leaf device-directory-table entry holds the device-context (`DC`).
 
 .Three, two and single-level device directory with extended format `DC`
-image::images/ddt-ext.svg[width=800,height=400, align="center"]
+image::ddt-ext.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -176,7 +176,7 @@ image::images/ddt-ext.svg[width=800,height=400, align="center"]
 //....
 
 .Three, two and single-level device directory with base format `DC`
-image::images/ddt-base.svg[width=800,height=400, align="center"]
+image::ddt-base.svg[width=800,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+    +-------+
@@ -251,7 +251,7 @@ In base-format the `DC` is 32-bytes. In extended-format the `DC` is 64-bytes.
 The `DC` is interpreted as four 64-bit doublewords in base-format and as eight
 64-bit doublewords in extended-format.  The byte order of each of the
 doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctl.BE` (<<FCTRL>>). The IOMMU may read the `DC` fields in any
+determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[]). The IOMMU may read the `DC` fields in any
 order.
 
 ==== Device-context fields
@@ -365,7 +365,7 @@ faults encountered in the address translation process. Setting `DTF` to 1 does
 not disable error responses from being generated to the device in response to
 faulting transactions. Setting `DTF` to 1 does not disable reporting of faults
 from the IOMMU that are not related to the address translation process. The
-faults that are not reported when `DTF` is 1 are listed in <<FAULT_CAUSE>>.
+faults that are not reported when `DTF` is 1 are listed in xref:iommu_in_memory_queues.adoc#FAULT_CAUSE[].
 
 [NOTE]
 ====
@@ -406,7 +406,7 @@ little-endian else they are big-endian. The supported values of `SBE` are the
 same as that of the `fctl.BE` field.
 
 The `SXL` field controls the supported paged virtual-memory schemes as defined
-in <<IOSATP_MODE_ENC-0>> and <<IOSATP_MODE_ENC-1>>. If `fctl.GXL` is 1 then the
+in xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-0[] and xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-1[]. If `fctl.GXL` is 1 then the
 `SXL` field must be 1; otherwise the legal values for the `SXL` field are the
 same as those for the `fctl.GXL` field.
 
@@ -438,8 +438,8 @@ to select the second-stage address translation scheme.
 
 The second-stage page table formats are as defined by the Privileged
 specification.  The `fctl.GXL` field controls the supported address-translation
-schemes for guest physical addresses as defined in <<IOHGATP_MODE_ENC-0>> and
-<<IOHGATP_MODE_ENC-1>>.
+schemes for guest physical addresses as defined in xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-0[] and
+xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-1[].
 
 The `iohgatp` `MODE` field identifies the paged virtual-memory schemes and its
 encodings are as follows:
@@ -546,7 +546,7 @@ The first-stage page table formats are as defined by the Privileged specificatio
 The `DC.tc.SXL` field controls the supported paged virtual-memory schemes.
 
 The `iosatp.MODE` identifies the paged virtual-memory schemes and is encoded
-as defined in <<IOSATP_MODE_ENC-0>> and <<IOSATP_MODE_ENC-1>>. The `iosatp.PPN`
+as defined in xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-0[] and xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-1[]. The `iosatp.PPN`
 field holds the PPN of the root page of a first-stage page table.
 
 When second-stage address translation is not `Bare`, the `iosatp.PPN` is a guest
@@ -728,8 +728,8 @@ misconfigured" (cause = 259).
 .. `capabilities.PD17` is 0 and `DC.fsc.pdtp.MODE` is `PD17`
 .. `capabilities.PD8` is 0 and `DC.fsc.pdtp.MODE` is `PD8`
 . `DC.tc.PDTV` is 0 and `DC.fsc.iosatp.MODE` encoding is not a valid
-   encoding as determined by <<IOSATP_MODE_ENC-0>> and
-   <<IOSATP_MODE_ENC-1>>.
+  encoding as determined by xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-0[] and
+  xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-1[].
 . `DC.tc.PDTV` is 0 and `DC.tc.SXL` is 0 `DC.fsc.iosatp.MODE`
   is not one of the supported modes
 .. `capabilities.Sv39` is 0 and `DC.fsc.iosatp.MODE` is `Sv39`
@@ -740,7 +740,7 @@ misconfigured" (cause = 259).
 .. `capabilities.Sv32` is 0 and `DC.fsc.iosatp.MODE` is `Sv32`
 . `DC.tc.PDTV` is 0 and `DC.tc.DPE` is 1
 . `DC.iohgatp.MODE` encoding is not a valid encoding as determined
-  by <<IOHGATP_MODE_ENC-0>> and <<IOHGATP_MODE_ENC-1>>.
+  by xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-0[] and xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-1[].
 . `fctl.GXL` is 0 and `DC.iohgatp.MODE` is not a supported mode
 .. `capabilities.Sv39x4` is 0 and `DC.iohgatp.MODE` is `Sv39x4`
 .. `capabilities.Sv48x4` is 0 and `DC.iohgatp.MODE` is `Sv48x4`
@@ -802,7 +802,7 @@ provides the PPN of the next level process-directory-table. The leaf
 process-directory-table entry holds the process-context (`PC`).
 
 .Three, two and single-level process directory
-image::images/pdt.svg[width=800,height=400]
+image::pdt.svg[width=800,height=400]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //  +-------+-------+-------+      +-------+-------+   +-------+
@@ -912,8 +912,8 @@ The `PC.fsc` field provides the controls for first-stage address translation and
 protection.
 
 The `PC.fsc.MODE` is used to determine the first-stage paged virtual-memory
-scheme and its encodings are as defined in <<IOSATP_MODE_ENC-0>> and
-<<IOSATP_MODE_ENC-1>>. The `DC.tc.SXL` field controls the supported paged
+scheme and its encodings are as defined in xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-0[] and
+xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-1[]. The `DC.tc.SXL` field controls the supported paged
 virtual-memory schemes. When `PC.fsc.MODE` is not `Bare`, the `PC.fsc.PPN` field
 holds the PPN of the root page of a first-stage page table.
 
@@ -942,8 +942,8 @@ conditions are true. If misconfigured then stop and report "PDT entry
 misconfigured" (cause = 267).
 
 . If any bits or encoding that are reserved for future standard use are set
-. `PC.fsc.MODE` encoding is not valid as determined by <<IOSATP_MODE_ENC-0>> and
-  <<IOSATP_MODE_ENC-1>>.
+. `PC.fsc.MODE` encoding is not valid as determined by xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-0[] and
+  xref:iommu_data_structures.adoc#IOSATP_MODE_ENC-1[].
 . `DC.tc.SXL` is 0 and `PC.fsc.MODE` is not one of the supported modes
 .. `capabilities.Sv39` is 0 and `PC.fsc.MODE` is `Sv39`
 .. `capabilities.Sv48` is 0 and `PC.fsc.MODE` is `Sv48`
@@ -974,7 +974,7 @@ The process to translate an IOVA uses the hardware IDs (`device_id` and
 Device-context and Process-context provide the root PPN of the page tables,
 `PSCID`, `GSCID`, and other control parameters that affect the address
 translation and protection process. When address translation caches
-(<<CACHING>>) are implemented, the translation process may use the `GSCID` and
+(xref:iommu_data_structures.adoc#CACHING[]) are implemented, the translation process may use the `GSCID` and
 `PSCID` to associate the cached translations with their address spaces.
 
 The process to translate an `IOVA` is as follows:
@@ -999,7 +999,7 @@ The process to translate an `IOVA` is as follows:
 .. `ddtp.iommu_mode` is `2LVL` and `DDI[2]` is not 0
 .. `ddtp.iommu_mode` is `1LVL` and either `DDI[2]` is not 0 or `DDI[1]` is not 0
 . Use `device_id` to then locate the device-context (`DC`) as specified in
-  <<GET_DC>>.
+  xref:iommu_data_structures.adoc#GET_DC[].
 . If any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  Transaction type is a Translated request (read, write/AMO, read-for-execute)
@@ -1034,7 +1034,7 @@ The process to translate an `IOVA` is as follows:
 .. Let `iosatp.MODE` be `Bare`
 ... The `PSCID` value is not used when first-stage is Bare.
 .. Let `iohgatp` be value in `DC.iohgatp` field
-. Locate the process-context (`PC`) as specified in <<GET_PC>>.
+. Locate the process-context (`PC`) as specified in xref:iommu_data_structures.adoc#GET_PC[].
 . if any of the following conditions hold then stop and report
   "Transaction type disallowed" (cause = 260).
 ..  The transaction requests supervisor privilege but `PC.ta.ENS` is not set.
@@ -1050,7 +1050,7 @@ The process to translate an `IOVA` is as follows:
   successfully then let `A` be the translated GPA.
 . If MSI address translations using MSI page tables is enabled
   (i.e., `DC.msiptp.MODE != Off`) then the MSI address translation process
-  specified in <<MSI_TRANS>> is invoked. If the GPA `A` is not determined to be
+  specified in xref:iommu_data_structures.adoc#MSI_TRANS[] is invoked. If the GPA `A` is not determined to be
   the address of a virtual interrupt file then the process continues at step 19.
   If a fault is detected by the MSI address translation process then stop and
   report the fault else the process continues at step 20.
@@ -1069,13 +1069,13 @@ and VS-stage page tables, remains a reserved encoding for IO transactions.
 When the translation process reports a fault, and the request is an Untranslated
 request or a Translated request, the IOMMU requests the IO bridge to abort the
 transaction. Guidelines for handling faulting transactions in the IO bridge are
-provided in <<IOBR_FAULT_RESP>>. The fault may be reported using the fault/event
-reporting mechanism and fault record formats specified in <<FAULT_QUEUE>>.
+provided in xref:iommu_hw_guidelines.adoc#IOBR_FAULT_RESP[]. The fault may be reported using the fault/event
+reporting mechanism and fault record formats specified in xref:iommu_in_memory_queues.adoc#FAULT_QUEUE[].
 
 If the fault was detected by a PCIe ATS Translation Request then the IOMMU may
 provide a PCIe protocol defined response instead of reporting fault to software
 or causing an abort. The handling of faulting PCIe ATS Translation Requests is
-specified in <<ATS_FAULTS>>.
+specified in xref:iommu_data_structures.adoc#ATS_FAULTS[].
 
 [[GET_DC]]
 ==== Process to locate the Device-context
@@ -1105,7 +1105,7 @@ is as follows:
   (cause = 268).
 . If `DC.tc.V == 0`, stop and report "DDT entry not valid" (cause = 258).
 . If the `DC` is misconfigured as determined by rules outlined in
-  <<DC_MISCONFIG>> then stop and report "DDT entry misconfigured" (cause = 259).
+  xref:iommu_data_structures.adoc#DC_MISCONFIG[] then stop and report "DDT entry misconfigured" (cause = 259).
 . The device-context has been successfully located.
 
 [[GET_PC]]
@@ -1153,7 +1153,7 @@ The process to locate the Process-context for a transaction using its
   (cause = 269).
 . If `PC.ta.V == 0`, stop and report "PDT entry not valid" (cause = 266).
 . If the `PC` is misconfigured as determined by rules outlined in
-  <<PC_MISCONFIG>> then stop and report "PDT entry misconfigured" (cause = 267).
+  xref:iommu_data_structures.adoc#PC_MISCONFIG[] then stop and report "PDT entry misconfigured" (cause = 267).
 . The Process-context has been successfully located.
 
 [[MSI_TRANS]]
@@ -1177,15 +1177,15 @@ physical address space. A write to a guest physical address can thus be
 recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM.
 
-When MSI address translation is supported (`capabilities.MSI_FLAT`, <<CAP>>),
+When MSI address translation is supported (`capabilities.MSI_FLAT`, xref:iommu_registers.adoc#CAP[]),
 the process to identify an incoming `IOVA` as the address of a virtual interrupt
 file and translating the address using the MSI page table is as follows:
 
 . Let `A` be the `GPA`
 . Let `DC` be the device-context located using the `device_id` of the device
-  using the process outlined in <<GET_DC>>.
+  using the process outlined in xref:iommu_data_structures.adoc#GET_DC[].
 . Determine if the address `A` is an access to a virtual interrupt file as
-  specified in <<MSI_ID>>.
+  specified in xref:iommu_data_structures.adoc#MSI_ID[].
 . If the address is not determined to be that of a virtual interrupt file then
   stop this process and instead use the regular translation data structures to
   do the address translation.
@@ -1349,7 +1349,7 @@ request, the corresponding fault is reported to software through the fault/event
 reporting mechanism.
 
 If the translation request is successfully completed and the address is
-determined to be an MSI address using the rules defined by the <<MSI_ID>>, but
+determined to be an MSI address using the rules defined by the xref:iommu_data_structures.adoc#MSI_ID[], but
 the MSI PTE is configured in MRIF mode, a Success response is generated
 with the U bit (Untranslated access only) set to 1. The U bit being set to 1 in
 the response instructs the device that it must use only Untranslated requests to
@@ -1417,10 +1417,10 @@ not be invoked for translating addresses in CXL.cache transactions.
 === PCIe ATS Page Request handling
 To process a "Page Request" or "Stop Marker" message cite:[PCI], the IOMMU
 first locates the device-context--using the procedure outlined in steps 1
-through 5 of <<P2IOVA>>--to determine if ATS and PRI are enabled for the
+through 5 of xref:iommu_data_structures.adoc#P2IOVA[]--to determine if ATS and PRI are enabled for the
 requester.  If ATS and PRI are enabled, i.e. `EN_ATS` and `EN_PRI` are both
 set to 1, the IOMMU queues the message into an in-memory queue called the
-page-request-queue (`PQ`) (See <<PRQ>>). Following suitable processing of the
+page-request-queue (`PQ`) (See xref:iommu_in_memory_queues.adoc#PRQ[]). Following suitable processing of the
 "Page Request", a software handler may generate a "Page Request Group Response"
 message to the device.
 
@@ -1428,7 +1428,7 @@ When PRI is enabled for a device, the IOMMU may still be unable to report
 "Page Request" or "Stop Marker" messages through the `PQ` due to error
 conditions such as the queue being disabled, queue being full, or the IOMMU
 encountering access faults when attempting to access queue memory. These error
-conditions are specified in <<PRQ>>.
+conditions are specified in xref:iommu_in_memory_queues.adoc#PRQ[].
 
 If the `ddtp.iommu_mode` is `Bare` or is `Off`, then the IOMMU cannot locate a
 device-context for the requester.
@@ -1534,16 +1534,16 @@ group of entries.
 [%header, cols="8,10,10"]
 |===
 ^|Data Structure cached  ^|IDs used to tag entries    ^| Invalidation command
-|Device Directory Table |`device_id`                | <<IDDT, IODIR.INVAL_DDT>>
-|Process Directory Table|`device_id`, `process_id`  | <<IPDT, IODIR.INVAL_PDT>>
+|Device Directory Table |`device_id`                | xref:iommu_in_memory_queues.adoc#IDDT[IODIR.INVAL_DDT]
+|Process Directory Table|`device_id`, `process_id`  | xref:iommu_in_memory_queues.adoc#IPDT[IODIR.INVAL_PDT]
 |First-stage page table
  (when second-stage is
-  not Bare)             |`GSCID`, `PSCID`, and IOVA | <<IVMA, IOTINVAL.VMA>>
+  not Bare)             |`GSCID`, `PSCID`, and IOVA | xref:iommu_in_memory_queues.adoc#IVMA[IOTINVAL.VMA]
 |First-stage page table
  (when second-stage is
-  Bare)                 |`PSCID`, and IOVA          | <<IVMA, IOTINVAL.VMA>>
-|Second-stage page table|`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
-|MSI page table         |`GSCID`, `GPA`             | <<IGVMA,IOTINVAL.GVMA>>
+  Bare)                 |`PSCID`, and IOVA          | xref:iommu_in_memory_queues.adoc#IVMA[IOTINVAL.VMA]
+|Second-stage page table|`GSCID`, `GPA`             | xref:iommu_in_memory_queues.adoc#IGVMA[IOTINVAL.GVMA]
+|MSI page table         |`GSCID`, `GPA`             | xref:iommu_in_memory_queues.adoc#IGVMA[IOTINVAL.GVMA]
 |===
 
 === Updating in-memory data structure entries
@@ -1571,11 +1571,11 @@ bit set to 1. However, some rules as outlined below must be followed.
 +
 * If the update to a field will make the field inconsistent with another field
   of the entry then software must first set the `V` field to 0 and use the commands
-  outlined in <<CACHING>> to invalidate any previous copies of that entry that
+  outlined in xref:iommu_data_structures.adoc#CACHING[] to invalidate any previous copies of that entry that
   may be in IOMMU caches before updating other fields of that entry. +
 +
 * The IOMMU is not required to immediately observe the software update to an
-  entry. Software must use the commands outlined in <<CACHING>> to invalidate
+  entry. Software must use the commands outlined in xref:iommu_data_structures.adoc#CACHING[] to invalidate
   any previous copies of that entry that may be in IOMMU caches to synchronize
   the updates to the entry with the operation of the IOMMU.
 
@@ -1583,7 +1583,7 @@ bit set to 1. However, some rules as outlined below must be followed.
 ====
 If a data structure entry is changed, the IOMMU may use the old value of the
 entry or the new value of the entry and the choice is unpredictable until
-software uses the commands outlined in <<CACHING>> to invalidate any previous
+software uses the commands outlined in xref:iommu_data_structures.adoc#CACHING[] to invalidate any previous
 copies of that entry that may be in IOMMU caches to synchronize updates to the
 entry with the operation of the IOMMU. These are the only behaviors expected.
 ====

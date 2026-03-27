@@ -51,24 +51,24 @@ implementation does not define a custom use for them.
 |Offset ^|Name            |Size ^|Description                 ^| Is Optional?
 |0     |`capabilities`  |8   |<<CAP, Capabilities of the
                                      IOMMU>>              | No
-|8     |`fctl`          |4   |<<FCTRL, Features control>> | No
+|8     |`fctl`          |4   |xref:iommu_registers.adoc#FCTRL[Features control] | No
 |12    |custom          |4   |Designated For custom use   |
 |16    |`ddtp`          |8   |<<DDTP, Device directory
                               table pointer>>             | No
-|24    |`cqb`           |8   |<<CQB, Command-queue base>> | No
-|32    |`cqh`           |4   |<<CQH, Command-queue head>> | No
-|36    |`cqt`           |4   |<<CQT, Command-queue tail>> | No
-|40    |`fqb`           |8   |<<FQB, Fault-queue base>>   | No
-|48    |`fqh`           |4   |<<FQH, Fault-queue head>>   | No
-|52    |`fqt`           |4   |<<FQT, Fault-queue tail>>   | No
+|24    |`cqb`           |8   |xref:iommu_registers.adoc#CQB[Command-queue base] | No
+|32    |`cqh`           |4   |xref:iommu_registers.adoc#CQH[Command-queue head] | No
+|36    |`cqt`           |4   |xref:iommu_registers.adoc#CQT[Command-queue tail] | No
+|40    |`fqb`           |8   |xref:iommu_registers.adoc#FQB[Fault-queue base]   | No
+|48    |`fqh`           |4   |xref:iommu_registers.adoc#FQH[Fault-queue head]   | No
+|52    |`fqt`           |4   |xref:iommu_registers.adoc#FQT[Fault-queue tail]   | No
 |56    |`pqb`           |8   |<<PQB, Page-request-queue
                                      base>>               | if `capabilities.ATS==0`
 |64    |`pqh`           |4   |<<PQH, Page-request-queue
                                      head>>               | if `capabilities.ATS==0`
 |68    |`pqt`           |4   |<<PQT, Page-request-queue
                                      tail>>               | if `capabilities.ATS==0`
-|72    |`cqcsr`         |4   |<<CSR, Command-queue CSR>>  | No
-|76    |`fqcsr`         |4   |<<FQCSR, Fault-queue CSR>>  | No
+|72    |`cqcsr`         |4   |xref:iommu_registers.adoc#CSR[Command-queue CSR]  | No
+|76    |`fqcsr`         |4   |xref:iommu_registers.adoc#FQCSR[Fault-queue CSR]  | No
 |80    |`pqcsr`         |4   |<<PQCSR, Page-request-queue
                                        CSR >>             | if `capabilities.ATS==0`
 |84    |`ipsr`          |4   |<<IPSR, Interrupt pending
@@ -77,16 +77,16 @@ implementation does not define a custom use for them.
                                               overflows>> | if `capabilities.HPM==0`
 |92    |`iocountinh`    |4   |<<INH, HPM counter
                                                inhibits>> | if `capabilities.HPM==0`
-|96    |`iohpmcycles`   |8   |<<CYC, HPM cycles counter>> | if `capabilities.HPM==0`
-|104   |`iohpmctr1-31`  |248 |<<CTR, HPM event counters>> | if `capabilities.HPM==0`
-|352   |`iohpmevt1-31`  |248 |<<EVT, HPM event selector>> | if `capabilities.HPM==0`
+|96    |`iohpmcycles`   |8   |xref:iommu_registers.adoc#CYC[HPM cycles counter] | if `capabilities.HPM==0`
+|104   |`iohpmctr1-31`  |248 |xref:iommu_registers.adoc#CTR[HPM event counters] | if `capabilities.HPM==0`
+|352   |`iohpmevt1-31`  |248 |xref:iommu_registers.adoc#EVT[HPM event selector] | if `capabilities.HPM==0`
 |600   |`tr_req_iova`   |8   |<<TRR_IOVA, Translation-request
                                      IOVA>>               | if `capabilities.DBG==0`
 |608   |`tr_req_ctl`    |8   |<<TRR_CTRL, Translation-request
                                      control>>            | if `capabilities.DBG==0`
 |616   |`tr_response`   |8   |<<TRR_RSP,Translation-request
                                      response>>           | if `capabilities.DBG==0`
-|624   |`iommu_qosid`   |4   |<<IOQOSID,IOMMU QoS ID >>   | if `capabilities.QOSID==0`
+|624   |`iommu_qosid`   |4   |xref:iommu_registers.adoc#IOQOSID[IOMMU QoS ID]   | if `capabilities.QOSID==0`
 |628   |Reserved        |60  |Reserved for future use
                               (`WPRI`)                    |
 |688   |custom          |72  |Designated for custom use
@@ -113,7 +113,7 @@ The reset value is 0 for the following registers.
 
 Reset value for `ddtp.iommu_mode` field must be either `Off` or `Bare`.
 
-After a reset the caches (<<CACHING>>) must have no valid entries.
+After a reset the caches (xref:iommu_data_structures.adoc#CACHING[]) must have no valid entries.
 
 [NOTE]
 ====
@@ -324,7 +324,7 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/fqen == 1`, or
 |===
 |Bits ^|Field      |Attribute ^| Description
 |0     |`BE`       |WARL      | When 0, IOMMU accesses to memory resident data
-                                structures, as specified in <<ENDIAN_CONFIG>>,
+                                structures, as specified in xref:iommu_data_structures.adoc#ENDIAN_CONFIG[],
                                 accesses made by the IOMMU during command
                                 processing or for MSI generation,
                                 and accesses to in-memory queues are performed
@@ -335,8 +335,8 @@ are enabled (i.e. `cqcsr.cqon/cqen == 1`, `fqcsr.fqon/fqen == 1`, or
                                 as message-signaled-interrupts.
 |2     |`GXL`      |WARL      | Controls the address-translation schemes that
                                 may be used for guest physical addresses as
-                                defined in <<IOHGATP_MODE_ENC-0>> and
-                                <<IOHGATP_MODE_ENC-1>>.
+                                defined in xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-0[] and
+                                xref:iommu_data_structures.adoc#IOHGATP_MODE_ENC-1[].
 |15:3  |reserved   |WPRI      | Reserved for standard use.
 |31:16 |custom     |WPRI      | Designated for custom use.
 |===
@@ -419,7 +419,7 @@ When the `iommu_mode` field value is changed to `Off` the IOMMU guarantees that
 in-flight transactions, observed at the time of the write to this field, from devices
 connected to the IOMMU will either be processed with the configurations
 applicable to the old value of the `iommu_mode` field or be aborted
-(<<IOBR_FAULT_RESP>>). It also ensures that all transactions and previous
+(xref:iommu_hw_guidelines.adoc#IOBR_FAULT_RESP[]). It also ensures that all transactions and previous
 requests from devices that have already been processed by the IOMMU are committed
 to a global ordering point such that they can be observed by all RISC-V harts,
 devices, and IOMMUs in the platform. Software must not change the `PPN` field
@@ -1022,7 +1022,7 @@ status of the page-request-queue.
                               The IOMMU may respond to “Page Request” messages
                               received when page-request-queue is off or in
                               the process of being turned off, as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[].
 |1     |`pie`     |RW       | The page-request-queue-interrupt-enable
                               bit when set to 1, enables generation of
                               interrupts from page-request-queue.
@@ -1040,7 +1040,7 @@ status of the page-request-queue.
                               that caused the `pqof` or `pqmf` bit to be set
                               and all subsequent “Page Request” messages
                               received while these bits are 1 as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[].
 |9     |`pqof`    |RW1C     | The page-request-queue-overflow bit is set to 1
                               if the page-request queue overflows i.e. IOMMU
                               needs to queue a "Page Request" message but the
@@ -1056,7 +1056,7 @@ status of the page-request-queue.
                               that caused the `pqof` or `pqmf` bit to be set
                               and all subsequent “Page Request” messages
                               received while these bits are 1 as specified in
-                              <<ATS_PRI>>.
+                              xref:iommu_data_structures.adoc#ATS_PRI[].
 |15:10 |reserved  |WPRI     | Reserved for standard use
 |16    |`pqon`    |RO       | The page-request is active when `pqon` reads 1. +
 |17    |`busy`    |RO       | A write to `pqcsr` may require the IOMMU to
@@ -1151,7 +1151,7 @@ interrupt-pending bit.
 |===
 
 If a bit in `ipsr` is 1 then a write of 1 to the bit transitions the bit from 1->0.
-If the conditions to set that bit are still present (See <<IPSR_FIELD>>) or if
+If the conditions to set that bit are still present (See xref:iommu_registers.adoc#IPSR_FIELD[]) or if
 they occur after the bit is cleared then that bit transitions again from 0->1.
 
 <<<
@@ -1319,7 +1319,7 @@ transactions with a range of IDs to be counted by the counter.
 |14:0   |`eventID`  |WARL     a| Indicates the event to count. A value of 0
                                  indicates no events are counted. +
                                  Encodings 1 to 16383 are reserved for standard
-                                 events defined in the <<Event_list>>. +
+                                 events defined in the xref:iommu_registers.adoc#Event_list[]. +
                                  Encodings 16384 to 32767 are for designated for
                                  custom use. +
                                  When `eventID` is changed, including to 0,

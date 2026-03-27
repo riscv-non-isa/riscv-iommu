@@ -1,0 +1,6 @@
+:imagesdir: ../images
+:bibtex-file: ../resources/iommu.bib
+:bibtex-order: appearance
+:bibtex-style: ieee
+:stem: latexmath
+:xrefstyle: short

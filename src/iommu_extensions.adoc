@@ -8,16 +8,16 @@ Architecture:
 [%autowidth,float="center",align="center",cols="^,^,^",options="header",]
 |===
 |       Specification                                        |Version |Status
-| <<QOSID, *Quality-of-Service (QoS) Identifiers Extension*>>
+| xref:iommu_extensions.adoc#QOSID[*Quality-of-Service (QoS) Identifiers Extension*]
                                                              |*1.0*
                                                                       |*Ratified*
-| <<NLINV, *Non-leaf PTE Invalidation Extension*>>
+| xref:iommu_extensions.adoc#NLINV[*Non-leaf PTE Invalidation Extension*]
                                                              |*1.0*
                                                                       |*Ratified*
-| <<ARINV, *Address Range Invalidation Extension*>>
+| xref:iommu_extensions.adoc#ARINV[*Address Range Invalidation Extension*]
                                                              |*1.0*
                                                                       |*Ratified*
-| <<SVRSW, *PTE Reserved-for-Software Bits 60-59*>>
+| xref:iommu_extensions.adoc#SVRSW[*PTE Reserved-for-Software Bits 60-59*]
                                                              |*1.0*
                                                                       |*Ratified*
 |===
@@ -61,12 +61,12 @@ with requests originated by the RISC-V harts. Assocating QoS IDs with device
 and IOMMU originated requests is required for effective monitoring and
 allocation of shared resources.
 
-The IOMMU `capabilities` register (<<CAP>>) is extended with a `QOSID` field
+The IOMMU `capabilities` register (xref:iommu_registers.adoc#CAP[]) is extended with a `QOSID` field
 which enumerates support for associating QoS IDs with requests made through the
 IOMMU. When `capabilities.QOSID` is 1, the memory-mapped register layout is
-extended to add a register named `iommu_qosid` (<<IOQOSID>>). This register is
+extended to add a register named `iommu_qosid` (xref:iommu_registers.adoc#IOQOSID[]). This register is
 used to configure the Quality of Service (QoS) IDs associated with
-IOMMU-originated requests. The `ta` field of the device context (<<DC_TA>>) is
+IOMMU-originated requests. The `ta` field of the device context (xref:iommu_data_structures.adoc#DC_TA[]) is
 extended with two fields, `RCID` and `MCID`, to configure the QoS IDs to
 associate with requests originated by the devices.
 
@@ -220,7 +220,7 @@ covers the entire address space.
 ====
 The NAPOT range encoding used by this extension follows the convention used by
 PCIe ATS Invalidation Requests to denote address ranges. This convention is also
-used to encode the translation range size in `tr_response` (<<TRR_RSP>>)
+used to encode the translation range size in `tr_response` (xref:iommu_registers.adoc#TRR_RSP[])
 register.
 
 Simpler implementations may invalidate all address-translation cache entries

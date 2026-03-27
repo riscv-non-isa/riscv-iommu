@@ -1,5 +1,6 @@
 = RISC-V IOMMU Architecture Specification
 include::../docs-resources/global-config.adoc[]
+:imagesdir: images
 :docgroup: IOMMU Task Group
 :description: RISC-V IOMMU Architecture Specification
 :revdate: 06/2023

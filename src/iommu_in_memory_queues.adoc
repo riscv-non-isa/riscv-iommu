@@ -118,7 +118,7 @@ encodings 64 to 127 are designated for custom use.
 
 The commands are interpreted as two 64-bit doublewords. The byte order of each
 of the doublewords in memory, little-endian or big-endian, is the endianness as
-determined by `fctl.BE` (<<FCTRL>>).
+determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[]).
 
 The following command opcodes are defined:
 
@@ -192,8 +192,8 @@ operand specifies an invalid address, the command may or may not perform any
 invalidations.
 
 The definition of the `NL` bit is provided by the non-leaf PTE invalidation
-extension <<NLINV>>. The definition of the `S` bit is provided by the address
-range invalidation extension <<ARINV>>.
+extension xref:iommu_extensions.adoc#NLINV[]. The definition of the `S` bit is provided by the address
+range invalidation extension xref:iommu_extensions.adoc#ARINV[].
 
 [NOTE]
 ====
@@ -350,7 +350,7 @@ index of the `IOFENCE.C` command in the CQ, guarantees that all previous
 commands fetched from the CQ have been completed and committed.
 
 If the `IOFENCE.C` times out waiting on completion of previous commands that are
-specified to have a timeout, then the `cmd_to` bit in `cqcsr` <<CSR>> is set to
+specified to have a timeout, then the `cmd_to` bit in `cqcsr` xref:iommu_registers.adoc#CSR[] is set to
 signal this condition. The `cqh` holds the index of the `IOFENCE.C` that timed
 out and all previous commands that are not specified to have a timeout have been
 completed and committed.
@@ -376,7 +376,7 @@ by the IOMMU be committed to a global ordering point such that they can be
 observed by all RISC-V harts and IOMMUs in the system.
 
 The wire-signaled-interrupts (`WSI`) bit when set to 1 causes a wired-interrupt
-from the command queue to be generated (by setting `cqcsr.fence_w_ip` - <<CSR>>)
+from the command queue to be generated (by setting `cqcsr.fence_w_ip` - xref:iommu_registers.adoc#CSR[])
 on completion of `IOFENCE.C`. This bit is reserved if the IOMMU does not support
 wired-interrupts or wired-interrupts have not been enabled
 (i.e., `fctl.WSI == 0`).
@@ -415,7 +415,7 @@ The `AV` command operand indicates if `ADDR[63:2]` and `DATA` operands are
 valid. If `AV`=1, the IOMMU writes `DATA` to memory at a 4-byte aligned address
 `ADDR[63:2] * 4` as a 4-byte store when the command completes. When `AV` is 0,
 the `ADDR[63:2]` and `DATA` operands are ignored. If the attempt to perform this
-write encounters a memory fault, the `cmd_mf` bit in `cqcsr` <<CSR>> is set to
+write encounters a memory fault, the `cmd_mf` bit in `cqcsr` xref:iommu_registers.adoc#CSR[] is set to
 signal this condition, and the `cqh` holds the index of the `IOFENCE.C` that
 encountered such a memory fault and did not complete.
 
@@ -477,7 +477,7 @@ operand and all associated PDT entries. The `PID` operand is reserved for the
 the PDT are observed before all subsequent implicit reads from IOMMU to PDT.
 The command invalidates cached leaf PDT entry for the specified `PID` and `DID`.
 The `PID` operand of `IODIR.INVAL_PDT` must not be wider than the width
-supported by the IOMMU (see <<CAP>>).
+supported by the IOMMU (see xref:iommu_registers.adoc#CAP[]).
 
 [NOTE]
 ====
@@ -616,7 +616,7 @@ number of fault records processed. If `fqh` == `fqt`, the fault-queue is empty. 
 
 The fault records are interpreted as four 64-bit doublewords. The byte order of
 each of the doublewords in memory, little-endian or big-endian, is the endianness
-as determined by `fctl.BE` (<<FCTRL>>).
+as determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[]).
 
 .Fault-queue record
 [wavedrom, , ]
@@ -676,7 +676,7 @@ The `CAUSE` is a code indicating the cause of the fault/event.
 
 The `CAUSE` encodings 275 through 2047 are reserved for future standard use and
 the encodings 2048 through 4095 are designated for custom use. Encodings between
-0 and 275 that are not specified in <<FAULT_CAUSE>> are reserved for future
+0 and 275 that are not specified in xref:iommu_in_memory_queues.adoc#FAULT_CAUSE[] are reserved for future
 standard use.
 
 If a fault condition prevents locating a valid device context then the `DTF`
@@ -800,7 +800,7 @@ do not require a response, i.e. those with the "Last Request in PRG" field is 0,
 are silently discarded. "Page request" messages that require a response, i.e.
 those with "Last Request in PRG" field set to 1 and are not "Stop Marker"
 messages, may be auto-completed by an IOMMU generated “Page Request Group
-Response” message as specified in <<ATS_PRI>>.
+Response” message as specified in xref:iommu_data_structures.adoc#ATS_PRI[].
 
 When an error bit in `pqcsr` is 1 or when a new message is produced in the
 queue, the page-request-queue interrupt pending (`pip`) bit is set in the `ipsr` if
@@ -832,7 +832,8 @@ of the message) is held in the `PAYLOAD` field. If `R` and `W` are both 0 and
 
 The page-request-queue records are interpreted as two 64-bit doublewords. The byte
 order of each of the doublewords in memory, little-endian or big-endian, is the
-endianness as determined by `fctl.BE` (<<FCTRL>>).
+endianness as determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[]).
+endianness as determined by `fctl.BE` (xref:iommu_registers.adoc#FCTRL[]).
 
 The `PAYLOAD` holds the message body and its fields are as specified by the PCIe
 specification cite:[PCI]. The `PAYLOAD` field is formatted as follows:

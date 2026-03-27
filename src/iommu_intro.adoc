@@ -297,13 +297,13 @@ hardware bugs, device driver bugs, or due to malicious software/hardware.
 
 The IOMMU offers a mechanism for the OS to defend against such unintended
 corruptions by limiting the memory that can be accessed by devices.  As depicted
-in <<fig:device-isolation>> the OS may configure the IOMMU with a page table to
+in xref:iommu_intro.adoc#fig:device-isolation[] the OS may configure the IOMMU with a page table to
 translate the IOVA and thereby limit the addresses that may be accessed to those
 allowed by the page table.
 
 [[fig:device-isolation]]
 .Device isolation in non-virtualized OS
-image::images/non-virt-OS.svg[width=300,height=300, align="center"]
+image::non-virt-OS.svg[width=300,height=300, align="center"]
 
 Legacy 32-bit devices cannot access the memory above 4 GiB. The IOMMU, through
 its address remapping capability, offers a simple mechanism for the device to
@@ -361,7 +361,7 @@ performs memory accesses using those addresses, an IOMMU is responsible for
 translating those guest physical addresses into supervisor physical addresses,
 referencing address-translation data structures supplied by the hypervisor.
 
-<<fig:dma-translation-direct-device-assignment>> illustrates the concept.
+xref:iommu_intro.adoc#fig:dma-translation-direct-device-assignment[] illustrates the concept.
 The device D1 is directly assigned to VM-1 and device D2 is directly assigned
 to VM-2. The VMM configures a second-stage page table to be used for each device
 and restricts the memory that can be accessed by D1 to VM-1 associated memory
@@ -369,7 +369,7 @@ and from D2 to VM-2 associated memory.
 
 [[fig:dma-translation-direct-device-assignment]]
 .DMA translation to enable direct device assignment
-image::images/hypervisor.svg[width=300,height=300, align="center"]
+image::hypervisor.svg[width=300,height=300, align="center"]
 //["ditaa",shadows=false, separation=false, fontsize: 16]
 //....
 //+----------------+ +----------------+
@@ -394,7 +394,7 @@ image::images/hypervisor.svg[width=300,height=300, align="center"]
 
 To handle MSIs from a device controlled by a guest OS, the hypervisor configures
 an IOMMU to redirect those MSIs to a guest interrupt file in an IMSIC
-(see <<MSI_REDIR>>) or to a memory-resident interrupt file. The IOMMU is
+(see xref:iommu_intro.adoc#MSI_REDIR[]) or to a memory-resident interrupt file. The IOMMU is
 responsible to use the MSI address-translation data structures supplied by the
 hypervisor to perform the MSI redirection. Because every interrupt file, real or
 virtual, occupies a naturally aligned 4-KiB page of address space, the required
@@ -403,7 +403,7 @@ address, the same as supported by regular RISC-V page-based address translation.
 
 [[MSI_REDIR]]
 .MSI address translation to direct guest programmed MSI to IMSIC guest interrupt files
-image::images/msi-imsic.svg[width=500,height=400, align="center"]
+image::msi-imsic.svg[width=500,height=400, align="center"]
 //["ditaa",shadows=false, separation=false, font=courier, fontsize: 16]
 //....
 //                                                                +-----------------------+
@@ -447,11 +447,11 @@ a GPA using the first-stage page tables managed by the guest OS and the GPA
 translated to a SPA using the second-stage page tables managed by the
 hypervisor.
 
-<<fig:iommu-for-guest-os>> illustrates the concept.
+xref:iommu_intro.adoc#fig:iommu-for-guest-os[] illustrates the concept.
 
 [[fig:iommu-for-guest-os]]
 .Address translation in IOMMU for Guest OS
-image::images/guest-OS.svg[width=500,height=400, align="center"]
+image::guest-OS.svg[width=500,height=400, align="center"]
 
 The IOMMU is configured to perform address translation using a first-stage
 and second-stage page table for device D1. The second-stage is typically used by
@@ -496,7 +496,7 @@ protection function for device D3 and the second-stage is set to Bare.
 
 === Placement and data flow
 
-<<fig:example-soc-with-iommu>> shows an example of a typical system on a chip
+xref:iommu_intro.adoc#fig:example-soc-with-iommu[] shows an example of a typical system on a chip
 (SOC) with RISC-V hart(s). The SOC incorporates memory controllers and several
 IO devices. This SOC also incorporates two instances of the IOMMU. A device
 may be directly connected to the IO Bridge and the system interconnect or may
@@ -531,12 +531,12 @@ The IOMMU is not invoked for outbound transactions.
 
 [[fig:example-soc-with-iommu]]
 .Example of IOMMUs integration in SoC.
-image::images/placement.svg[width=800]
+image::placement.svg[width=800]
 
 The IOMMU is invoked by the IO Bridge for address translation and protection for
 inbound transactions. The data associated with the inbound transactions is not
 processed by the IOMMU. The IOMMU behaves like a look-aside IP to the IO Bridge
-and has several interfaces (see <<fig:iommu-interfaces>>):
+and has several interfaces (see xref:iommu_intro.adoc#fig:iommu-interfaces[]):
 
 * Host interface: it is an interface to the IOMMU for the harts to access
   its memory-mapped registers and perform global configuration and/or
@@ -603,7 +603,7 @@ generating the associated _notice_ MSI are implementation-specific.
 
 [[fig:iommu-interfaces]]
 .IOMMU interfaces.
-image::images/interfaces.svg[width=800]
+image::interfaces.svg[width=800]
 
 Similar to the RISC-V harts, physical memory attributes (PMA) and physical
 memory protection (PMP) checks must be completed on all inbound IO transactions
@@ -696,4 +696,4 @@ features:
   support debug.
 
 Features supported by the IOMMU may be discovered using the `capabilities`
-register <<CAP>>.
+register xref:iommu_registers.adoc#CAP[].
