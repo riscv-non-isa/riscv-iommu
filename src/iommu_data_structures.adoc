@@ -1177,7 +1177,7 @@ physical address space. A write to a guest physical address can thus be
 recognized as an MSI to a virtual hart if the write is to a page occupied by
 an interrupt file of a virtual IMSIC within the VM.
 
-When MSI address translation is supported (`capabilities.MSI_FLAT`, xref:iommu_registers.adoc#CAP[]),
+When MSI address translation is supported (capabilities.MSI_FLAT, xref:iommu_registers.adoc#CAP[]),
 the process to identify an incoming `IOVA` as the address of a virtual interrupt
 file and translating the address using the MSI page table is as follows:
 
