@@ -1,5 +1,5 @@
 name: iommu
-title: RISC-V IOMMU
+title: IOMMU
 version: v1.0.1
 start_page: ROOT:index.adoc
 nav:
