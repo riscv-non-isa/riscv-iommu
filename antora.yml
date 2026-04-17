@@ -1,6 +1,6 @@
 name: iommu
 title: IOMMU
-version: v1.0.1
+version: 20260222
 start_page: ROOT:index.adoc
 nav:
   - modules/ROOT/nav.adoc
