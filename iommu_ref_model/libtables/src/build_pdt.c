@@ -9,7 +9,7 @@ uint64_t
 add_process_context(
     iommu_t *iommu,
     device_context_t *DC, process_context_t *PC, uint32_t process_id) {
-    uint64_t a;
+    uint64_t a, gpte_addr;
     uint8_t i, LEVELS;
     pdte_t pdte;
     uint16_t PDI[3];
@@ -25,7 +25,7 @@ add_process_context(
     a = DC->fsc.pdtp.PPN * PAGESIZE;
     i = LEVELS - 1;
     while ( i > 0 ) {
-        if ( translate_gpa(iommu, DC->iohgatp, a, &a) == -1 ) return -1;
+        if ( translate_gpa(iommu, DC->iohgatp, a, &a, &gpte_addr) == -1 ) return -1;
         pdte.raw = 0;
         if ( read_memory_test((a + (PDI[i] * 8)), 8, (char *)&pdte.raw) ) return -1;
         if ( pdte.V == 0 ) {
@@ -57,7 +57,7 @@ add_process_context(
         i = i - 1;
         a = pdte.PPN * PAGESIZE;
     }
-    if ( translate_gpa(iommu, DC->iohgatp, a, &a) == -1 ) return -1;
+    if ( translate_gpa(iommu, DC->iohgatp, a, &a, &gpte_addr) == -1 ) return -1;
     if ( write_memory_test((char *)PC, (a + (PDI[0] * 16)), 16) ) return -1;
     return (a + (PDI[0] * 16));
 }

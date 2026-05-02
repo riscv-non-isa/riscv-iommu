@@ -5,7 +5,7 @@
 #include "iommu.h"
 uint64_t
 translate_gpa (
-    iommu_t *iommu, iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa) {
+    iommu_t *iommu, iohgatp_t iohgatp, uint64_t gpa, uint64_t *spa, uint64_t *gpte_addr) {
 
     uint16_t vpn[5];
     uint64_t a;
@@ -17,7 +17,8 @@ translate_gpa (
     PTESIZE = 8;
     if ( iohgatp.MODE == IOHGATP_Bare ) {
         *spa = gpa;
-        return -1;
+        *gpte_addr = -1;
+        return 0;
     }
     if ( iohgatp.MODE == IOHGATP_Sv32x4 && gxl == 1) {
         vpn[0] = get_bits(21, 12, gpa);
@@ -61,7 +62,8 @@ translate_gpa (
             *spa = *spa * PAGESIZE;
             *spa = *spa & ~(gst_page_sz - 1);
             *spa = *spa | (gpa & (gst_page_sz - 1));
-            return (a | (vpn[i] * PTESIZE));
+            *gpte_addr = (a | (vpn[i] * PTESIZE));
+	    return 0;
         }
         i = i - 1;
         if ( i < 0 ) return -1;
