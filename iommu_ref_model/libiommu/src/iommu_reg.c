@@ -126,7 +126,7 @@ write_register(
         case CAPABILITIES_OFFSET:
             // This register is read only
             return;
-        case FCTRL_OFFSET:
+        case FCTL_OFFSET:
             // This register must be readable in any
             // implementation. An implementation may allow one or more
             // fields in the register to be writable to support enabling
@@ -139,12 +139,14 @@ write_register(
             // cqcsr.cqon/cqen == 1, fqcsr.fqon/cqen == 1, or
             // pqcsr.pqon/pqen == 1) then the IOMMU
             // behavior is UNSPECIFIED.
-            // FCTRL is writeable if IOMMU is bi-endian
-            // or supports both wired and MSI interrupts
-            // retain default values for the field if not
+            // FCTL is writeable if IOMMU is bi-endian
+            // or supports both wired and MSI interrupts or 
+	    // supports changing G-stage XLEN (GXL).
+            // The register retains default values for the field if not
             // writeable
             if ( (iommu->reg_file.capabilities.end != BOTH_END) &&
-                 (iommu->reg_file.capabilities.igs != IGS_BOTH) ) {
+                 (iommu->reg_file.capabilities.igs != IGS_BOTH) &&
+                 (iommu->gxl_writeable != 1)) {
                 // Register is not writeable
                 break;
             }
@@ -164,6 +166,8 @@ write_register(
                 iommu->reg_file.fctl.be = fctl_temp.be;
             if ( (iommu->reg_file.capabilities.igs == IGS_BOTH) )
                 iommu->reg_file.fctl.wsi = fctl_temp.wsi;
+            if ( (iommu->gxl_writeable == 1) )
+                iommu->reg_file.fctl.gxl = fctl_temp.gxl;
             break;
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write
@@ -929,7 +933,7 @@ reset_iommu(iommu_t *iommu, uint8_t num_hpm, uint8_t hpmctr_bits, uint16_t event
 
     offset_to_size[CAPABILITIES_OFFSET] = 8;
     offset_to_size[CAPABILITIES_OFFSET + 4] = 8;
-    offset_to_size[FCTRL_OFFSET] = 4;
+    offset_to_size[FCTL_OFFSET] = 4;
     offset_to_size[DDTP_OFFSET] = 8;
     offset_to_size[DDTP_OFFSET + 4] = 8;
     offset_to_size[CQB_OFFSET] = 8;
