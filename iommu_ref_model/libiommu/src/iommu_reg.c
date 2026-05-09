@@ -127,21 +127,21 @@ write_register(
             return;
         case FCTL_OFFSET:
             // This register must be readable in any implementation. An
-	    // implementation may allow one or more fields in the register to be
-	    // writable to support enabling or disabling the feature controlled
-	    // by that field. If software enables or disables a feature when the
-	    // IOMMU is not OFF (i.e. ddtp.iommu_mode == Off) then the IOMMU
-	    // behavior is UNSPECIFIED.
-	    //
+            // implementation may allow one or more fields in the register to be
+            // writable to support enabling or disabling the feature controlled
+            // by that field. If software enables or disables a feature when the
+            // IOMMU is not OFF (i.e. ddtp.iommu_mode == Off) then the IOMMU
+            // behavior is UNSPECIFIED.
+            //
             // If software enables or disables a feature when the IOMMU in-memory
-	    // queues are enabled (i.e. cqcsr.cqon/cqen == 1, fqcsr.fqon/cqen == 1,
-	    // or pqcsr.pqon/pqen == 1) then the IOMMU behavior is UNSPECIFIED.
-	    //
+            // queues are enabled (i.e. cqcsr.cqon/cqen == 1, fqcsr.fqon/cqen == 1,
+            // or pqcsr.pqon/pqen == 1) then the IOMMU behavior is UNSPECIFIED.
+            //
             // FCTL is writeable if:
-	    // - IOMMU is bi-endian, or
-	    // - Supports both wired and MSI interrupts, or
-	    // - Supports changing G-stage XLEN (GXL).
-	    //
+            // - IOMMU is bi-endian, or
+            // - Supports both wired and MSI interrupts, or
+            // - Supports changing G-stage XLEN (GXL).
+            //
             // The register retains default values for a field if not writeable
             if ( (iommu->reg_file.capabilities.end != BOTH_END) &&
                  (iommu->reg_file.capabilities.igs != IGS_BOTH) &&
@@ -169,25 +169,25 @@ write_register(
             break;
         case DDTP_OFFSET:
             // If DDTP is busy the discard the write A write to ddtp may require
-	    // the IOMMU to perform many operations that may not occur
-	    // synchronously to the write. When a write is observed by the ddtp,
-	    // the busy bit is set to 1. When the busy bit is 1, behavior of
+            // the IOMMU to perform many operations that may not occur
+            // synchronously to the write. When a write is observed by the ddtp,
+            // the busy bit is set to 1. When the busy bit is 1, behavior of
             // additional writes to the ddtp is implementation defined. Some
-	    // implementations may ignore the second write and others may perform
-	    // the actions determined by the second write. Software must verify
-	    // that the busy bit is 0 before writing to the ddtp. If the busy bit
-	    // reads 0 then the IOMMU has completed the operations associated
-	    // with the previous write to ddtp.
+            // implementations may ignore the second write and others may perform
+            // the actions determined by the second write. Software must verify
+            // that the busy bit is 0 before writing to the ddtp. If the busy bit
+            // reads 0 then the IOMMU has completed the operations associated
+            // with the previous write to ddtp.
 
             // An IOMMU that can complete these operations synchronously may
-	    // hard-wire this bit to 0
+            // hard-wire this bit to 0
             if ( iommu->reg_file.ddtp.busy )
                 return;
             // If a illegal value written to ddtp.iommu_mode then retain the
-	    // current legal value. The IOMMU behavior of writing iommu_mode to
-	    // 1LVL, 2LVL, or 3LVL, when the previous value of the iommu_mode
-	    // is not Off or Bare is UNSPECIFIED - model behavior is to ignore
-	    // the write.
+            // current legal value. The IOMMU behavior of writing iommu_mode to
+            // 1LVL, 2LVL, or 3LVL, when the previous value of the iommu_mode
+            // is not Off or Bare is UNSPECIFIED - model behavior is to ignore
+            // the write.
             if ( (((ddtp_temp.iommu_mode == Off) ||
                    (ddtp_temp.iommu_mode == DDT_Bare) ||
                    (ddtp_temp.iommu_mode == DDT_1LVL) ||
@@ -228,10 +228,10 @@ write_register(
             break;
         case FQB_OFFSET:
             // The fault-queue is active if `fqon` reads 1. IOMMU behavior on
-	    // changing `fqb` when `busy` is 1 or `fqon` is 1 implementation
-	    // defined. The recommended sequence to change `fqb` is to first
+            // changing `fqb` when `busy` is 1 or `fqon` is 1 implementation
+            // defined. The recommended sequence to change `fqb` is to first
             // disable the fault-queue by clearing `fqen` and waiting for both
-	    // `busy` and `fqon` to be 0 before changing `fqb`.
+            // `busy` and `fqon` to be 0 before changing `fqb`.
             // The reference model discards the write.
             if ( iommu->reg_file.fqcsr.busy || iommu->reg_file.fqcsr.fqon )
                 return;
@@ -255,10 +255,10 @@ write_register(
             if ( iommu->reg_file.capabilities.ats == 0 )
                 break;
             // The page-request is active when `pqon` reads 1. IOMMU behavior on
-	    // changing `pqb` when `busy` is 1 or `pqon` is 1 implementation
-	    // defined. The recommended sequence to change `pqb` is to first
+            // changing `pqb` when `busy` is 1 or `pqon` is 1 implementation
+            // defined. The recommended sequence to change `pqb` is to first
             // disable the page-request queue by clearing `pqen` and waiting for
-	    // both `busy` and `pqon` to be 0 before changing `pqb`.
+            // both `busy` and `pqon` to be 0 before changing `pqb`.
             // The reference model discards the write.
             if ( iommu->reg_file.pqcsr.busy || iommu->reg_file.pqcsr.pqon )
                 return;
@@ -282,40 +282,40 @@ write_register(
             break;
         case CQCSR_OFFSET:
             // A write to `cqcsr` may require the IOMMU to perform many operations
-	    // that may not occur synchronously to the write. When a write is
-	    // observed by the `cqcsr`, the `busy` bit is set to 1.
+            // that may not occur synchronously to the write. When a write is
+            // observed by the `cqcsr`, the `busy` bit is set to 1.
 
             // When the `busy` bit is 1, behavior of additional writes to the
-	    // `cqcsr` is implementation defined. Some implementations may ignore
-	    // the second write and others may perform the actions determined by
-	    // the second write.
+            // `cqcsr` is implementation defined. Some implementations may ignore
+            // the second write and others may perform the actions determined by
+            // the second write.
 
             // Software must verify that the busy bit is 0 before writing to the
-	    // `cqcsr`. An IOMMU that can complete controls synchronously may
-	    // hard-wire this bit to 0.
+            // `cqcsr`. An IOMMU that can complete controls synchronously may
+            // hard-wire this bit to 0.
 
             // An IOMMU that can complete these operations synchronously may
-	    // hard-wire this bit to 0. The reference model discards the write.
+            // hard-wire this bit to 0. The reference model discards the write.
             if ( iommu->reg_file.cqcsr.busy )
                 return;
             // First set the busy bit
             iommu->reg_file.cqcsr.busy = 1;
             // The command-queue-enable bit enables the command-queue when set
-	    // to 1. Changing `cqen` from 0 to 1 sets the `cqh` register and the
-	    // `cqcsr` bits `cmd_ill`,`cmd_to`, `cqmf`, `fence_w_ip` to 0.
+            // to 1. Changing `cqen` from 0 to 1 sets the `cqh` register and the
+            // `cqcsr` bits `cmd_ill`,`cmd_to`, `cqmf`, `fence_w_ip` to 0.
 
             // The command-queue may take some time to be active following setting
-	    // the `cqen` to 1. During this delay the `busy` bit is 1. When the
-	    // command queue is active, the `cqon` bit reads 1.
+            // the `cqen` to 1. During this delay the `busy` bit is 1. When the
+            // command queue is active, the `cqon` bit reads 1.
 
             // When `cqen` is changed from 1 to 0, the command queue may stay
-	    // active till the commands already fetched from the command-queue are
-	    // being processed and/or there are outstanding implicit loads from the
-	    // command-queue.  When the command-queue turns off, the `cqon` bit
-	    // reads 0. When the `cqon` bit reads 0, the IOMMU guarantees that no
-	    // implicit memory accesses to the command queue are in-flight and the
-	    // command-queue will not generate new implicit loads to the queue
-	    // memory.
+            // active till the commands already fetched from the command-queue are
+            // being processed and/or there are outstanding implicit loads from the
+            // command-queue.  When the command-queue turns off, the `cqon` bit
+            // reads 0. When the `cqon` bit reads 0, the IOMMU guarantees that no
+            // implicit memory accesses to the command queue are in-flight and the
+            // command-queue will not generate new implicit loads to the queue
+            // memory.
             if ( iommu->reg_file.cqcsr.cqen != cqcsr_temp.cqen ) {
                 // cqen going from 0->1 or 1->0
                 if ( cqcsr_temp.cqen == 1 ) {
@@ -339,7 +339,7 @@ write_register(
                 }
             }
             // Command-queue-interrupt-enable bit enables generation of
-	    // interrupts from command-queue when set to 1.
+            // interrupts from command-queue when set to 1.
             iommu->reg_file.cqcsr.cie = cqcsr_temp.cie;
 
             // Update the RW1C bits - clear if written to 1
@@ -349,23 +349,23 @@ write_register(
             if ( cqcsr_temp.fence_w_ip == 1 ) iommu->reg_file.cqcsr.fence_w_ip = 0;
 
             // Clear the busy bit. The busy bit may stay active if an IOFENCE
-	    // is pending
+            // is pending
             if ( iommu->reg_file.cqcsr.cqen == iommu->reg_file.cqcsr.cqon )
                 iommu->reg_file.cqcsr.busy = 0;
             return;
         case FQCSR_OFFSET:
             // Write to `fqcsr` may require the IOMMU to perform many
-	    // operations that may not occur synchronously to the write.
+            // operations that may not occur synchronously to the write.
 
             // When a write is observed by the fqcsr, the `busy` bit is set to 1.
-	    // When the `busy` bit is 1, behavior of additional writes to the
-	    // `fqcsr` are implementation defined. Some implementations may
+            // When the `busy` bit is 1, behavior of additional writes to the
+            // `fqcsr` are implementation defined. Some implementations may
             // ignore the second write and others may perform the actions
-	    // determined by the second write. Software should ensure that the
-	    // `busy` bit is 0 before writing to the `fqcsr`.
+            // determined by the second write. Software should ensure that the
+            // `busy` bit is 0 before writing to the `fqcsr`.
 
             // An IOMMU that can complete controls synchronously may hard-wire
-	    // this bit to 0.
+            // this bit to 0.
             if ( iommu->reg_file.fqcsr.busy )
                 return;
             // First set the busy bit
@@ -373,17 +373,17 @@ write_register(
             // The fault-queue enable bit enables the fault-queue when set to 1.
 
             // Changing `fqen` from 0 to 1 sets the `fqt` register and the
-	    // `fqcsr` bits `fqof` and `fqmf` to 0. The fault-queue may take
-	    // some time to be active following setting the `fqen` to 1. During
-	    // this delay the `busy` bit is 1. When the fault queue is active,
-	    // the `fqon` bit reads 1.
+            // `fqcsr` bits `fqof` and `fqmf` to 0. The fault-queue may take
+            // some time to be active following setting the `fqen` to 1. During
+            // this delay the `busy` bit is 1. When the fault queue is active,
+            // the `fqon` bit reads 1.
 
             // When `fqen` is changed from 1 to 0, the fault-queue may stay
-	    // active till in-flight fault-recording is completed. When the
-	    // fault-queue is off, the `fqon` bit reads 0. The IOMMU guarantees
-	    // that there are no in-flight implicit writes to the fault-queue
-	    // in progress when `fqon` reads 0 and no new fault records will be
-	    // written to the fault-queue.
+            // active till in-flight fault-recording is completed. When the
+            // fault-queue is off, the `fqon` bit reads 0. The IOMMU guarantees
+            // that there are no in-flight implicit writes to the fault-queue
+            // in progress when `fqon` reads 0 and no new fault records will be
+            // written to the fault-queue.
             if ( iommu->reg_file.fqcsr.fqen != fqcsr_temp.fqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( fqcsr_temp.fqen == 1 ) {
@@ -401,7 +401,7 @@ write_register(
                 }
             }
             // Fault-queue-interrupt-enable bit enables generation of interrupts
-	    // from command-queue when set to 1.
+            // from command-queue when set to 1.
             iommu->reg_file.fqcsr.fie = fqcsr_temp.fie;
             // Update the RW1C bits - clear if written to 1
             if ( fqcsr_temp.fqmf == 1)
@@ -413,39 +413,39 @@ write_register(
             break;
         case PQCSR_OFFSET:
             // Write to `pqcsr` may require the IOMMU to perform many operations
-	    // that may not occur synchronously to the write.
+            // that may not occur synchronously to the write.
 
             // When a write is observed by the `pqcsr`, the `busy` bit is set to 1.
-	    // When the `busy` bit is 1, behavior of additional writes to the
-	    // `fqcsr` are implementation defined. Some implementations may ignore
-	    // the second write and others may perform the actions determined by
-	    // the second write. Software should ensure that the `busy` bit is 0
+            // When the `busy` bit is 1, behavior of additional writes to the
+            // `fqcsr` are implementation defined. Some implementations may ignore
+            // the second write and others may perform the actions determined by
+            // the second write. Software should ensure that the `busy` bit is 0
             // before writing to the `fqcsr`. An IOMMU that can complete controls
-	    // synchronously may hard-wire this bit to 0.
+            // synchronously may hard-wire this bit to 0.
             if ( iommu->reg_file.pqcsr.busy ) {
                 return;
             }
             // First set the busy bit
             iommu->reg_file.pqcsr.busy = 1;
             // The page-request-enable bit enables the page-request-queue when
-	    // set to 1. Changing `pqen` from 0 to 1, sets the `pqt` register and
+            // set to 1. Changing `pqen` from 0 to 1, sets the `pqt` register and
             // the `pqcsr` bits `pqmf` and `pqof` to 0. The page-request-queue
-	    // may take some time to be active following setting the `pqen` to 1.
-	    // During this delay the `busy` bit is 1. When the page-request-queue
-	    // is active, the `pqon` bit reads 1.
+            // may take some time to be active following setting the `pqen` to 1.
+            // During this delay the `busy` bit is 1. When the page-request-queue
+            // is active, the `pqon` bit reads 1.
 
             // When `pqen` is changed from 1 to 0, the page-request-queue may stay
-	    // active (with `busy` asserted) until in-flight page-request writes
-	    // are completed. When the page-request-queue turns off, the `pqon`
-	    // bit reads 0.
+            // active (with `busy` asserted) until in-flight page-request writes
+            // are completed. When the page-request-queue turns off, the `pqon`
+            // bit reads 0.
 
             // When `pqon` reads 0, the IOMMU guarantees that there are no older
-	    // in-flight implicit writes to the queue memory and no further
-	    // implicit writes will be generated to the queue memory. The IOMMU
-	    // may respond to “Page Request” messages received when
-	    // page-request-queue is off or in the process of being turned off,
-	    // as having encountered a catastrophic error as defined by the PCIe
-	    // ATS specifications
+            // in-flight implicit writes to the queue memory and no further
+            // implicit writes will be generated to the queue memory. The IOMMU
+            // may respond to “Page Request” messages received when
+            // page-request-queue is off or in the process of being turned off,
+            // as having encountered a catastrophic error as defined by the PCIe
+            // ATS specifications
             if ( iommu->reg_file.pqcsr.pqen != pqcsr_temp.pqen ) {
                 // fqen going from 0->1 or 1->0
                 if ( pqcsr_temp.pqen == 1 ) {
@@ -463,7 +463,7 @@ write_register(
                 }
             }
             // page-request-queue-interrupt-enable bit enables generation of
-	    // interrupts from page-request-queue when set to 1.
+            // interrupts from page-request-queue when set to 1.
             iommu->reg_file.pqcsr.pie = pqcsr_temp.pie;
             // Update the RW1C bits - clear if written to 1
             if ( pqcsr_temp.pqmf == 1 )
@@ -475,22 +475,22 @@ write_register(
             break;
         case IPSR_OFFSET:
             // This 32-bits register (RW1C) reports the pending interrupts which
-	    // require software service. Each interrupt-pending bit in the
-	    // register corresponds to a interrupt source in the IOMMU.
+            // require software service. Each interrupt-pending bit in the
+            // register corresponds to a interrupt source in the IOMMU.
 
-	    // When an interrupt-pending bit in the register is set to 1 the
-	    // IOMMU will not signal another interrupt from that source till
-	    // software clears that interrupt-pending bit by writing 1 to clear
-	    // it.
+            // When an interrupt-pending bit in the register is set to 1 the
+            // IOMMU will not signal another interrupt from that source till
+            // software clears that interrupt-pending bit by writing 1 to clear
+            // it.
 
-	    // Update the RW1C bits - clear if written to 1 If a bit in `ipsr`
-	    // is 1 then a write of 1 to the bit transitions the bit from 1->0.
-	    // If the conditions to set that bit are still present or if they
-	    // occur after the bit is cleared then that bit transitions again
-	    // from 0->1.
+            // Update the RW1C bits - clear if written to 1 If a bit in `ipsr`
+            // is 1 then a write of 1 to the bit transitions the bit from 1->0.
+            // If the conditions to set that bit are still present or if they
+            // occur after the bit is cleared then that bit transitions again
+            // from 0->1.
 
-	    // Clear cip and pend interrupt again if there are unacknowledged
-	    // interrupts from CQ and if CQ interrupts are enabled.
+            // Clear cip and pend interrupt again if there are unacknowledged
+            // interrupts from CQ and if CQ interrupts are enabled.
             if ( ipsr_temp.cip == 1 )
                 iommu->reg_file.ipsr.cip = 0;
             if ( ipsr_temp.cip == 1 ) {
@@ -526,7 +526,7 @@ write_register(
                 }
             }
             // Note that pmip is only set on a OF 0->1 edge from one of the HPM
-	    // counters only.
+            // counters only.
             if ( ipsr_temp.pmip == 1 )
                 iommu->reg_file.ipsr.pmip = 0;
             break;
@@ -703,21 +703,21 @@ write_register(
             break;
         case ICVEC_OFFSET:
             // The performance-monitoring-interrupt-vector (`pmiv`) is the vector
-	    // number assigned to the performance-monitoring-interrupt. This field
-	    // is read-only 0 if `capabilities.HPM` is 0.
+            // number assigned to the performance-monitoring-interrupt. This field
+            // is read-only 0 if `capabilities.HPM` is 0.
             if ( iommu->reg_file.capabilities.hpm == 0 ) {
                 icvec_temp.pmiv = 0;
             }
             // The page-request-queue-interrupt-vector (`piv`) is the vector number
-	    // assigned to the page-request-queue-interrupt. This field is read-only 0
-	    // if `capabilities.ATS` is 0.
+            // assigned to the page-request-queue-interrupt. This field is read-only 0
+            // if `capabilities.ATS` is 0.
             if ( iommu->reg_file.capabilities.ats == 0 ) {
                 icvec_temp.piv = 0;
             }
             // If an implementation only supports a single vector then all bits
-	    // of this register may be hardwired to 0 (WARL). Likewise if only
-	    // two vectors are supported then only bit 0 for each cause could be
-	    // writable.
+            // of this register may be hardwired to 0 (WARL). Likewise if only
+            // two vectors are supported then only bit 0 for each cause could be
+            // writable.
             iommu->reg_file.icvec.pmiv = icvec_temp.pmiv & ((1UL << iommu->num_vec_bits) - 1);
             iommu->reg_file.icvec.piv  = icvec_temp.piv & ((1UL << iommu->num_vec_bits) - 1);
             iommu->reg_file.icvec.fiv  = icvec_temp.fiv & ((1UL << iommu->num_vec_bits) - 1);
@@ -740,14 +740,14 @@ write_register(
         case MSI_ADDR_14_OFFSET:
         case MSI_ADDR_15_OFFSET:
             // IOMMU that supports MSI implements a MSI configuration table that
-	    // is indexed by the vector from icvec to determine a MSI table entry.
+            // is indexed by the vector from icvec to determine a MSI table entry.
             // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
             // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
             // then MSI configuration table entries 2^V to 15 are read-only 0.
 
-	    // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
-	    // capabilities.IGS == WSI).
+            // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
+            // capabilities.IGS == WSI).
             if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
@@ -773,14 +773,14 @@ write_register(
         case MSI_DATA_14_OFFSET:
         case MSI_DATA_15_OFFSET:
             // IOMMU that supports MSI implements a MSI configuration table that
-	    // is indexed by the vector from icvec to determine a MSI table entry.
+            // is indexed by the vector from icvec to determine a MSI table entry.
             // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
             // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
             // then MSI configuration table entries 2^V to 15 are read-only 0.
 
-	    // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
-	    // capabilities.IGS == WSI).
+            // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
+            // capabilities.IGS == WSI).
             if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
@@ -805,14 +805,14 @@ write_register(
         case MSI_VEC_CTRL_14_OFFSET:
         case MSI_VEC_CTRL_15_OFFSET:
             // IOMMU that supports MSI implements a MSI configuration table that
-	    // is indexed by the vector from icvec to determine a MSI table entry.
+            // is indexed by the vector from icvec to determine a MSI table entry.
             // Each MSI table entry for interrupt vector x has three registers msi_addr_x,
             // msi_data_x, and msi_vec_ctrl_x.  If number of writable bits in each field
             // of icvec is V, then x is a number between 0 and 2V - 1. If V is less than 4
             // then MSI configuration table entries 2^V to 15 are read-only 0.
 
-	    // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
-	    // capabilities.IGS == WSI).
+            // These registers are read-only 0 if the IOMMU does not support MSI (i.e., if
+            // capabilities.IGS == WSI).
             if ( iommu->reg_file.capabilities.igs == WSI )
                 break;
             x = (offset - MSI_ADDR_0_OFFSET) / 16;
