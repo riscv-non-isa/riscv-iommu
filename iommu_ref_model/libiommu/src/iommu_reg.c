@@ -140,7 +140,7 @@ write_register(
             // pqcsr.pqon/pqen == 1) then the IOMMU
             // behavior is UNSPECIFIED.
             // FCTL is writeable if IOMMU is bi-endian
-            // or supports both wired and MSI interrupts or 
+            // or supports both wired and MSI interrupts or
 	    // supports changing G-stage XLEN (GXL).
             // The register retains default values for the field if not
             // writeable
