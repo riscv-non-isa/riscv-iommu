@@ -8,7 +8,7 @@
 
 #ifndef RVI_IOMMU_NO_SHORT_NAMES
 #define CAPABILITIES_OFFSET             RVI_IOMMU_CAPABILITIES_OFFSET
-#define FCTRL_OFFSET                    RVI_IOMMU_FCTRL_OFFSET
+#define FCTL_OFFSET                     RVI_IOMMU_FCTL_OFFSET
 #define DDTP_OFFSET                     RVI_IOMMU_DDTP_OFFSET
 #define CQB_OFFSET                      RVI_IOMMU_CQB_OFFSET
 #define CQH_OFFSET                      RVI_IOMMU_CQH_OFFSET
@@ -802,7 +802,7 @@ typedef union {                        // |Ofst|Name            |Size|Descriptio
 
 // Offset to field
 #define RVI_IOMMU_CAPABILITIES_OFFSET  0
-#define RVI_IOMMU_FCTRL_OFFSET         8
+#define RVI_IOMMU_FCTL_OFFSET          8
 #define RVI_IOMMU_DDTP_OFFSET          16
 #define RVI_IOMMU_CQB_OFFSET           24
 #define RVI_IOMMU_CQH_OFFSET           32
