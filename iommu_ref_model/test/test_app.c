@@ -1308,10 +1308,10 @@ main(void) {
     write_register(&iommu, PQCSR_OFFSET, 4, pqcsr.raw);
     write_register(&iommu, PQH_OFFSET, 4, 0);
 
-    fctl.raw = read_register(&iommu, FCTRL_OFFSET, 4);
+    fctl.raw = read_register(&iommu, FCTL_OFFSET, 4);
     fctl.wsi = 1;
-    write_register(&iommu, FCTRL_OFFSET, 4, fctl.raw);
-    fctl.raw = read_register(&iommu, FCTRL_OFFSET, 4);
+    write_register(&iommu, FCTL_OFFSET, 4, fctl.raw);
+    fctl.raw = read_register(&iommu, FCTL_OFFSET, 4);
     fail_if( (fctl.wsi == 0) );
 
     cqcsr.cqen = 1;
@@ -1358,7 +1358,7 @@ main(void) {
     write_register(&iommu, PQH_OFFSET, 4, 0);
 
     fctl.wsi = 0;
-    write_register(&iommu, FCTRL_OFFSET, 4, fctl.raw);
+    write_register(&iommu, FCTL_OFFSET, 4, fctl.raw);
     cqcsr.cqen = 1;
     write_register(&iommu, CQCSR_OFFSET, 4, cqcsr.raw);
     fqcsr.fqen = 1;
@@ -4148,7 +4148,7 @@ main(void) {
                 fail_if( ( temp != read_register(&iommu, i, 8) ) );
                 offset += 8;
                 break;
-            case FCTRL_OFFSET:
+            case FCTL_OFFSET:
                 fctl.raw = read_register(&iommu, i, 4);
                 fctl.be = 1;
                 fctl.wsi = 1;
