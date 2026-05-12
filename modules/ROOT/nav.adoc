@@ -9,5 +9,4 @@
 * xref:iommu_registers.adoc[Memory-mapped Register Interface]
 * xref:iommu_sw_guidelines.adoc[Software Guidelines]
 * xref:iommu_hw_guidelines.adoc[Hardware Guidelines]
-* xref:iommu_extensions.adoc[IOMMU Extensions]
 * xref:bibliography.adoc[Bibliography]
