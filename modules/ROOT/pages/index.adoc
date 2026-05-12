@@ -4,7 +4,7 @@ image::common::risc-v_logo.svg[id="riscvlogo"xs,alt="RISCV"]
 [.space-below]
 == RISC-V IOMMU Architecture Specification
 
-Version v1.0.1, Revised 2025-08-28
+Version v1.0.1, 2025-06-20: Ratified
 
 [WARNING]
 .This document is in the link:http://riscv.org/spec-state[Ratified state]
