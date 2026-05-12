@@ -1,6 +1,7 @@
 name: iommu
 title: RISC-V IOMMU
-version: 20240911
+version: v20240911
+display-version: '20240911'
 start_page: ROOT:index.adoc
 nav:
   - modules/ROOT/nav.adoc
