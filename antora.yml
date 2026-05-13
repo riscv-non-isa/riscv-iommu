@@ -11,7 +11,7 @@ asciidoc:
     page-group: hardware
     asamBibliography: 'ROOT:resources/iommu.bib'
     page-card-description: 'IOMMU architecture, registers, queues, and integration guidance.'
-    page-release-date: 'August 2025'
+    page-release-date: 'June 2023'
     page-pdf_url: _attachments/riscv-iommu.pdf
     more_details_url: https://riscv.atlassian.net/wiki/external/ZGY0YjgxZTZhOTY3NDhiZGJhMGZiNzAwMzk3ZmNkNDg
     source-highlighter: highlight.js
