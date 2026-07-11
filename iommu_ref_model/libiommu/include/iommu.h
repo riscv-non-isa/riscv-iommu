@@ -77,6 +77,11 @@ typedef struct iommu_t {
 
     itag_tracker_t itag_tracker[RVI_IOMMU_MAX_ITAGS];
     uint8_t msi_pending[16];
+
+    // Last fault information to support debug usages
+    uint32_t cause;
+    uint64_t iotval2;
+    uint64_t iotval;
 } iommu_t;
 
 #endif
