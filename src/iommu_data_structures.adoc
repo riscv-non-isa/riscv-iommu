@@ -1482,8 +1482,9 @@ device being disabled for all PFs/VFs.
 
 [NOTE]
 ====
-A "Stop Marker" is encoded as a "Page Request" with a PASID but with the L, W,
-and R fields set to 1, 0, and 0 respectively.
+A "Stop Marker" is encoded as a "Page Request" with the L, W, and R fields set
+to 1, 0, and 0 respectively. Per PCIe, the behavior is undefined if the "Stop
+Marker" has no PASID.
 ====
 
 For IOMMU-generated "Page Request Group Response" messages that have status
