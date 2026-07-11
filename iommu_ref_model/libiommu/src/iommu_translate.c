@@ -519,6 +519,10 @@ guest_page_fault:
     goto stop_and_report_fault;
 
 stop_and_report_fault:
+    // store the last fault information to support debug usages
+    iommu->cause = cause;
+    iommu->iotval = iotval;
+    iommu->iotval2 = iotval2;
     // No faults are logged in the fault queue for PCIe ATS Translation Requests
     // with success response.
     if ( req->tr.at != ADDR_TYPE_PCIE_ATS_TRANSLATION_REQUEST ) {
