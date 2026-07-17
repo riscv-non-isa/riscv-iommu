@@ -369,7 +369,8 @@ do_device_context_configuration_checks(
     // software. All other settings are reserved. Implementations are recommended
     // to stop and report "DDT entry misconfigured" (cause = 259) if a reserved
     // setting is detected.
-    if ( (DC->iohgatp.MODE == IOHGATP_Bare) && (DC->msiptp.MODE != MSIPTP_Off) ) {
+    if ( (iommu->reg_file.capabilities.msi_flat == 1) &&
+         (DC->iohgatp.MODE == IOHGATP_Bare) && (DC->msiptp.MODE != MSIPTP_Off) ) {
         return 1;
     }
 
