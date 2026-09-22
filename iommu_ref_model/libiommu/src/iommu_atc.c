@@ -97,7 +97,7 @@ void
 cache_ioatc_iotlb(
     iommu_t *iommu,
     uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
-    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t IS_MSI) {
+    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t IS_MSI, uint8_t is_frac) {
 
     uint8_t i, replace = 0;
     uint32_t lru = 0xFFFFFFFF;
@@ -141,6 +141,8 @@ cache_ioatc_iotlb(
     iommu->tlb[replace].S     = S;
     // Whether MSI
     iommu->tlb[replace].IS_MSI = IS_MSI;
+    // Whether fractured
+    iommu->tlb[replace].is_frac = is_frac;
 
     iommu->tlb[replace].valid = 1;
     return;
