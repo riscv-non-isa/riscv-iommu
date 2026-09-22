@@ -18,6 +18,9 @@ typedef union {
     uint64_t raw[2];
 } page_rec_t;
 
+#ifndef RVI_IOMMU_MAX_ITAGS
+#define RVI_IOMMU_MAX_ITAGS 2
+#endif
 #ifndef RVI_IOMMU_NO_SHORT_NAMES
 #define PQ_ENTRY_SZ             RVI_IOMMU_PQ_ENTRY_SZ
 #define INVAL_REQ_MSG_CODE      RVI_IOMMU_INVAL_REQ_MSG_CODE
@@ -90,7 +93,6 @@ typedef struct {
     uint8_t  num_rsp_rcvd;
 } itag_tracker_t;
 
-#define RVI_IOMMU_MAX_ITAGS 2
 extern uint8_t allocate_itag(iommu_t *iommu, uint8_t DSV, uint8_t DSEG, uint16_t RID, uint8_t *itag);
 extern void send_msg_iommu_to_hb(ats_msg_t *msg);
 extern uint8_t any_ats_invalidation_requests_pending(iommu_t *iommu);
