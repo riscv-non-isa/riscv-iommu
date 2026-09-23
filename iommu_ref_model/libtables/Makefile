@@ -1,4 +1,4 @@
-CFLAGS := -O0 -g -Wall -Werror -I../libiommu/include/ -Iinclude
+CFLAGS := -O0 -g -Wall -Werror -I../libiommu/include/ -Iinclude -DRVI_IOMMU_MAX_ITAGS=$(RVI_IOMMU_MAX_ITAGS)
 CC := gcc
 NAME := tables
 SRCS = src/build_ddt.c src/build_pdt.c src/build_g_stage_pt.c src/build_s_stage_pt.c src/build_vs_stage_pt.c src/translate_gpa.c

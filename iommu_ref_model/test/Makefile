@@ -1,4 +1,4 @@
-CFLAGS := -O0 -g -Wall -Werror -I../libiommu/include -I../libtables/include -lgcov --coverage
+CFLAGS := -O0 -g -Wall -Werror -I../libiommu/include -I../libtables/include -lgcov --coverage -DRVI_IOMMU_MAX_ITAGS=$(RVI_IOMMU_MAX_ITAGS)
 CC := gcc
 SRCS_APP = test_app.c tbapi.c test_utils.c
 OBJ_APP = $(SRCS_APP:.c=.o)

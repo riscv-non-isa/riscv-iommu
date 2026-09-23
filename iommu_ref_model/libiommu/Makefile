@@ -1,5 +1,3 @@
-# default; overridable via make RVI_IOMMU_MAX_ITAGS=<number>
-RVI_IOMMU_MAX_ITAGS ?= 2
 CFLAGS := -g -Wall -Werror -Iinclude -fprofile-arcs -ftest-coverage -DRVI_IOMMU_MAX_ITAGS=$(RVI_IOMMU_MAX_ITAGS)
 CC := gcc
 NAME := iommu
