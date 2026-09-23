@@ -379,7 +379,9 @@ do_iotinval_vma(
         if ( (PSCV == 0) ||
              (PSCV == 1 && iommu->tlb[i].G == 0) )
             global_match = 1;
-        if ( (AV == 0) ||
+	// In this implementation, fractured pages are unconditionally invalidated. While this is
+	// one possible legal implementation, it is not the only possible implementation.
+        if ( (AV == 0) || (iommu->tlb[i].is_frac == 1) ||
              (AV == 1 && match_address_range(ADDR_63_12, S, iommu->tlb[i].vpn, iommu->tlb[i].S)) )
             addr_match = 1;
         if ( gscid_match && pscid_match && addr_match && global_match )

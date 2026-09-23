@@ -26,7 +26,7 @@ iommu_translate_iova(
     uint32_t DID, PID, GSCID, PSCID;
     pte_t vs_pte;
     gpte_t g_pte;
-    uint8_t ioatc_status, gst_fault, is_implicit;
+    uint8_t ioatc_status, gst_fault, is_implicit, is_frac;
     uint64_t napot_ppn, napot_iova, napot_gpa;
 
     // Classify transaction type
@@ -352,6 +352,7 @@ skip_gpa_trans:
     page_sz = ( gst_page_sz < page_sz ) ? gst_page_sz : page_sz;
     pa      = (pa & ~(page_sz - 1)) | (req->tr.iova & (page_sz - 1));
 
+
     // Cache the translation in the IOATC
     // In the IOTLB the IOVA & PPN is stored in the NAPOT format
     // While IOMMUs are expected typically to cache MSI PTEs that are configured
@@ -365,12 +366,15 @@ skip_gpa_trans:
     napot_ppn = (((pa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_iova = (((req->tr.iova & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
     napot_gpa = (((gpa & ~(page_sz - 1)) | ((page_sz/2) - 1))/PAGESIZE);
+    // If the G-stage page size is smaller than the VS stage page size then a
+    // fractured page is cached in the ATC.
+    is_frac = ( gst_page_sz < page_sz ) ? 1 : 0;
     if ( req->tr.at == ADDR_TYPE_UNTRANSLATED &&
          (is_msi == 0 || (is_msi == 1 && is_mrif == 0)) ) {
         // For Untranslated Requests cache the translations for future re-use
         cache_ioatc_iotlb(iommu, napot_iova, GV, PSCV, iohgatp.GSCID, PSCID,
                           &vs_pte, &g_pte, napot_ppn,
-                          ((page_sz > PAGESIZE) ? 1 : 0), is_msi);
+                          ((page_sz > PAGESIZE) ? 1 : 0), is_msi, is_frac);
     }
     if ( (TTYP == PCIE_ATS_TRANSLATION_REQUEST) &&
          (is_msi == 0 || (is_msi == 1 && is_mrif == 0)) &&
@@ -383,7 +387,7 @@ skip_gpa_trans:
         cache_ioatc_iotlb(iommu, (DC.tc.T2GPA == 1) ? napot_gpa : napot_iova,
                                      GV, (DC.tc.T2GPA == 1) ? 0 : PSCV,
                           iohgatp.GSCID, (DC.tc.T2GPA == 1) ? 0 : PSCID,
-                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0), is_msi);
+                          &vs_pte, &g_pte, napot_ppn, ((page_sz > PAGESIZE) ? 1 : 0), is_msi, is_frac);
         // Return the GPA as translation response if T2GPA is 1
         pa = (DC.tc.T2GPA == 1) ? gpa : pa;
     }

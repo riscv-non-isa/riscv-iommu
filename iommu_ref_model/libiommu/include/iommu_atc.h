@@ -33,6 +33,8 @@ typedef struct {
     uint8_t  valid;
     // Whether is an MSI translation
     uint8_t  IS_MSI;
+    // Whether fractued VS stage page
+    uint8_t  is_frac;
 } tlb_t;
 // Device directory cache
 typedef struct {
@@ -71,7 +73,7 @@ extern void
 cache_ioatc_iotlb(
     iommu_t *iommu,
     uint64_t vpn, uint8_t  GV, uint8_t  PSCV, uint32_t GSCID, uint32_t PSCID,
-    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t is_msi);
+    pte_t *vs_pte, gpte_t *g_pte, uint64_t PPN, uint8_t S, uint8_t is_msi, uint8_t is_frac);
 
 extern uint8_t
 lookup_ioatc_iotlb(
