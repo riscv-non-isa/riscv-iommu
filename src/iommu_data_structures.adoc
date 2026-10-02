@@ -1129,7 +1129,7 @@ The process to locate the Process-context for a transaction using its
 . Let `a` be `pdtp.PPN x 2^12^` and let `i = LEVELS - 1`. When
   `pdtp.MODE` is `PD20`, `LEVELS` is three. When `pdtp.MODE` is
   `PD17`, `LEVELS` is two. When `pdtp.MODE` is `PD8`, `LEVELS` is one.
-. If `i != 0`, then let `a = a + PDI[2] × 8`; otherwise, let
+. If `i != 0`, then let `a = a + PDI[i] × 8`; otherwise, let
   `a = a + PDI[0] × 16`.
 . If `DC.iohgatp.mode != Bare`, then `a` is a GPA. Invoke the process
   to translate `a` to a SPA as an implicit memory access. If faults occur during
@@ -1482,8 +1482,9 @@ device being disabled for all PFs/VFs.
 
 [NOTE]
 ====
-A "Stop Marker" is encoded as a "Page Request" with a PASID but with the L, W,
-and R fields set to 1, 0, and 0 respectively.
+A "Stop Marker" is encoded as a "Page Request" with the L, W, and R fields set
+to 1, 0, and 0 respectively. Per PCIe, the behavior is undefined if the "Stop
+Marker" has no PASID.
 ====
 
 For IOMMU-generated "Page Request Group Response" messages that have status
