@@ -3435,7 +3435,6 @@ main(void) {
 
     // test running out of itags
     if ( RVI_IOMMU_MAX_ITAGS == 2) {
-	    printf("%d--%d\n", RVI_IOMMU_MAX_ITAGS, MAX_ITAGS);
     exp_msg.TAG = 0;
     message_received = 0;
     ats_command(&iommu, INVAL, 1, 0, 0, 0x43, 0x1234, 0x1234000000000000);

@@ -120,9 +120,11 @@ send_msg_iommu_to_hb(
 
 void
 get_attribs_from_req(
+    iommu_t *iommu,
     hb_to_iommu_req_t *req, uint8_t *read, uint8_t *write, uint8_t *exec, uint8_t *priv) {
 
-    *read = (req->tr.read_writeAMO == READ && req->exec_req && req->tr.at == ADDR_TYPE_UNTRANSLATED) ?
+    *read = iommu->trans_for_debug ? 1 :
+	    (req->tr.read_writeAMO == READ && req->exec_req && req->tr.at == ADDR_TYPE_UNTRANSLATED) ?
             0 : ( req->tr.read_writeAMO == READ ) ? 1 : 0;
 
     *write = ( req->tr.read_writeAMO == WRITE ) ?  1 : 0;
