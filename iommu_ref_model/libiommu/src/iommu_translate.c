@@ -71,7 +71,7 @@ iommu_translate_iova(
     if ( TTYP == TTYPE_NONE ) *((char *)0) = 0;
 
     // Extract read/write/exec/priv attributes from request
-    get_attribs_from_req(req, &is_read, &is_write, &is_exec, &priv);
+    get_attribs_from_req(iommu, req, &is_read, &is_write, &is_exec, &priv);
 
     // The process to translate an `IOVA` is as follows:
     // 1. If `ddtp.iommu_mode == Off` then stop and report "All inbound transactions
