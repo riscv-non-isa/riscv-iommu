@@ -1,5 +1,6 @@
 # default; overridable via make RVI_IOMMU_MAX_ITAGS=<number>
 RVI_IOMMU_MAX_ITAGS ?= 2
+export RVI_IOMMU_MAX_ITAGS
 SUBDIRS = libiommu libtables test
 .PHONY: run
 all:
