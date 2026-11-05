@@ -1,7 +1,7 @@
 name: iommu
 title: RISC-V IOMMU
 version: v20240911
-display-version: '20240911'
+display-version: "20240911"
 start_page: ROOT:index.adoc
 nav:
   - modules/ROOT/nav.adoc
@@ -9,9 +9,9 @@ nav:
 asciidoc:
   attributes:
     page-group: hardware
-    asamBibliography: 'ROOT:resources/iommu.bib'
-    page-card-description: 'IOMMU architecture, registers, queues, and integration guidance.'
-    page-release-date: 'September 2024'
+    asamBibliography: "ROOT:resources/iommu.bib"
+    page-card-description: "IOMMU architecture, registers, queues, and integration guidance."
+    page-release-date: "September 2024"
     page-pdf_url: _attachments/riscv-iommu.pdf
     more_details_url: https://riscv.atlassian.net/wiki/external/ZGY0YjgxZTZhOTY3NDhiZGJhMGZiNzAwMzk3ZmNkNDg
     source-highlighter: highlight.js
